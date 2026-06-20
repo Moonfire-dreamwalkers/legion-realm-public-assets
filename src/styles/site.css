@@ -8247,6 +8247,7 @@ iframe {
     rgba(14, 14, 14, 0.78);
   clip-path: polygon(0 0, 98% 0, 100% 14%, 99% 100%, 3% 100%, 0 86%);
   transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+  cursor: pointer;
 }
 
 .track-list li::after {
@@ -8266,6 +8267,20 @@ iframe {
   background: linear-gradient(90deg, rgba(208, 22, 29, 0.24), transparent 42%),
     rgba(20, 20, 20, 0.92);
 }
+
+.track-list li.is-playing {
+  border-color: var(--stone-rim-hot) !important;
+  background: linear-gradient(90deg, rgba(208, 22, 29, 0.32), transparent 42%), rgba(25, 20, 20, 0.96) !important;
+  box-shadow: var(--stone-inner),
+    0 0 0 1px rgba(0, 0, 0, 0.82),
+    0 0 20px rgba(218, 18, 25, 0.36) !important;
+}
+
+.track-list li.is-playing .track-index {
+  color: #ff2a2a !important;
+  text-shadow: 0 0 8px rgba(240, 24, 32, 0.6);
+}
+
 
 .track-index {
   color: rgba(216, 209, 185, 0.54) !important;

@@ -581,8 +581,7 @@ function renderNav() {
     )
     .join("");
 
-  const shortVersion = (version.length > 10 && version.includes('T')) ? version.split('T')[0] : version;
-  nav.innerHTML = linksHtml + `<span class="build-badge">${shortVersion}</span>`;
+  nav.innerHTML = linksHtml + `<span class="build-badge">${version}</span>`;
 }
 
 function registerThumbnailCache() {
@@ -619,6 +618,12 @@ async function warmVideoThumbnailCache(list) {
 function activateView(requestedView) {
   const view = views.find((item) => item.id === requestedView) || views[0];
   
+  // Stop preview audio when navigating away
+  if (typeof currentAudio !== "undefined" && currentAudio) {
+    currentAudio.pause();
+    currentAudio = null;
+  }
+
   // Clean up portal active class in case we navigated from Promote portal
   if (siteShell) {
     siteShell.classList.remove("portal-active");
@@ -659,11 +664,7 @@ function initApp() {
   loadBigCartelProducts();
 }
 
-if (document.readyState === "loading") {
-  window.addEventListener("DOMContentLoaded", initApp);
-} else {
-  initApp();
-}
+
 
 function renderView(view) {
   const renderers = {
@@ -1426,18 +1427,16 @@ function renderMusic(view) {
             ${renderAlbumFacts(activeAlbum)}
           </div>
           <div class="album-actions">
-            <div class="album-spotify-wrapper">
-              <iframe 
-                id="albumHeroEmbed"
-                src="${spotifyEmbedUrl(activeAlbum.href)}" 
-                width="100%" 
-                height="80" 
-                frameBorder="0" 
-                allowfullscreen="" 
-                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" 
-                loading="lazy">
-              </iframe>
-            </div>
+            <a 
+              id="albumSpotifyLink"
+              href="${activeAlbum.href}" 
+              target="_blank" 
+              rel="noreferrer" 
+              class="button button-primary full" 
+              style="text-align: center; justify-content: center; text-transform: uppercase; letter-spacing: 1px;"
+            >
+              STREAM NOW ON SPOTIFY
+            </a>
           </div>
         </div>
       </section>
@@ -2286,9 +2285,127 @@ function parseYouTubeFeed(xmlText) {
   }).filter((item) => item.youtubeId);
 }
 
+const fallbackPreviews = {
+  "invocation": "https://cdnt-preview.dzcdn.net/api/1/1/b/0/2/0/b02089abe23764311ef92a2e084423f0.mp3?hdnea=exp=1781922913~acl=/api/1/1/b/0/2/0/b02089abe23764311ef92a2e084423f0.mp3*~data=user_id=0,application_id=42~hmac=6fbfed6b496bf3ad6c76b61300fd81bd162050c19a89350486045cb5b240b94d",
+  "thebastardson": "https://cdnt-preview.dzcdn.net/api/1/1/b/c/f/0/bcf8db49b253c11c5c61c38d36d27d47.mp3?hdnea=exp=1781922913~acl=/api/1/1/b/c/f/0/bcf8db49b253c11c5c61c38d36d27d47.mp3*~data=user_id=0,application_id=42~hmac=30920da5812746d4a97d07708d8825bc96bfb975177fb316a7f22f54acf1aec7",
+  "requiem": "https://cdnt-preview.dzcdn.net/api/1/1/6/5/a/0/65a9377384711ec7c853448ec973c7e8.mp3?hdnea=exp=1781922913~acl=/api/1/1/6/5/a/0/65a9377384711ec7c853448ec973c7e8.mp3*~data=user_id=0,application_id=42~hmac=0bd60fab58a395149883973500e0b549a56224f8f92345fe09e717c29e21c2d1",
+  "sulphur": "https://cdnt-preview.dzcdn.net/api/1/1/2/f/8/0/2f80ff73e0b545070b1c272e3cf81672.mp3?hdnea=exp=1781922913~acl=/api/1/1/2/f/8/0/2f80ff73e0b545070b1c272e3cf81672.mp3*~data=user_id=0,application_id=42~hmac=509fd8f0b191b569f44026604e6ad2dde126222ee691f61079976e75853c4f1f",
+  "thehangedman": "https://cdnt-preview.dzcdn.net/api/1/1/f/3/7/0/f3788a874671aeb5a8ccb4198e88b5c9.mp3?hdnea=exp=1781922913~acl=/api/1/1/f/3/7/0/f3788a874671aeb5a8ccb4198e88b5c9.mp3*~data=user_id=0,application_id=42~hmac=f1b5e47feff0775aee34dd7b721dbc68ae55a52cb15f12223e405b6ea74a2bd8",
+  "wherefearlives": "https://cdnt-preview.dzcdn.net/api/1/1/5/2/b/0/52b619c98b7f7a412744211fb887f1fa.mp3?hdnea=exp=1781922913~acl=/api/1/1/5/2/b/0/52b619c98b7f7a412744211fb887f1fa.mp3*~data=user_id=0,application_id=42~hmac=b44601db0bb2a1e817ddfb922cd411e0e895dfc3a3e9a1078b3ebede8d0cd612",
+  "undermyskin": "https://cdnt-preview.dzcdn.net/api/1/1/3/8/b/0/38b4b5bd68579194f34d330d0da8d557.mp3?hdnea=exp=1781922913~acl=/api/1/1/3/8/b/0/38b4b5bd68579194f34d330d0da8d557.mp3*~data=user_id=0,application_id=42~hmac=53985951ecfd0cf36eb96b1dd6c8eeb7fc70260b64c0a4e0351f9eb18003e12c",
+  "tenebrous": "https://cdnt-preview.dzcdn.net/api/1/1/8/3/1/0/831bd60045b50bb26297bb6f0e728a28.mp3?hdnea=exp=1781922913~acl=/api/1/1/8/3/1/0/831bd60045b50bb26297bb6f0e728a28.mp3*~data=user_id=0,application_id=42~hmac=7fa3b7e7215d6c81b59776c9b8ca1f7d80fb7cf3fcaa8639d7a5c7a669843dd5",
+  "absolution": "https://cdnt-preview.dzcdn.net/api/1/1/6/a/b/0/6abe71bc2f7a7f574c480170578fc737.mp3?hdnea=exp=1781922913~acl=/api/1/1/6/a/b/0/6abe71bc2f7a7f574c480170578fc737.mp3*~data=user_id=0,application_id=42~hmac=1d1e2e530a1a9a14777ea615b46c6f79de74014e564ef5783918608fc4716219",
+  "threeofswords": "https://cdnt-preview.dzcdn.net/api/1/1/4/0/9/0/409d239134ec19f34efeeada2b141b39.mp3?hdnea=exp=1781922913~acl=/api/1/1/4/0/9/0/409d239134ec19f34efeeada2b141b39.mp3*~data=user_id=0,application_id=42~hmac=002476c7f59cab3a9f77739d4943e73f9682442bc5dae9def77d8fb9f730c85f",
+  "firewalkwithme": "https://cdnt-preview.dzcdn.net/api/1/1/1/e/7/0/1e7bf38e87ab358173cf167835b2d378.mp3?hdnea=exp=1781922913~acl=/api/1/1/1/e/7/0/1e7bf38e87ab358173cf167835b2d378.mp3*~data=user_id=0,application_id=42~hmac=65f5dccb9ff84880094f54a5fb19e6261951417ede1ff5db213b6155d7fac975",
+  "therot": "https://cdnt-preview.dzcdn.net/api/1/1/0/f/8/0/0f85f7a8269a0683bce169448db25be9.mp3?hdnea=exp=1781922913~acl=/api/1/1/0/f/8/0/0f85f7a8269a0683bce169448db25be9.mp3*~data=user_id=0,application_id=42~hmac=9c91e67fda8b84179019ab0240dc4ecaca6fa6aa6209d5c7daf0a1cefd58c8ca",
+  "apocalyptic": "https://cdnt-preview.dzcdn.net/api/1/1/0/0/8/0/0081f127901122d13e7ea7547a348ca2.mp3?hdnea=exp=1781922913~acl=/api/1/1/0/0/8/0/0081f127901122d13e7ea7547a348ca2.mp3*~data=user_id=0,application_id=42~hmac=03dd08372c18b3fb8dc0f896c2caa69527472350173083313bad0a41df680a54",
+  "death": "https://cdnt-preview.dzcdn.net/api/1/1/1/9/a/0/19a507d6b1ab61e83f2bb96cc5e6746e.mp3?hdnea=exp=1781922913~acl=/api/1/1/1/9/a/0/19a507d6b1ab61e83f2bb96cc5e6746e.mp3*~data=user_id=0,application_id=42~hmac=43414210d2a67d7b4d7300b9413299f98d451739196dd334f5f1779fd05da94c",
+  "thywillbedone": "https://cdnt-preview.dzcdn.net/api/1/1/e/f/2/0/ef244ca996f6d1cf13320962969f0eb7.mp3?hdnea=exp=1781922913~acl=/api/1/1/e/f/2/0/ef244ca996f6d1cf13320962969f0eb7.mp3*~data=user_id=0,application_id=42~hmac=67c40e3df03da6639b16b9572449266d082998315be63678ee92a8f9eb0c829a",
+  
+  "aterriblefate": "https://cdnt-preview.dzcdn.net/api/1/1/0/5/0/0/0506b85032fc7c569a114d2a2583b21b.mp3?hdnea=exp=1781922913~acl=/api/1/1/0/5/0/0/0506b85032fc7c569a114d2a2583b21b.mp3*~data=user_id=0,application_id=42~hmac=8600000a83ef75f9d8846a2de2f2a489e370cb72048c3f6c86f69c2b16c8d3cc",
+  "grantuseyes": "https://cdnt-preview.dzcdn.net/api/1/1/8/b/2/0/8b2df462239a4eacd1605d8809fad317.mp3?hdnea=exp=1781922913~acl=/api/1/1/8/b/2/0/8b2df462239a4eacd1605d8809fad317.mp3*~data=user_id=0,application_id=42~hmac=321566ccfe7759527e5c457d1ae6e447ab608030541494ce73c0c21c30b25a3e",
+  "evil": "https://cdnt-preview.dzcdn.net/api/1/1/4/8/c/0/48c4a681cde2c153438871ca5a5057b0.mp3?hdnea=exp=1781922913~acl=/api/1/1/4/8/c/0/48c4a681cde2c153438871ca5a5057b0.mp3*~data=user_id=0,application_id=42~hmac=a72ee3787cb64dcb38ccbd16f3490e2c69bc2026654818164c50b9290f933d49",
+  "kingofdarkenergy": "https://cdnt-preview.dzcdn.net/api/1/1/3/7/a/0/37aa10265f299cc9686b589f9c8a52bb.mp3?hdnea=exp=1781922913~acl=/api/1/1/3/7/a/0/37aa10265f299cc9686b589f9c8a52bb.mp3*~data=user_id=0,application_id=42~hmac=ece95c66f36450e20eba7667ce8668a8354ddac451507b012cd67d8640a65307",
+  "breathe": "https://cdnt-preview.dzcdn.net/api/1/1/5/f/4/0/5f4727f1b59d5b1a8232b9358de99e17.mp3?hdnea=exp=1781922913~acl=/api/1/1/5/f/4/0/5f4727f1b59d5b1a8232b9358de99e17.mp3*~data=user_id=0,application_id=42~hmac=67dfd57bd38cd59a44be54c1a80d297ed94d54d5edd9ccd7deb1678a56353714",
+  "thedescent": "https://cdnt-preview.dzcdn.net/api/1/1/0/a/6/0/0a605ebf9db64473c18d05dd420f540b.mp3?hdnea=exp=1781922913~acl=/api/1/1/0/a/6/0/0a605ebf9db64473c18d05dd420f540b.mp3*~data=user_id=0,application_id=42~hmac=50b90061dc6c1626e5dba239a4c1052526f561bf64dee91e2313f6d033f69fa7",
+  "themouthofmadness": "https://cdnt-preview.dzcdn.net/api/1/1/5/0/e/0/50e5947c652e543e4e1b23461df7bcae.mp3?hdnea=exp=1781922913~acl=/api/1/1/5/0/e/0/50e5947c652e543e4e1b23461df7bcae.mp3*~data=user_id=0,application_id=42~hmac=06029ac0c3cbeb80606eaad8cf63df5846986e0e1c87918d90c3b174bddd692d",
+  "amen": "https://cdnt-preview.dzcdn.net/api/1/1/3/2/5/0/3252604dcdc9b327f52542e0f276799b.mp3?hdnea=exp=1781922913~acl=/api/1/1/3/2/5/0/3252604dcdc9b327f52542e0f276799b.mp3*~data=user_id=0,application_id=42~hmac=8a994bdad2ac6397342e232a05c4133008fbac46264b3da4c9898545cfb1c454",
+  "thebridge": "https://cdnt-preview.dzcdn.net/api/1/1/9/4/9/0/949167788cfb43a55b74b00fbd20158a.mp3?hdnea=exp=1781922913~acl=/api/1/1/9/4/9/0/949167788cfb43a55b74b00fbd20158a.mp3*~data=user_id=0,application_id=42~hmac=bc2c37770453095f0a44be9b6f410c5e38e54435da3c391d5e72220022124b7c",
+  "whatsthatnoise": "https://cdnt-preview.dzcdn.net/api/1/1/3/b/d/0/3bd37889e6ad9eaf122982db753dea94.mp3?hdnea=exp=1781922913~acl=/api/1/1/3/b/d/0/3bd37889e6ad9eaf122982db753dea94.mp3*~data=user_id=0,application_id=42~hmac=2972cd4c08231191bdf4f925fbf0a4995cc5ee9319be5ccb2ed8b645f79cc19f",
+  "theorderofthebluerose": "https://cdnt-preview.dzcdn.net/api/1/1/e/8/4/0/e84c3c709203a3f86e2c6200f3c6f089.mp3?hdnea=exp=1781922913~acl=/api/1/1/e/8/4/0/e84c3c709203a3f86e2c6200f3c6f089.mp3*~data=user_id=0,application_id=42~hmac=82ca9113d63cae1977cbc05c157c9410b3c8639c437599fd8c866463d640b060",
+  "feedthebeast": "https://cdnt-preview.dzcdn.net/api/1/1/3/7/3/0/373f4696b345228f528997a5423076c7.mp3?hdnea=exp=1781922913~acl=/api/1/1/3/7/3/0/373f4696b345228f528997a5423076c7.mp3*~data=user_id=0,application_id=42~hmac=7a52c1f291df61883e3c27258e5b99d1e344f12959a514a874961319ac75dc45",
+  "eyeforaneye": "https://cdnt-preview.dzcdn.net/api/1/1/4/4/5/0/4458275bafa5538acc1e9d455ace9f67.mp3?hdnea=exp=1781922913~acl=/api/1/1/4/4/5/0/4458275bafa5538acc1e9d455ace9f67.mp3*~data=user_id=0,application_id=42~hmac=909e2b8168feb622b97ce02ac0c5333d890f36879272ee44dda2f24d9b569358",
+  "theblessing": "https://cdnt-preview.dzcdn.net/api/1/1/d/e/8/0/de839fe2f40e2f706ce51891dc3b12b9.mp3?hdnea=exp=1781922913~acl=/api/1/1/d/e/8/0/de839fe2f40e2f706ce51891dc3b12b9.mp3*~data=user_id=0,application_id=42~hmac=6fb42be03aa54729f0d0cb7ba9c0c9ceb15e812944cebf52eccf009615ea9b43",
+  "thehive": "https://cdnt-preview.dzcdn.net/api/1/1/d/5/d/0/d5d2a507b8e2303e8f7f3b83a6d65b5d.mp3?hdnea=exp=1781922913~acl=/api/1/1/d/5/d/0/d5d2a507b8e2303e8f7f3b83a6d65b5d.mp3*~data=user_id=0,application_id=42~hmac=ff1477b53ad568461fe50901d0fb5a6d67be57d091e573fdc12cc79c345620d7"
+};
+
+let previewUrls = { ...fallbackPreviews };
+let previewFetcherPromise = null;
+let currentAudio = null;
+let currentPlayingLi = null;
+
+function cleanTitle(title) {
+  const base = title.split("(")[0].split("feat.")[0].trim();
+  return base.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function fetchDeezerPreviews() {
+  if (previewFetcherPromise) return previewFetcherPromise;
+  
+  previewFetcherPromise = new Promise((resolve) => {
+    const callbackName = "deezer_callback_" + Date.now();
+    window[callbackName] = function(response) {
+      if (response && response.data) {
+        response.data.forEach(track => {
+          const clean = cleanTitle(track.title);
+          if (track.preview) {
+            previewUrls[clean] = track.preview;
+          }
+        });
+      }
+      delete window[callbackName];
+      resolve();
+    };
+    
+    const script = document.createElement("script");
+    script.src = `https://api.deezer.com/search?q=artist:"Somethin Outta Nothin"&limit=100&output=jsonp&callback=${callbackName}`;
+    script.onerror = () => {
+      delete window[callbackName];
+      resolve();
+    };
+    document.body.appendChild(script);
+  });
+  
+  return previewFetcherPromise;
+}
+
+function playPreview(title, li) {
+  const clean = cleanTitle(title);
+  const url = previewUrls[clean];
+  
+  if (!url) {
+    console.warn("No preview URL found for track:", title);
+    return;
+  }
+  
+  if (currentAudio) {
+    currentAudio.pause();
+    if (currentPlayingLi) {
+      currentPlayingLi.classList.remove("is-playing");
+    }
+    
+    if (currentAudio.src === url) {
+      currentAudio = null;
+      currentPlayingLi = null;
+      return;
+    }
+  }
+  
+  const audio = new Audio(url);
+  audio.volume = 0.5;
+  audio.play().catch(err => {
+    console.error("Audio playback failed:", err);
+  });
+  
+  li.classList.add("is-playing");
+  currentAudio = audio;
+  currentPlayingLi = li;
+  
+  audio.addEventListener("ended", () => {
+    li.classList.remove("is-playing");
+    if (currentAudio === audio) {
+      currentAudio = null;
+      currentPlayingLi = null;
+    }
+  });
+}
+
 function bindAlbumConsole() {
   const consoleNode = viewRoot.querySelector("[data-album-console]");
   if (!consoleNode) return;
+
+  // Start pre-fetching previews dynamically in background
+  fetchDeezerPreviews();
 
   const cards = consoleNode.querySelectorAll("[data-album-id]");
   const albums = musicAlbums();
@@ -2300,10 +2417,42 @@ function bindAlbumConsole() {
   const factGrid = consoleNode.querySelector("#albumFactGrid");
   const trackCount = consoleNode.querySelector("#albumTrackCount");
   const trackList = consoleNode.querySelector("#albumTrackList");
-  const embed = consoleNode.querySelector("#albumHeroEmbed");
+  const spotifyLink = consoleNode.querySelector("#albumSpotifyLink");
+
+  // Play preview when clicking on a track card
+  const setupTrackClicks = () => {
+    if (trackList) {
+      // Remove any existing click handlers by replacing innerHTML or cloning?
+      // Since innerHTML is re-rendered on album swap, we can just bind to the container.
+      const newTrackList = trackList.cloneNode(true);
+      trackList.parentNode.replaceChild(newTrackList, trackList);
+      
+      newTrackList.addEventListener("click", (e) => {
+        const li = e.target.closest("li");
+        if (!li) return;
+        
+        const trackTitleNode = li.querySelector(".track-title strong");
+        if (trackTitleNode) {
+          playPreview(trackTitleNode.textContent, li);
+        }
+      });
+    }
+  };
+
+  setupTrackClicks();
 
   cards.forEach((card) => {
     card.addEventListener("click", () => {
+      // Stop any playing preview when switching albums
+      if (currentAudio) {
+        currentAudio.pause();
+        currentAudio = null;
+      }
+      if (currentPlayingLi) {
+        currentPlayingLi.classList.remove("is-playing");
+        currentPlayingLi = null;
+      }
+
       const album = albums.find((item) => item.id === card.dataset.albumId);
       if (!album) return;
 
@@ -2326,23 +2475,13 @@ function bindAlbumConsole() {
       if (miniMeta) miniMeta.innerHTML = renderAlbumMiniMeta(album);
       if (factGrid) factGrid.innerHTML = renderAlbumFacts(album);
       if (trackCount) trackCount.textContent = `${album.trackCount} tracks / ${album.runtime}`;
-      if (trackList) trackList.innerHTML = renderTrackList(album);
-      if (embed) {
-        const wrapper = embed.parentElement;
-        if (wrapper) {
-          wrapper.classList.add("is-loading");
-
-          let resolved = false;
-          const done = () => {
-            if (resolved) return;
-            resolved = true;
-            wrapper.classList.remove("is-loading");
-          };
-
-          embed.onload = done;
-          window.setTimeout(done, 2500);
-        }
-        embed.src = spotifyEmbedUrl(album.href);
+      if (trackList) {
+        const activeTrackList = consoleNode.querySelector("#albumTrackList");
+        activeTrackList.innerHTML = renderTrackList(album);
+        setupTrackClicks();
+      }
+      if (spotifyLink) {
+        spotifyLink.href = album.href;
       }
     });
   });
@@ -4361,5 +4500,11 @@ function bindPromoteView() {
       }
     }
   }
+}
+
+if (document.readyState === "loading") {
+  window.addEventListener("DOMContentLoaded", initApp);
+} else {
+  initApp();
 }
 
