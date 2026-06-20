@@ -2829,8 +2829,7 @@ function initPointerTracking() {
 
     if (!ticking) {
       window.requestAnimationFrame(() => {
-        overlay.style.setProperty("--mouse-x", `${mouseX}px`);
-        overlay.style.setProperty("--mouse-y", `${mouseY}px`);
+        overlay.style.transform = `translate3d(${mouseX}px, ${mouseY}px, 0)`;
         ticking = false;
       });
       ticking = true;
