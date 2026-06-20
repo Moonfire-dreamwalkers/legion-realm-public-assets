@@ -161,9 +161,12 @@ window.siteConfig = {
 
   discordConfig: {
     inviteUrl: "https://discord.gg/VYu2yAB4dA",
-    serverId: "",
-    widgetEnabled: false,
-    status: "Open"
+    serverId: "1507761822164586587",
+    clientId: "1517884204166283304",
+    widgetEnabled: true,
+    loginEnabled: true,
+    status: "Open",
+    apiBase: "/api/auth",
   },
 
   videoItems: [

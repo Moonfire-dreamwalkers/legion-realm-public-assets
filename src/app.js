@@ -1412,42 +1412,51 @@ function renderMusic(view) {
       <section class="album-stage album-aaa-stage" aria-label="Featured album">
         <div class="album-cover-zone">
           <div class="album-cover-halo" aria-hidden="true"></div>
-          <div class="album-cover-shell" id="playerShell" style="display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 32px; padding: 40px; background: rgba(5, 5, 5, 0.95); box-sizing: border-box;">
-            <!-- Animated visualizer with glowing red bars -->
-            <div class="player-visualizer" id="playerVisualizer" style="display: flex; align-items: flex-end; justify-content: center; gap: 6px; height: 80px; width: 100%; max-width: 240px;">
-              <div class="vis-bar bar1" style="width: 8px; height: 10px; background-color: rgba(216, 209, 185, 0.2); border-radius: 4px;"></div>
-              <div class="vis-bar bar2" style="width: 8px; height: 10px; background-color: rgba(216, 209, 185, 0.2); border-radius: 4px;"></div>
-              <div class="vis-bar bar3" style="width: 8px; height: 10px; background-color: rgba(216, 209, 185, 0.2); border-radius: 4px;"></div>
-              <div class="vis-bar bar4" style="width: 8px; height: 10px; background-color: rgba(216, 209, 185, 0.2); border-radius: 4px;"></div>
-              <div class="vis-bar bar5" style="width: 8px; height: 10px; background-color: rgba(216, 209, 185, 0.2); border-radius: 4px;"></div>
-              <div class="vis-bar bar6" style="width: 8px; height: 10px; background-color: rgba(216, 209, 185, 0.2); border-radius: 4px;"></div>
-              <div class="vis-bar bar7" style="width: 8px; height: 10px; background-color: rgba(216, 209, 185, 0.2); border-radius: 4px;"></div>
-              <div class="vis-bar bar8" style="width: 8px; height: 10px; background-color: rgba(216, 209, 185, 0.2); border-radius: 4px;"></div>
-            </div>
-
-            <!-- Play/Pause Button -->
-            <button class="player-btn" id="playerPlayPauseBtn" type="button" aria-label="Play/Pause" style="background: none; border: none; color: #eee7d7; cursor: pointer; width: 64px; height: 64px; display: flex; align-items: center; justify-content: center; transition: color 0.2s, transform 0.1s; outline: none; box-shadow: none;">
-              <!-- Play Icon SVG -->
-              <svg id="playIcon" viewBox="0 0 24 24" fill="currentColor" style="width: 48px; height: 48px;">
-                <path d="M8 5v14l11-7z"></path>
-              </svg>
-              <!-- Pause Icon SVG -->
-              <svg id="pauseIcon" viewBox="0 0 24 24" fill="currentColor" style="width: 48px; height: 48px; display: none;">
-                <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"></path>
-              </svg>
-            </button>
-
-            <!-- Volume Control -->
-            <div class="player-volume-container" style="display: flex; align-items: center; gap: 12px; color: #aaa59a; width: 100%; max-width: 200px; justify-content: center;">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.8;">
-                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-                <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-              </svg>
-              <input type="range" id="playerVolumeSlider" min="0" max="1" step="0.05" value="0.5" aria-label="Volume" style="width: 100px; height: 4px; background: rgba(216, 209, 185, 0.15); border: none; outline: none; cursor: pointer;">
-            </div>
+          <div class="album-cover-shell" id="playerShell">
+            <img id="albumHeroImage" src="${activeAlbum.image}" alt="${activeAlbum.title}" loading="eager" decoding="async">
           </div>
-          <div class="album-mini-meta" id="albumMiniMeta">
-            ${renderAlbumMiniMeta(activeAlbum)}
+
+          <div class="player-controls-container">
+            <!-- Animated visualizer with glowing red bars -->
+            <canvas id="playerVisualizer" width="430" height="80" style="display: block; width: 100%; max-width: 430px; height: 80px;"></canvas>
+
+            <!-- Control Row: Symmetrical 3-Column Layout -->
+            <div class="player-control-row">
+              <!-- Left Column: Sleek Track Display -->
+              <div class="player-track-display" id="playerTrackDisplay">
+                SELECT A TRACK
+              </div>
+
+              <!-- Center Column: Play/Pause Button -->
+              <div class="player-center-control">
+                <button class="player-btn" id="playerPlayPauseBtn" type="button" aria-label="Play/Pause">
+                  <!-- Play Icon SVG (Sulfur Sigil) -->
+                  <svg id="playIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2.5 L19.5 15.5 L4.5 15.5 Z" />
+                    <path d="M12 15.2 L12 21.5" />
+                    <path d="M8.5 18.5 L15.5 18.5" />
+                  </svg>
+                  <!-- Pause Icon SVG (Cohesive Bold Lines) -->
+                  <svg id="pauseIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+                    <path d="M9 5v14" />
+                    <path d="M15 5v14" />
+                  </svg>
+                </button>
+              </div>
+
+              <!-- Right Column: Volume Control -->
+              <div class="player-volume-container" id="playerVolumeContainer">
+                <button class="volume-toggle-btn" id="volumeToggleBtn" type="button" aria-label="Toggle Volume Slider">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.8; color: #ff2a2a;">
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                  </svg>
+                </button>
+                <div class="volume-slider-wrapper">
+                  <input type="range" id="playerVolumeSlider" min="0" max="1" step="0.05" value="0.5" aria-label="Volume">
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -2356,6 +2365,287 @@ let currentAudio = null;
 let currentPlayingLi = null;
 let globalVolume = 0.5;
 
+// Visualizer State & Variables
+const visualizerState = {
+  active: false,
+  reqId: null,
+  analyser: null,
+  source: null,
+  audioContext: null,
+  isSimulated: true
+};
+const visualizerHeights = new Float32Array(32);
+const visualizerPeaks = new Float32Array(32);
+const visualizerParticles = [];
+
+function drawRoundedRect(ctx, x, y, width, height, radius) {
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + width - radius, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+  ctx.lineTo(x + width, y + height);
+  ctx.lineTo(x, y + height);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawSulfurSigil(ctx, cx, cy, size, rotateRad, strokeStyle, fillStyle, lineWidth = 2) {
+  ctx.save();
+  ctx.translate(cx, cy);
+  if (rotateRad) {
+    ctx.rotate(rotateRad);
+  }
+  
+  const scale = size / 116;
+  
+  ctx.beginPath();
+  ctx.strokeStyle = strokeStyle || "#ff2a2a";
+  ctx.lineWidth = lineWidth;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  
+  // 1. Draw triangle
+  ctx.moveTo(0 * scale, -58 * scale);
+  ctx.lineTo(48 * scale, 24 * scale);
+  ctx.lineTo(-48 * scale, 24 * scale);
+  ctx.closePath();
+  if (fillStyle) {
+    ctx.fillStyle = fillStyle;
+    ctx.fill();
+  }
+  ctx.stroke();
+  
+  // 2. Draw vertical line & horizontal cross bar
+  ctx.beginPath();
+  ctx.moveTo(0 * scale, 22 * scale);
+  ctx.lineTo(0 * scale, 58 * scale);
+  ctx.moveTo(-23 * scale, 41 * scale);
+  ctx.lineTo(23 * scale, 41 * scale);
+  ctx.stroke();
+  
+  ctx.restore();
+}
+
+function startVisualizerLoop() {
+  if (visualizerState.active) return;
+  visualizerState.active = true;
+
+  function drawFrame() {
+    if (!visualizerState.active) return;
+    visualizerState.reqId = requestAnimationFrame(drawFrame);
+
+    const canvas = document.getElementById("playerVisualizer");
+    if (!canvas) {
+      stopVisualizerLoop();
+      return;
+    }
+    const ctx = canvas.getContext("2d");
+    const width = canvas.width;
+    const height = canvas.height;
+
+    ctx.clearRect(0, 0, width, height);
+
+    const barCount = 14;
+    const isPlaying = !!(currentAudio && !currentAudio.paused);
+    const time = Date.now() * 0.004;
+
+    // 1. Calculate and update heights (with dynamic frequency-weighted sensitivity to prevent bass-maxing)
+    // Organized symmetrically: Center is Bass (low frequency), Edges are Treble (high frequency)
+    for (let i = 0; i < barCount; i++) {
+      let target = 0;
+      const dist = Math.abs(i - (barCount - 1) / 2); // Distance from center: 0 to 7.5
+      const ratio = dist / ((barCount - 1) / 2); // 0 in center, 1 at outer edges
+      
+      // Dynamic sensitivity curve: Bass (center) is scaled down to 0.62x, Treble (edges) boosted up to 1.7x
+      const freqBooster = 0.62 + ratio * 1.08;
+      
+      if (isPlaying) {
+        if (visualizerState.analyser && !visualizerState.isSimulated) {
+          const rawData = new Uint8Array(visualizerState.analyser.frequencyBinCount);
+          visualizerState.analyser.getByteFrequencyData(rawData);
+          
+          // Logarithmic bin mapping (map 16 bars to 256 frequency bins)
+          // Map edges to active treble ranges (~8kHz) instead of dead ranges (>15kHz)
+          const maxBin = Math.floor(rawData.length * 0.38);
+          const minBin = 1;
+          const binIndex = Math.min(
+            rawData.length - 1,
+            Math.floor(Math.pow(ratio, 1.6) * (maxBin - minBin) + minBin)
+          );
+          target = (rawData[binIndex] || 0) * freqBooster;
+          target = Math.min(255, target);
+        } else {
+          // Simulated music waves (seeded organic variations for uniqueness per track, mapped symmetrically)
+          let songSeed = 0;
+          if (currentPlayingLi) {
+            const titleNode = currentPlayingLi.querySelector(".track-title strong");
+            if (titleNode) {
+              const title = titleNode.textContent;
+              for (let j = 0; j < title.length; j++) {
+                songSeed += title.charCodeAt(j);
+              }
+            }
+          }
+          const speed = 1.0 + (songSeed % 4) * 0.15;
+          const phase = time * speed;
+          
+          if (dist <= 2) {
+            // Bass pulse in the center (4 bars)
+            const bassPulse = Math.max(0, Math.sin(phase * 3.5) + Math.sin(phase * 0.7));
+            target = (bassPulse * 0.45 + Math.random() * 0.2) * 150 + 30;
+          } else if (dist <= 5) {
+            // Midrange in the middle-outer bands (6 bars)
+            const midWave = Math.sin(phase * 1.8 + dist * 0.5) * 0.4 + 0.6;
+            target = (midWave * 0.6 + Math.random() * 0.2) * 130 + 30;
+          } else {
+            // Treble flicker on the outer edges (6 bars)
+            const highFlicker = Math.sin(phase * 5.0 + dist * 0.8) * 0.3 + 0.5;
+            target = (highFlicker * 0.4 + Math.random() * 0.3) * 90 + 20;
+          }
+          const envelope = Math.sin((i / barCount) * Math.PI) * 0.35 + 0.65; // Gentler dome envelope so edges remain active
+          target *= envelope * freqBooster;
+          target = Math.min(255, target);
+        }
+
+        // Symmetrical organic variation so adjacent columns bounce to different heights
+        const columnVar = 0.85 + Math.sin(dist * 2.1) * 0.15;
+        target *= columnVar;
+        target = Math.min(255, target);
+      } else {
+        // Ambient idle ripple
+        const idleWave = Math.sin(time * 0.8 + i * 0.4) * 0.5 + 0.5;
+        target = idleWave * 8;
+      }
+
+      // Smooth snappy interpolation
+      visualizerHeights[i] += (target - visualizerHeights[i]) * (isPlaying ? 0.28 : 0.1);
+    }
+
+    // 2. Draw horizontal row of reacting sulfur sigils
+    // Anchored and mathematically constrained to never exceed canvas boundaries (no cutoff/hangoff)
+    const spacing = width / barCount;
+    for (let i = 0; i < barCount; i++) {
+      const val = visualizerHeights[i];
+      const size = 13 + (val / 255) * 11; // Size ranges from 13px (idle) to 24px (max bounce)
+      const topMargin = 12;   // Increased to 12px to guarantee no clipping even with shadow blur
+      const bottomMargin = 10; // Baseline floor margin
+      
+      // Calculate constrained Y position:
+      const cyIdle = height - size / 2 - bottomMargin;
+      const cyMax = size / 2 + topMargin;
+      const cy = cyIdle - (val / 255) * (cyIdle - cyMax);
+      
+      const cx = i * spacing + spacing / 2;
+      const glow = isPlaying ? (val / 255) * 15 + 2 : 2;
+      const color = isPlaying 
+        ? `rgba(255, 42, 42, ${0.35 + (val / 255) * 0.65})` 
+        : "rgba(216, 209, 185, 0.22)";
+      const lWidth = isPlaying ? 1.4 + (val / 255) * 0.8 : 1.8;
+
+      // Draw a subtle high-tech glowing vertical anchor line (laser stem) under the sigil
+      if (isPlaying && val > 5) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.strokeStyle = `rgba(255, 42, 42, ${0.08 + (val / 255) * 0.12})`;
+        ctx.lineWidth = 1.0;
+        ctx.moveTo(cx, height - bottomMargin);
+        ctx.lineTo(cx, cy + size / 2 - 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // Volumetric high-tech gradient fill inside the sigil triangle
+      let fillGlow = null;
+      if (isPlaying && val > 15) {
+        fillGlow = ctx.createLinearGradient(cx, cy - size / 2, cx, cy + size / 2);
+        fillGlow.addColorStop(0, `rgba(255, 42, 42, ${0.18 * (val / 255)})`);
+        fillGlow.addColorStop(1, "rgba(255, 42, 42, 0)");
+      }
+
+      // High-tech vertical reflection at the bottom
+      if (isPlaying && val > 20) {
+        ctx.save();
+        ctx.globalAlpha = 0.15 * (val / 255);
+        ctx.translate(cx, height - bottomMargin + 4);
+        ctx.scale(1, -0.6); // Invert vertically and squish
+        ctx.translate(-cx, -cy);
+        drawSulfurSigil(ctx, cx, cy, size, 0, color, null, 1.2);
+        ctx.restore();
+      }
+
+      ctx.save();
+      ctx.shadowBlur = glow;
+      ctx.shadowColor = "#ff2a2a";
+      drawSulfurSigil(ctx, cx, cy, size, 0, color, fillGlow, lWidth);
+      ctx.restore();
+
+      // Spawn tiny sulfur sigil embers/sparks from the top of bouncing sigils
+      if (isPlaying && val > 80 && Math.random() < 0.22) {
+        visualizerParticles.push({
+          x: cx,
+          y: cy - size / 2,
+          vx: (Math.random() - 0.5) * 0.8,
+          vy: -Math.random() * 1.5 - 0.4,
+          size: Math.random() * 8 + 6,
+          color: Math.random() < 0.28 ? "#ffaa00" : "#ff2a2a",
+          alpha: 1.0,
+          decay: Math.random() * 0.018 + 0.012,
+          rotation: Math.random() * Math.PI * 2,
+          rotSpeed: (Math.random() - 0.5) * 0.06
+        });
+      }
+    }
+
+    // 3. Update and draw particles (embers) as tiny rotating sulfur sigils
+    if (isPlaying && visualizerParticles.length > 0) {
+      for (let pIdx = visualizerParticles.length - 1; pIdx >= 0; pIdx--) {
+        const p = visualizerParticles[pIdx];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.alpha -= p.decay;
+        p.rotation += p.rotSpeed;
+
+        if (p.alpha <= 0) {
+          visualizerParticles.splice(pIdx, 1);
+          continue;
+        }
+
+        ctx.save();
+        // Fade out embers naturally as they approach the top edge (fade-to-smoke boundary of 20px)
+        const boundaryFade = Math.max(0, Math.min(1, p.y / 20));
+        ctx.globalAlpha = p.alpha * boundaryFade;
+        ctx.shadowBlur = 4;
+        ctx.shadowColor = p.color;
+        
+        // Draw the ember sigil outline
+        drawSulfurSigil(ctx, p.x, p.y, p.size, p.rotation, p.color, null, 1.2);
+        
+        // Draw tiny luminous core
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 1.0, 0, Math.PI * 2);
+        ctx.fillStyle = "#ffffff";
+        ctx.shadowBlur = 5;
+        ctx.shadowColor = "#ffffff";
+        ctx.fill();
+        
+        ctx.restore();
+      }
+    }
+  }
+
+  visualizerState.reqId = requestAnimationFrame(drawFrame);
+}
+
+function stopVisualizerLoop() {
+  visualizerState.active = false;
+  if (visualizerState.reqId) {
+    cancelAnimationFrame(visualizerState.reqId);
+    visualizerState.reqId = null;
+  }
+}
+
 function cleanTitle(title) {
   const base = title.split("(")[0].split("feat.")[0].trim();
   return base.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -2413,36 +2703,114 @@ function playPreview(title, li) {
       return;
     }
   }
-  
-  const audio = new Audio(url);
-  audio.volume = globalVolume;
-  audio.play().then(() => {
-    updatePlayerBarState();
-  }).catch(err => {
-    console.error("Audio playback failed:", err);
-    updatePlayerBarState();
-  });
-  
-  li.classList.add("is-playing");
-  currentAudio = audio;
-  currentPlayingLi = li;
-  
-  audio.addEventListener("ended", () => {
-    li.classList.remove("is-playing");
-    if (currentAudio === audio) {
-      currentAudio = null;
-      currentPlayingLi = null;
-    }
-    updatePlayerBarState();
-  });
 
-  audio.addEventListener("error", () => {
-    li.classList.remove("is-playing");
-    if (currentAudio === audio) {
-      currentAudio = null;
-      currentPlayingLi = null;
+  const playAudioWithVisualizer = (useCORS) => {
+    const audio = new Audio();
+    if (useCORS) {
+      audio.crossOrigin = "anonymous";
     }
-    updatePlayerBarState();
+    audio.src = url;
+    audio.volume = globalVolume;
+
+    audio.addEventListener("ended", () => {
+      li.classList.remove("is-playing");
+      if (currentAudio === audio) {
+        currentAudio = null;
+        currentPlayingLi = null;
+      }
+      updatePlayerBarState();
+    });
+
+    audio.addEventListener("error", () => {
+      if (useCORS) {
+        console.warn("CORS audio play blocked, retrying without CORS");
+        li.classList.remove("is-playing");
+        playAudioWithVisualizer(false);
+      } else {
+        li.classList.remove("is-playing");
+        if (currentAudio === audio) {
+          currentAudio = null;
+          currentPlayingLi = null;
+        }
+        updatePlayerBarState();
+      }
+    });
+
+    audio.play().then(() => {
+      updatePlayerBarState();
+      
+      if (useCORS) {
+        try {
+          if (!visualizerState.audioContext) {
+            visualizerState.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+          }
+          if (visualizerState.audioContext.state === "suspended") {
+            visualizerState.audioContext.resume();
+          }
+          
+          const source = visualizerState.audioContext.createMediaElementSource(audio);
+          const analyser = visualizerState.audioContext.createAnalyser();
+          analyser.fftSize = 512;
+          source.connect(analyser);
+          analyser.connect(visualizerState.audioContext.destination);
+          
+          visualizerState.analyser = analyser;
+          visualizerState.isSimulated = false;
+        } catch (e) {
+          console.warn("Web Audio API binding failed, using simulated visualizer:", e);
+          visualizerState.analyser = null;
+          visualizerState.isSimulated = true;
+        }
+      } else {
+        visualizerState.analyser = null;
+        visualizerState.isSimulated = true;
+      }
+      
+      startVisualizerLoop();
+    }).catch(err => {
+      console.error("Audio playback error:", err);
+      if (useCORS) {
+        console.warn("Playback error on CORS attempt, retrying without CORS");
+        li.classList.remove("is-playing");
+        playAudioWithVisualizer(false);
+      } else {
+        updatePlayerBarState();
+      }
+    });
+
+    currentAudio = audio;
+    currentPlayingLi = li;
+    li.classList.add("is-playing");
+  };
+
+  playAudioWithVisualizer(true);
+}
+
+function adjustTrackDisplayFontSize(element) {
+  if (!element) return;
+  const baseFontSizeRem = 1.5;
+  const minFontSizeRem = 0.6;
+  
+  element.style.setProperty('font-size', `${baseFontSizeRem}rem`, 'important');
+  
+  const clientWidth = element.clientWidth;
+  const scrollWidth = element.scrollWidth;
+  
+  if (clientWidth > 0 && scrollWidth > clientWidth) {
+    const ratio = clientWidth / scrollWidth;
+    const newSize = Math.max(minFontSizeRem, baseFontSizeRem * ratio * 0.95);
+    element.style.setProperty('font-size', `${newSize}rem`, 'important');
+  }
+}
+
+// Register a ResizeObserver to dynamic-size the track name on layout/container changes
+if (typeof window !== "undefined" && !window.__TRACK_DISPLAY_OBSERVER) {
+  window.__TRACK_DISPLAY_OBSERVER = new ResizeObserver((entries) => {
+    window.requestAnimationFrame(() => {
+      for (let entry of entries) {
+        adjustTrackDisplayFontSize(entry.target);
+      }
+    });
   });
 }
 
@@ -2450,17 +2818,38 @@ function updatePlayerBarState() {
   const consoleNode = viewRoot.querySelector("[data-album-console]");
   if (!consoleNode) return;
   const playerShell = consoleNode.querySelector("#playerShell");
-  if (!playerShell) return;
 
-  const playIcon = playerShell.querySelector("#playIcon");
-  const pauseIcon = playerShell.querySelector("#pauseIcon");
+  const playIcon = consoleNode.querySelector("#playIcon");
+  const pauseIcon = consoleNode.querySelector("#pauseIcon");
+  const trackDisplay = consoleNode.querySelector("#playerTrackDisplay");
+  const playPauseBtn = consoleNode.querySelector("#playerPlayPauseBtn");
   
   const isPlaying = !!(currentAudio && !currentAudio.paused);
   
-  playerShell.classList.toggle("is-playing", isPlaying);
+  if (playerShell) {
+    playerShell.classList.toggle("is-playing", isPlaying);
+  }
+  if (playPauseBtn) {
+    playPauseBtn.classList.toggle("is-playing", isPlaying);
+  }
   if (playIcon && pauseIcon) {
     playIcon.style.display = isPlaying ? "none" : "block";
     pauseIcon.style.display = isPlaying ? "block" : "none";
+  }
+
+  if (trackDisplay) {
+    if (isPlaying && currentPlayingLi) {
+      const titleNode = currentPlayingLi.querySelector(".track-title strong");
+      if (titleNode) {
+        trackDisplay.textContent = titleNode.textContent;
+        trackDisplay.classList.add("is-playing");
+      }
+    } else {
+      trackDisplay.textContent = "SELECT A TRACK";
+      trackDisplay.classList.remove("is-playing");
+    }
+    // Dynamic resize if too long
+    adjustTrackDisplayFontSize(trackDisplay);
   }
 }
 
@@ -2503,7 +2892,6 @@ function bindAlbumConsole() {
   const image = consoleNode.querySelector("#albumHeroImage");
   const title = consoleNode.querySelector("#albumHeroTitle");
   const accent = consoleNode.querySelector("#albumHeroAccent");
-  const miniMeta = consoleNode.querySelector("#albumMiniMeta");
   const factGrid = consoleNode.querySelector("#albumFactGrid");
   const trackCount = consoleNode.querySelector("#albumTrackCount");
   const trackList = consoleNode.querySelector("#albumTrackList");
@@ -2512,10 +2900,31 @@ function bindAlbumConsole() {
   // Bind custom player controls
   const playPauseBtn = consoleNode.querySelector("#playerPlayPauseBtn");
   const volumeSlider = consoleNode.querySelector("#playerVolumeSlider");
+  const trackDisplay = consoleNode.querySelector("#playerTrackDisplay");
+  const volumeContainer = consoleNode.querySelector("#playerVolumeContainer");
+  const volumeToggleBtn = consoleNode.querySelector("#volumeToggleBtn");
+
+  if (trackDisplay && window.__TRACK_DISPLAY_OBSERVER) {
+    window.__TRACK_DISPLAY_OBSERVER.observe(trackDisplay);
+    adjustTrackDisplayFontSize(trackDisplay);
+  }
 
   if (playPauseBtn) {
     playPauseBtn.addEventListener("click", () => {
       togglePlayPause();
+    });
+  }
+
+  if (volumeToggleBtn && volumeContainer) {
+    volumeToggleBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      volumeContainer.classList.toggle("is-expanded");
+    });
+  }
+
+  if (volumeContainer) {
+    volumeContainer.addEventListener("click", (e) => {
+      e.stopPropagation();
     });
   }
 
@@ -2525,6 +2934,17 @@ function bindAlbumConsole() {
       globalVolume = parseFloat(e.target.value);
       if (currentAudio) {
         currentAudio.volume = globalVolume;
+      }
+    });
+  }
+
+  // Document-level collapse handler (only bound once)
+  if (typeof window !== "undefined" && !window.__VOLUME_COLLAPSE_BOUND) {
+    window.__VOLUME_COLLAPSE_BOUND = true;
+    document.addEventListener("click", () => {
+      const container = document.querySelector("#playerVolumeContainer");
+      if (container) {
+        container.classList.remove("is-expanded");
       }
     });
   }
@@ -2550,6 +2970,7 @@ function bindAlbumConsole() {
   };
 
   setupTrackClicks();
+  startVisualizerLoop();
 
   cards.forEach((card) => {
     card.addEventListener("click", () => {
@@ -2583,7 +3004,6 @@ function bindAlbumConsole() {
       if (background) background.src = album.image;
       if (title) title.textContent = album.title;
       if (accent) accent.textContent = album.accent;
-      if (miniMeta) miniMeta.innerHTML = renderAlbumMiniMeta(album);
       if (factGrid) factGrid.innerHTML = renderAlbumFacts(album);
       if (trackCount) trackCount.textContent = `${album.trackCount} tracks / ${album.runtime}`;
       if (trackList) {

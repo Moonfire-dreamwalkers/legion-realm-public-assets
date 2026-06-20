@@ -1,0 +1,79 @@
+/* ─── Discord Auth Button (in nav) ─────────────────────────────────────── */
+
+.auth-button-wrapper {
+  display: inline-flex;
+  align-items: center;
+}
+
+.auth-link {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px !important;
+  padding: 6px 12px !important;
+  cursor: pointer;
+}
+
+.auth-link.is-unauthenticated {
+  background: linear-gradient(180deg, #5865F2 0%, #4752C4 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(88, 101, 242, 0.5) !important;
+  border-radius: 4px;
+}
+
+.auth-link.is-unauthenticated:hover,
+.auth-link.is-unauthenticated:focus-visible {
+  background: linear-gradient(180deg, #6b75f5 0%, #5865F2 100%) !important;
+  box-shadow: 0 0 12px rgba(88, 101, 242, 0.4);
+}
+
+.auth-link.is-authenticated {
+  background: linear-gradient(180deg, #b52312 0%, #671005 100%) !important;
+  border: 1px solid rgba(255, 96, 64, 0.7) !important;
+  border-radius: 4px;
+  color: #ffe9cb !important;
+}
+
+.auth-link.is-authenticated:hover,
+.auth-link.is-authenticated:focus-visible {
+  background: linear-gradient(180deg, #e1391c 0%, #8b1407 100%) !important;
+  border-color: rgba(255, 156, 104, 0.9) !important;
+}
+
+.auth-avatar {
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.auth-username {
+  font-size: 0.82rem;
+  font-weight: 700;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.auth-discord-icon {
+  flex-shrink: 0;
+}
+
+.auth-login-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0.02em;
+}
+
+@media (max-width: 860px) {
+  .auth-username {
+    max-width: 80px;
+  }
+
+  .auth-link {
+    padding: 4px 8px !important;
+    min-height: 34px !important;
+  }
+}
