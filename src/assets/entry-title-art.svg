@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="520" viewBox="0 0 1800 520">
+  <defs>
+    <style>
+      @font-face {
+        font-family: EntrySerif;
+        src: url("C:/Windows/Fonts/georgiab.ttf");
+      }
+      .label {
+        font-family: Arial, sans-serif;
+        font-size: 37px;
+        font-weight: 900;
+        letter-spacing: 12px;
+      }
+      .title {
+        font-family: EntrySerif, Georgia, serif;
+        font-size: 162px;
+        font-weight: 900;
+        letter-spacing: 0;
+      }
+    </style>
+    <filter id="carve" x="-12%" y="-18%" width="124%" height="140%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.028" numOctaves="4" seed="44" result="rough"/>
+      <feDisplacementMap in="SourceGraphic" in2="rough" scale="3.5" xChannelSelector="R" yChannelSelector="G" result="worn"/>
+      <feMorphology in="worn" operator="dilate" radius="1.5" result="thick"/>
+      <feGaussianBlur in="thick" stdDeviation="2.3" result="redGlow"/>
+      <feDropShadow dx="0" dy="4" stdDeviation="3.5" flood-color="#040000" flood-opacity="0.96"/>
+      <feDropShadow dx="0" dy="0" stdDeviation="11" flood-color="#db1d10" flood-opacity="0.78"/>
+      <feDropShadow dx="0" dy="0" stdDeviation="28" flood-color="#6f0000" flood-opacity="0.7"/>
+    </filter>
+    <filter id="labelGlow" x="-25%" y="-90%" width="150%" height="240%">
+      <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#000" flood-opacity="0.92"/>
+      <feDropShadow dx="0" dy="0" stdDeviation="5" flood-color="#ff7536" flood-opacity="0.8"/>
+    </filter>
+    <linearGradient id="bloodStone" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffa96f"/>
+      <stop offset="0.13" stop-color="#df3b27"/>
+      <stop offset="0.43" stop-color="#7e0803"/>
+      <stop offset="0.7" stop-color="#260000"/>
+      <stop offset="1" stop-color="#060000"/>
+    </linearGradient>
+    <linearGradient id="hotEdge" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ff6338"/>
+      <stop offset="0.46" stop-color="#8d0a04"/>
+      <stop offset="1" stop-color="#170000"/>
+    </linearGradient>
+    <pattern id="stoneNoise" width="180" height="180" patternUnits="userSpaceOnUse">
+      <rect width="180" height="180" fill="#2a0704"/>
+      <path d="M-20 48c42-22 83 12 126-8 28-13 57-30 92-18M12 143c38-20 77 8 111-12 25-15 52-16 86 2" stroke="#0b0000" stroke-width="7" opacity="0.45" fill="none"/>
+      <path d="M24 26h28v5H24zM90 78h54v4H90zM38 112h87v3H38z" fill="#6b1510" opacity="0.28"/>
+    </pattern>
+    <mask id="titleMask">
+      <rect width="1800" height="520" fill="black"/>
+      <text class="title" x="900" y="210" text-anchor="middle" fill="white">WELCOME TO</text>
+      <text class="title" x="900" y="390" text-anchor="middle" fill="white">THE HIVE</text>
+    </mask>
+  </defs>
+
+  <g opacity="0.95" filter="url(#labelGlow)">
+    <path d="M575 64h82M1143 64h82" stroke="#ffd09a" stroke-width="2"/>
+    <text class="label" x="900" y="78" text-anchor="middle" fill="#ffd29d">LEGION REALM</text>
+  </g>
+
+  <g filter="url(#carve)">
+    <text class="title" x="900" y="210" text-anchor="middle" fill="#080000" stroke="#160000" stroke-width="18" paint-order="stroke fill">WELCOME TO</text>
+    <text class="title" x="900" y="390" text-anchor="middle" fill="#080000" stroke="#160000" stroke-width="18" paint-order="stroke fill">THE HIVE</text>
+    <text class="title" x="900" y="210" text-anchor="middle" fill="url(#bloodStone)" stroke="url(#hotEdge)" stroke-width="5" paint-order="stroke fill">WELCOME TO</text>
+    <text class="title" x="900" y="390" text-anchor="middle" fill="url(#bloodStone)" stroke="url(#hotEdge)" stroke-width="5" paint-order="stroke fill">THE HIVE</text>
+    <rect width="1800" height="520" fill="url(#stoneNoise)" mask="url(#titleMask)" opacity="0.38" style="mix-blend-mode:multiply"/>
+  </g>
+</svg>
