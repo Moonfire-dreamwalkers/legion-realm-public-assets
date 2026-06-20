@@ -11258,7 +11258,6 @@ body {
 
 body::before {
   opacity: 0.16 !important;
-  mix-blend-mode: screen !important;
   background-image: radial-gradient(circle at 16% 24%, rgba(255, 244, 220, 0.045) 0 1px, transparent 2px),
     radial-gradient(circle at 78% 38%, rgba(255, 35, 22, 0.052) 0 1px, transparent 2px),
     repeating-linear-gradient(96deg, transparent 0 58px, rgba(255, 244, 220, 0.018) 59px 60px),
@@ -15304,7 +15303,6 @@ body[data-view="music"] .music-vault .album-selector {
   background: radial-gradient(circle 600px at var(--mouse-x) var(--mouse-y),
       rgba(218, 18, 25, 0.08),
       transparent);
-  mix-blend-mode: screen;
 }
 
 
@@ -18680,5 +18678,60 @@ body[data-view="promote"] .promote-page-redesign {
   letter-spacing: 0.05em;
   text-transform: none;
   align-self: center;
+}
+
+/* ── Mobile Layout Fixes (Antigravity Optimization) ── */
+@media (max-width: 640px) {
+  /* Prevent community-obsidian container from pushing horizontal scroll */
+  .community-obsidian {
+    padding: 16px !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Prevent nesting padding on artist grid from exceeding viewport */
+  .artist-selector-grid {
+    padding: 20px 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Force single column layout on small devices to prevent overflow */
+  .artist-cards {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  /* Ensure the featured image is fully responsive */
+  .community-featured-image {
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Scale down huge headers in text-only blocks */
+  .who-is-legion .promo-header-main {
+    font-size: 1.65rem !important;
+    letter-spacing: 1px !important;
+  }
+
+  /* Ensure build badge doesn't expand primary navigation */
+  .build-badge {
+    padding: 2px 6px !important;
+    margin-left: 4px !important;
+    font-size: 0.6rem !important;
+  }
+
+  /* Make sure the main scroll pages are constrained */
+  .son-scrolling-page, .studio-page, .divinity-page {
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+  }
+}
+
+@media (max-width: 768px) {
+  html, body {
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+  }
 }
 

@@ -1,3 +1,16 @@
+const cdnBase = (!window.LR_BUILD_VERSION || window.LR_BUILD_VERSION === 'local')
+  ? ''
+  : `https://cdn.jsdelivr.net/gh/Moonfire-dreamwalkers/legion-realm-public-assets@${window.LR_BUILD_VERSION}`;
+
+function resolveUrl(url) {
+  if (!url) return url;
+  const str = String(url);
+  if (str.startsWith('http://') || str.startsWith('https://') || str.startsWith('data:')) {
+    return url;
+  }
+  return cdnBase ? `${cdnBase}/${str.replace(/^\//, '')}` : url;
+}
+
 const {
   checkoutConfig,
   discordConfig,
@@ -10,12 +23,20 @@ const {
   artists
 } = window.siteConfig;
 
+// Pre-resolve relative urls in siteConfig arrays
+artists.forEach(artist => {
+  if (artist.image) artist.image = resolveUrl(artist.image);
+});
+products.forEach(product => {
+  if (product.image) product.image = resolveUrl(product.image);
+});
+
 const siteShell = document.querySelector("#siteShell");
 const nav = document.querySelector("#primaryNav");
 const viewRoot = document.querySelector("#viewRoot");
 const currentViewLabel = document.querySelector("#currentViewLabel");
 
-const savedCart = localStorage.getItem("legion_realm_cart");
+const savedCart = document.cookie ? (localStorage.getItem("legion_realm_cart") ? localStorage.getItem("legion_realm_cart") : "") : "";
 const cart = new Map(savedCart ? JSON.parse(savedCart) : []);
 
 function saveCart() {
@@ -29,7 +50,7 @@ const money = new Intl.NumberFormat("en-US", {
 
 const videoThumb = (id) => `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
 const videoThumbnailCache = "son-video-thumbnails-v1";
-const videoPosterFallback = "src/assets/video-obsidian-poster.png";
+const videoPosterFallback = resolveUrl("src/assets/video-obsidian-poster.png");
 const youtubeChannelFeed = (id) => `https://www.youtube.com/feeds/videos.xml?channel_id=${id}`;
 const youtubeFeedProxy = (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
 
@@ -103,25 +124,25 @@ function artAssets() {
     {
       title: "Legion Realm",
       meta: "Art",
-      image: "pictures/515083529_24119378957693526_2416044119396794384_n.jpg",
+      image: resolveUrl("pictures/515083529_24119378957693526_2416044119396794384_n.jpg"),
       href: "#home"
     },
     {
       title: profile.name,
       meta: "Music",
-      image: "pictures/610975344_25729740873323985_7011612998820304873_n.jpg",
+      image: resolveUrl("pictures/610975344_25729740873323985_7011612998820304873_n.jpg"),
       href: "#music"
     },
     {
       title: "Artwork",
       meta: "Identity",
-      image: "pictures/498327952_10010656232325702_4115048481086730564_n.jpg",
+      image: resolveUrl("pictures/498327952_10010656232325702_4115048481086730564_n.jpg"),
       href: "#home"
     },
     {
       title: "Legion Realm",
       meta: "Visual",
-      image: "pictures/463619189_18095114947463274_1773267247556644044_n.jpg",
+      image: resolveUrl("pictures/463619189_18095114947463274_1773267247556644044_n.jpg"),
       href: "#home"
     }
   ];
@@ -132,31 +153,31 @@ function sectionPreviewAssets() {
     music: {
       title: "Music",
       meta: "Spotify",
-      image: "pictures/610975344_25729740873323985_7011612998820304873_n.jpg",
+      image: resolveUrl("pictures/610975344_25729740873323985_7011612998820304873_n.jpg"),
       href: "#music"
     },
     video: {
       title: "Video",
       meta: "YouTube",
-      image: "pictures/668984037_26638569502441113_3766474232566768382_n.jpg",
+      image: resolveUrl("pictures/668984037_26638569502441113_3766474232566768382_n.jpg"),
       href: "#video"
     },
     social: {
       title: "Social",
       meta: "Links",
-      image: "pictures/486821153_9626876300703699_3145772948132120310_n.jpg",
+      image: resolveUrl("pictures/486821153_9626876300703699_3145772948132120310_n.jpg"),
       href: "#social"
     },
     community: {
       title: "Community",
       meta: "Discord",
-      image: "pictures/498327952_10010656232325702_4115048481086730564_n.jpg",
+      image: resolveUrl("pictures/498327952_10010656232325702_4115048481086730564_n.jpg"),
       href: "#community"
     },
     store: {
       title: "Store",
       meta: "Merch",
-      image: "pictures/682301339_26828962450068483_1914265669887023745_n.jpg",
+      image: resolveUrl("pictures/682301339_26828962450068483_1914265669887023745_n.jpg"),
       href: "#store"
     }
   };
@@ -560,7 +581,8 @@ function renderNav() {
     )
     .join("");
 
-  nav.innerHTML = linksHtml + `<span class="build-badge">${version}</span>`;
+  const shortVersion = (version.length > 10 && version.includes('T')) ? version.split('T')[0] : version;
+  nav.innerHTML = linksHtml + `<span class="build-badge">${shortVersion}</span>`;
 }
 
 function registerThumbnailCache() {
@@ -658,12 +680,21 @@ function renderView(view) {
     promote: renderPromote
   };
 
-  return `
+  let html = `
     <section class="view band view-${view.id}" data-view="${view.id}" tabindex="-1">
       <div class="view-ghost" aria-hidden="true">${sulfurSvg()}</div>
       ${renderers[view.id](view)}
     </section>
   `;
+
+  // Pre-resolve relative src attributes in HTML string to load from CDN in production
+  if (cdnBase) {
+    html = html.replace(/src=["'](?!https?:\/\/|data:)([^"']+)["']/g, (match, p1) => {
+      return `src="${cdnBase}/${p1.replace(/^\//, '')}"`;
+    });
+  }
+
+  return html;
 }
 
 function renderViewHead(view) {
@@ -985,6 +1016,20 @@ function renderStudio(view) {
           </div>
         </div>
       </section>
+
+      <!-- Philbrix Gallery Section -->
+      <section class="divinity-gallery-section section-system">
+        <p class="section-label">Philbrix Gallery</p>
+        <h2 class="pipeline-title">PHILBRIX CREATIONS</h2>
+        <p class="pipeline-subtitle">Latex Masks, Sculptures & Special FX</p>
+        <div class="divinity-portfolio-wrapper is-collapsed" id="philbrixPortWrapper">
+          <div class="divinity-portfolio-grid" id="philbrixPortGrid"></div>
+          <button class="divinity-portfolio-expand-btn button button-secondary" id="philbrixPortExpandBtn" aria-label="Explore all Philbrix images">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            <span>Explore All Philbrix Archive</span>
+          </button>
+        </div>
+      </section>
     </div>
   `;
 }
@@ -998,6 +1043,21 @@ function renderSon() {
       <div class="son-section-music">
         ${renderMusic(musicView)}
       </div>
+
+      <!-- S.O.N Gallery Section -->
+      <section class="divinity-gallery-section section-system">
+        <p class="section-label">Somethin Outta Nothin Gallery</p>
+        <h2 class="pipeline-title">S.O.N GALLERY</h2>
+        <p class="pipeline-subtitle">Visuals, Cover Art & Moments</p>
+        <div class="divinity-portfolio-wrapper is-collapsed" id="sonPortWrapper">
+          <div class="divinity-portfolio-grid" id="sonPortGrid"></div>
+          <button class="divinity-portfolio-expand-btn button button-secondary" id="sonPortExpandBtn" aria-label="Explore all S.O.N images">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            <span>Explore All S.O.N Archive</span>
+          </button>
+        </div>
+      </section>
+
       <div class="son-section-store">
         ${renderStore(storeView)}
       </div>
@@ -1750,6 +1810,7 @@ function bindView(viewId) {
   if (viewId === "son") {
     bindAlbumConsole();
     bindStoreElements();
+    bindSonGallery();
     return;
   }
 
@@ -1760,6 +1821,7 @@ function bindView(viewId) {
 
   if (viewId === "studio") {
     bindVideoBoard();
+    bindPhilbrixGallery();
     return;
   }
 
@@ -1906,6 +1968,119 @@ function bindDivinityPortfolio() {
 
   expandBtn.addEventListener("click", () => {
     const hiddenItems = grid.querySelectorAll(".divinity-portfolio-item.is-hidden");
+    hiddenItems.forEach(item => {
+      item.classList.remove("is-hidden");
+      item.style.display = "block";
+    });
+    expandBtn.style.display = "none";
+    wrapper.classList.remove("is-collapsed");
+  });
+}
+
+function bindSonGallery() {
+  const grid = document.getElementById("sonPortGrid");
+  const wrapper = document.getElementById("sonPortWrapper");
+  const expandBtn = document.getElementById("sonPortExpandBtn");
+  if (!grid || !wrapper || !expandBtn) return;
+
+  const images = [
+    "pictures/something outta nothing/463619189_18095114947463274_1773267247556644044_n.jpg",
+    "pictures/something outta nothing/487314944_9647852071939455_2372815069298903342_n.jpg",
+    "pictures/something outta nothing/494118773_9836956476362346_4656582353664272704_n.jpg",
+    "pictures/something outta nothing/494162522_9859845727406754_5573057615568191752_n.jpg",
+    "pictures/something outta nothing/498327952_10010656232325702_4115048481086730564_n.jpg",
+    "pictures/something outta nothing/514318478_24120298870934868_1444515052201366951_n.jpg",
+    "pictures/something outta nothing/514323324_24116425937988828_6520506200923482964_n.jpg",
+    "pictures/something outta nothing/514482713_24120465954251493_7803949417622555633_n.jpg",
+    "pictures/something outta nothing/515083529_24119378957693526_2416044119396794384_n.jpg",
+    "pictures/something outta nothing/557628749_24902326526065428_5975727814885637327_n.jpg",
+    "pictures/something outta nothing/566363742_25041064808858265_4854427230165897640_n.jpg",
+    "pictures/something outta nothing/610975344_25729740873323985_7011612998820304873_n.jpg",
+    "pictures/something outta nothing/648865794_26275632385401495_28440860511883168_n.jpg",
+    "pictures/something outta nothing/668984037_26638569502441113_3766474232566768382_n.jpg",
+    "pictures/something outta nothing/675515938_26732628699701859_6706512719488354866_n.jpg",
+    "pictures/something outta nothing/682301339_26828962450068483_1914265669887023745_n.jpg",
+    "pictures/something outta nothing/grant us eyes.jpeg"
+  ];
+
+  grid.innerHTML = "";
+
+  const renderItem = (img, index, isHidden = false) => {
+    const item = document.createElement("div");
+    item.className = "divinity-portfolio-item";
+    if (isHidden) {
+      item.classList.add("is-hidden");
+      item.style.display = "none";
+    }
+    const imgUrl = resolveUrl(img);
+    item.innerHTML = `<img src="${imgUrl}" alt="S.O.N Image ${index}" loading="lazy" decoding="async">`;
+    item.addEventListener("click", () => {
+      openDivinityLightbox(imgUrl);
+    });
+    return item;
+  };
+
+  images.forEach((img, idx) => {
+    const isHidden = idx >= 8;
+    const item = renderItem(img, idx + 1, isHidden);
+    grid.appendChild(item);
+  });
+
+  expandBtn.addEventListener("click", () => {
+    const hiddenItems = grid.querySelectorAll("#sonPortGrid .divinity-portfolio-item.is-hidden");
+    hiddenItems.forEach(item => {
+      item.classList.remove("is-hidden");
+      item.style.display = "block";
+    });
+    expandBtn.style.display = "none";
+    wrapper.classList.remove("is-collapsed");
+  });
+}
+
+function bindPhilbrixGallery() {
+  const grid = document.getElementById("philbrixPortGrid");
+  const wrapper = document.getElementById("philbrixPortWrapper");
+  const expandBtn = document.getElementById("philbrixPortExpandBtn");
+  if (!grid || !wrapper || !expandBtn) return;
+
+  const images = [
+    "pictures/philbrix/476835669_1359215671904724_8576598953606769678_n.jpg",
+    "pictures/philbrix/482807336_1382493439576947_8217902807504495779_n.jpg",
+    "pictures/philbrix/485306766_1390389605453997_6585223568325336195_n.jpg",
+    "pictures/philbrix/485607046_1391223342037290_8115186038259580136_n.jpg",
+    "pictures/philbrix/485765900_1389591358867155_5581226393361912876_n.jpg",
+    "pictures/philbrix/640077397_18566038576061355_1837353207573859770_n.jpg",
+    "pictures/philbrix/658043423_18580002718061355_4633109479160700946_n.jpg",
+    "pictures/philbrix/709882773_18595140130061355_219960142183883069_n.jpg",
+    "pictures/philbrix/712196901_18596572588061355_6491067378167815969_n.jpg",
+    "pictures/philbrix/725767583_18600967723061355_5369994730697635112_n.jpg"
+  ];
+
+  grid.innerHTML = "";
+
+  const renderItem = (img, index, isHidden = false) => {
+    const item = document.createElement("div");
+    item.className = "divinity-portfolio-item";
+    if (isHidden) {
+      item.classList.add("is-hidden");
+      item.style.display = "none";
+    }
+    const imgUrl = resolveUrl(img);
+    item.innerHTML = `<img src="${imgUrl}" alt="Philbrix Image ${index}" loading="lazy" decoding="async">`;
+    item.addEventListener("click", () => {
+      openDivinityLightbox(imgUrl);
+    });
+    return item;
+  };
+
+  images.forEach((img, idx) => {
+    const isHidden = idx >= 8;
+    const item = renderItem(img, idx + 1, isHidden);
+    grid.appendChild(item);
+  });
+
+  expandBtn.addEventListener("click", () => {
+    const hiddenItems = grid.querySelectorAll("#philbrixPortGrid .divinity-portfolio-item.is-hidden");
     hiddenItems.forEach(item => {
       item.classList.remove("is-hidden");
       item.style.display = "block";
