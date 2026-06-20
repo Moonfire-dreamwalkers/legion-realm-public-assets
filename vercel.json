@@ -6,6 +6,16 @@
       "maxDuration": 30
     }
   },
+  "routes": [
+    {
+      "src": "/api/lib/(.*)",
+      "status": 404,
+      "continue": false
+    },
+    {
+      "handle": "filesystem"
+    }
+  ],
   "headers": [
     {
       "source": "/build-version.json",
