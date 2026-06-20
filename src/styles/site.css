@@ -18033,8 +18033,9 @@ body.lightbox-open {
 /* Stacking and compact styling for mobile viewports */
 @media (max-width: 800px) {
   .portal-gate-overlay {
-    padding: 3vh 20px;
+    padding: 3vh 20px 100px 20px !important; /* Generous bottom padding to clear mobile browser UI bars */
     overflow-y: auto; /* Allow normal scrolling on mobile devices */
+    -webkit-overflow-scrolling: touch; /* Enable smooth momentum scrolling on iOS */
   }
   .portal-content-box {
     gap: 3vh;
