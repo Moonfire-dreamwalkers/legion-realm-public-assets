@@ -2377,6 +2377,7 @@ const visualizerState = {
 const visualizerHeights = new Float32Array(32);
 const visualizerPeaks = new Float32Array(32);
 const visualizerParticles = [];
+let visualizerIntensity = 0;
 
 function drawRoundedRect(ctx, x, y, width, height, radius) {
   ctx.beginPath();
@@ -2523,6 +2524,17 @@ function startVisualizerLoop() {
       visualizerHeights[i] += (target - visualizerHeights[i]) * (isPlaying ? 0.28 : 0.1);
     }
 
+    // Compute overall intensity (0-1) from average bar heights for particle system scaling
+    let avgHeight = 0;
+    for (let i = 0; i < barCount; i++) {
+      avgHeight += visualizerHeights[i] / 255;
+    }
+    avgHeight /= barCount;
+    // Smooth the intensity with faster attack and slower release for responsive feel
+    const intensityTarget = Math.min(1, avgHeight * 1.2);
+    const intensitySmooth = intensityTarget > visualizerIntensity ? 0.18 : 0.06;
+    visualizerIntensity += (intensityTarget - visualizerIntensity) * intensitySmooth;
+
     // 2. Draw horizontal row of reacting sulfur sigils
     // Anchored and mathematically constrained to never exceed canvas boundaries (no cutoff/hangoff)
     const spacing = width / barCount;
@@ -2582,24 +2594,34 @@ function startVisualizerLoop() {
       ctx.restore();
 
       // Spawn tiny sulfur sigil embers/sparks from the top of bouncing sigils
-      if (isPlaying && val > 80 && Math.random() < 0.22) {
+      // Particle count and properties now scale with overall music intensity
+      const spawnThreshold = 0.04 + visualizerIntensity * 0.40;
+      const maxParticles = Math.round(8 + visualizerIntensity * 55);
+      if (isPlaying && val > 50 + (1 - visualizerIntensity) * 40 && Math.random() < spawnThreshold && visualizerParticles.length < maxParticles) {
+        const intensityBoost = visualizerIntensity * 1.6;
         visualizerParticles.push({
           x: cx,
           y: cy - size / 2,
-          vx: (Math.random() - 0.5) * 0.8,
-          vy: -Math.random() * 1.5 - 0.4,
-          size: Math.random() * 8 + 6,
-          color: Math.random() < 0.28 ? "#ffaa00" : "#ff2a2a",
+          vx: (Math.random() - 0.5) * (0.6 + intensityBoost * 1.0),
+          vy: -(Math.random() * 1.2 + 0.3 + intensityBoost * 1.8),
+          size: 4 + Math.random() * (6 + intensityBoost * 8),
+          color: Math.random() < 0.18 + visualizerIntensity * 0.22 ? "#ffaa00" : "#ff2a2a",
           alpha: 1.0,
-          decay: Math.random() * 0.018 + 0.012,
+          decay: 0.025 + Math.random() * 0.020 - visualizerIntensity * 0.015,
           rotation: Math.random() * Math.PI * 2,
-          rotSpeed: (Math.random() - 0.5) * 0.06
+          rotSpeed: (Math.random() - 0.5) * (0.04 + intensityBoost * 0.08)
         });
       }
     }
 
     // 3. Update and draw particles (embers) as tiny rotating sulfur sigils
-    if (isPlaying && visualizerParticles.length > 0) {
+    // When music is not playing, rapidly decay all existing particles
+    if (visualizerParticles.length > 0) {
+      if (!isPlaying) {
+        for (let pIdx = visualizerParticles.length - 1; pIdx >= 0; pIdx--) {
+          visualizerParticles[pIdx].decay *= 3.5;
+        }
+      }
       for (let pIdx = visualizerParticles.length - 1; pIdx >= 0; pIdx--) {
         const p = visualizerParticles[pIdx];
         p.x += p.vx;
@@ -2607,7 +2629,7 @@ function startVisualizerLoop() {
         p.alpha -= p.decay;
         p.rotation += p.rotSpeed;
 
-        if (p.alpha <= 0) {
+        if (p.alpha <= 0 || p.y < -30) {
           visualizerParticles.splice(pIdx, 1);
           continue;
         }
