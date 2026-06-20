@@ -35,7 +35,7 @@ body::before {
     repeating-linear-gradient(112deg, rgba(184, 14, 23, 0.09) 0 1px, transparent 1px 18px),
     repeating-linear-gradient(28deg, transparent 0 38px, rgba(200, 160, 76, 0.026) 38px 39px);
   background-size: 21px 21px, 21px 21px, auto, auto;
-  mask-image: radial-gradient(circle at center, black, transparent 72%);
+  mask-image: none;
 }
 
 body::after {
@@ -18870,6 +18870,49 @@ body[data-view="promote"] .promote-page-redesign {
   html, body {
     max-width: 100% !important;
     overflow-x: hidden !important;
+  }
+}
+
+/* Firefox-specific performance overrides */
+@-moz-document url-prefix() {
+  /* Disable heavy background grain movement animation */
+  body::before {
+    animation-name: none !important;
+  }
+
+  /* Disable skew and movement on side bars */
+  .site-shell::before,
+  .site-shell::after {
+    animation-name: none !important;
+    transform: none !important;
+  }
+
+  /* Disable movement on card membranes; keep only opacity breathing */
+  .home-board::before,
+  .album-console::before,
+  .video-frame::after,
+  .social-page::before,
+  .community-panel::before,
+  .store-layout::before,
+  .product-card::after,
+  .cart::after,
+  .visual-frame::before,
+  .social-tablet::before,
+  .email-tablet::before,
+  .video-item::before,
+  .source-list a::before,
+  .link-card::before,
+  .signal-panel::before {
+    animation-name: membrane-shift-firefox !important;
+  }
+}
+
+@keyframes membrane-shift-firefox {
+  0% {
+    opacity: 0.22;
+  }
+  100% {
+    opacity: 0.46;
   }
 }
 
