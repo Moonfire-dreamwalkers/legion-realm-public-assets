@@ -634,7 +634,11 @@ function initApp() {
   loadBigCartelProducts();
 }
 
-window.addEventListener("DOMContentLoaded", initApp);
+if (document.readyState === "loading") {
+  window.addEventListener("DOMContentLoaded", initApp);
+} else {
+  initApp();
+}
 
 function renderView(view) {
   const renderers = {
