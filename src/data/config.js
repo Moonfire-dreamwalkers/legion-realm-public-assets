@@ -38,35 +38,35 @@ window.siteConfig = {
       id: "son",
       name: "Somethin Outta Nothin",
       tagline: "Do It For The Underground",
-      image: "pictures/610975344_25729740873323985_7011612998820304873_n.jpg",
+      image: "images/son/610975344_25729740873323985_7011612998820304873_n.jpg",
       href: "son.html"
     },
     {
       id: "underground",
       name: "Do It For The Underground",
       tagline: "Discussing the underground & horrorcore",
-      image: "doitfortheunderground.jpg",
+      image: "images/underground/doitfortheunderground.jpg",
       href: "underground.html"
     },
     {
       id: "cult-divinity",
       name: "Cult Divinity",
       tagline: "Legion Realm",
-      image: "divinity.png",
+      image: "images/divinity/divinity.png",
       href: "divinity.html"
     },
     {
       id: "studio",
       name: "Philbrix Studio",
       tagline: "Custom latex monster masks & horror art",
-      image: "philbrix-studio.png",
+      image: "images/philbrix/philbrix-studio.png",
       href: "studio.html"
     },
     {
       id: "nightowlprints",
       name: "Keagan Grimm & Night Owl Prints",
       tagline: "Music & Merchandising Solutions",
-      image: "nightowlprints.png",
+      image: "images/nightowlprints/nightowlprints.png",
       href: "nightowlprints.html"
     }
   ],

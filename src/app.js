@@ -50,7 +50,7 @@ const money = new Intl.NumberFormat("en-US", {
 
 const videoThumb = (id) => `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
 const videoThumbnailCache = "son-video-thumbnails-v1";
-const videoPosterFallback = resolveUrl("src/assets/video-obsidian-poster.png");
+const videoPosterFallback = resolveUrl("images/assets/video-obsidian-poster.png");
 const youtubeChannelFeed = (id) => `https://www.youtube.com/feeds/videos.xml?channel_id=${id}`;
 const youtubeFeedProxy = (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
 
@@ -124,25 +124,25 @@ function artAssets() {
     {
       title: "Legion Realm",
       meta: "Art",
-      image: resolveUrl("pictures/515083529_24119378957693526_2416044119396794384_n.jpg"),
+      image: resolveUrl("images/son/515083529_24119378957693526_2416044119396794384_n.jpg"),
       href: "#home"
     },
     {
       title: profile.name,
       meta: "Music",
-      image: resolveUrl("pictures/610975344_25729740873323985_7011612998820304873_n.jpg"),
+      image: resolveUrl("images/son/610975344_25729740873323985_7011612998820304873_n.jpg"),
       href: "#music"
     },
     {
       title: "Artwork",
       meta: "Identity",
-      image: resolveUrl("pictures/498327952_10010656232325702_4115048481086730564_n.jpg"),
+      image: resolveUrl("images/son/498327952_10010656232325702_4115048481086730564_n.jpg"),
       href: "#home"
     },
     {
       title: "Legion Realm",
       meta: "Visual",
-      image: resolveUrl("pictures/463619189_18095114947463274_1773267247556644044_n.jpg"),
+      image: resolveUrl("images/son/463619189_18095114947463274_1773267247556644044_n.jpg"),
       href: "#home"
     }
   ];
@@ -153,31 +153,31 @@ function sectionPreviewAssets() {
     music: {
       title: "Music",
       meta: "Spotify",
-      image: resolveUrl("pictures/610975344_25729740873323985_7011612998820304873_n.jpg"),
+      image: resolveUrl("images/son/610975344_25729740873323985_7011612998820304873_n.jpg"),
       href: "#music"
     },
     video: {
       title: "Video",
       meta: "YouTube",
-      image: resolveUrl("pictures/668984037_26638569502441113_3766474232566768382_n.jpg"),
+      image: resolveUrl("images/son/668984037_26638569502441113_3766474232566768382_n.jpg"),
       href: "#video"
     },
     social: {
       title: "Social",
       meta: "Links",
-      image: resolveUrl("pictures/486821153_9626876300703699_3145772948132120310_n.jpg"),
+      image: resolveUrl("images/son/486821153_9626876300703699_3145772948132120310_n.jpg"),
       href: "#social"
     },
     community: {
       title: "Community",
       meta: "Discord",
-      image: resolveUrl("pictures/498327952_10010656232325702_4115048481086730564_n.jpg"),
+      image: resolveUrl("images/son/498327952_10010656232325702_4115048481086730564_n.jpg"),
       href: "#community"
     },
     store: {
       title: "Store",
       meta: "Merch",
-      image: resolveUrl("pictures/682301339_26828962450068483_1914265669887023745_n.jpg"),
+      image: resolveUrl("images/son/682301339_26828962450068483_1914265669887023745_n.jpg"),
       href: "#store"
     }
   };
@@ -189,7 +189,7 @@ function musicAlbums() {
       id: "the-bastard-son",
       title: "The Bastard Son",
       eyebrow: "Album",
-      image: "pictures/515083529_24119378957693526_2416044119396794384_n.jpg",
+      image: "images/son/515083529_24119378957693526_2416044119396794384_n.jpg",
       accent: "",
       releaseDate: "March 9, 2025",
       year: "2025",
@@ -223,7 +223,7 @@ function musicAlbums() {
       id: "grant-us-eyes",
       title: "Grant Us Eyes",
       eyebrow: "Album",
-      image: "pictures/grant us eyes.jpeg",
+      image: "images/son/grant us eyes.jpeg",
       accent: "",
       releaseDate: "July 23, 2021",
       year: "2021",
@@ -262,7 +262,7 @@ function keaganAlbums() {
       "id": "gospell",
       "title": "Gospell",
       "eyebrow": "Album",
-      "image": "pictures/gospell.jpg",
+      "image": "images/keagan/gospell.jpg",
       "accent": "",
       "releaseDate": "February 29, 2024",
       "year": "2024",
@@ -333,7 +333,7 @@ function keaganAlbums() {
       "id": "gravel-mouth",
       "title": "Gravel Mouth",
       "eyebrow": "Album",
-      "image": "pictures/gravel-mouth.jpg",
+      "image": "images/keagan/gravel-mouth.jpg",
       "accent": "",
       "releaseDate": "February 12, 2021",
       "year": "2021",
@@ -383,7 +383,7 @@ function keaganAlbums() {
       "id": "the-obscure",
       "title": "The Obscure",
       "eyebrow": "Album",
-      "image": "pictures/the-obscure.jpg",
+      "image": "images/keagan/the-obscure.jpg",
       "accent": "",
       "releaseDate": "July 10, 2019",
       "year": "2019",
@@ -455,7 +455,7 @@ function keaganAlbums() {
       "id": "cinderblock-saints",
       "title": "Cinderblock Saints",
       "eyebrow": "EP",
-      "image": "pictures/cinderblock-saints.jpg",
+      "image": "images/keagan/cinderblock-saints.jpg",
       "accent": "",
       "releaseDate": "August 30, 2022",
       "year": "2022",
@@ -716,7 +716,7 @@ function renderDivinity(view) {
         <div class="divinity-hero-brand">
           <div class="divinity-logo-halo" aria-hidden="true"></div>
           <div class="divinity-logo-shell">
-            <img src="divinity.png" alt="Cult Divinity Logo" loading="eager">
+            <img src="images/divinity/divinity.png" alt="Cult Divinity Logo" loading="eager">
           </div>
         </div>
         <div class="divinity-hero-copy">
@@ -752,7 +752,7 @@ function renderDivinity(view) {
         <div class="divinity-partner-card section-system">
           <div class="partner-avatar-container">
             <div class="partner-avatar">
-              <img class="partner-avatar-img" src="lunaserafina.jpg" alt="Luna Serafina" loading="lazy">
+              <img class="partner-avatar-img" src="images/divinity/lunaserafina.jpg" alt="Luna Serafina" loading="lazy">
             </div>
           </div>
           <div class="partner-info">
@@ -786,7 +786,7 @@ function renderDivinity(view) {
         <div class="divinity-partner-card section-system">
           <div class="partner-avatar-container">
             <div class="partner-avatar">
-              <img class="partner-avatar-img" src="krystalyn.webp" alt="Krystalyn Deneve" loading="lazy">
+              <img class="partner-avatar-img" src="images/divinity/krystalyn.webp" alt="Krystalyn Deneve" loading="lazy">
             </div>
           </div>
           <div class="partner-info">
@@ -825,7 +825,7 @@ function renderDivinity(view) {
         <div class="pipeline-steps">
           <div class="pipeline-step">
             <div class="step-image-shell">
-              <img src="wallmount.png" alt="Design & Concept Mockup" loading="lazy">
+              <img src="images/divinity/wallmount.png" alt="Design & Concept Mockup" loading="lazy">
             </div>
             <div class="step-badge">1</div>
             <h3>Design & Concept</h3>
@@ -836,7 +836,7 @@ function renderDivinity(view) {
           </div>
           <div class="pipeline-step">
             <div class="step-image-shell">
-              <img src="3dprintingmasks.png" alt="3D Fabrication Preview" loading="lazy">
+              <img src="images/divinity/3dprintingmasks.png" alt="3D Fabrication Preview" loading="lazy">
             </div>
             <div class="step-badge">2</div>
             <h3>3D Fabrication (Luna)</h3>
@@ -847,7 +847,7 @@ function renderDivinity(view) {
           </div>
           <div class="pipeline-step">
             <div class="step-image-shell">
-              <img src="maskpostprocess.jpg" alt="Artistic Finishing Phase" loading="lazy">
+              <img src="images/divinity/maskpostprocess.jpg" alt="Artistic Finishing Phase" loading="lazy">
             </div>
             <div class="step-badge">3</div>
             <h3>Artistic Finishing (Krystalyn)</h3>
@@ -858,7 +858,7 @@ function renderDivinity(view) {
           </div>
           <div class="pipeline-step">
             <div class="step-image-shell">
-              <img src="snat.webp" alt="Completed Creation" loading="lazy">
+              <img src="images/divinity/snat.webp" alt="Completed Creation" loading="lazy">
             </div>
             <div class="step-badge">4</div>
             <h3>Finished Product</h3>
@@ -922,7 +922,7 @@ function renderStudio(view) {
         <div class="studio-hero-brand">
           <div class="studio-logo-halo" aria-hidden="true"></div>
           <div class="studio-logo-shell">
-            <img src="philbrix-studio.png" alt="Philbrix Studioz Logo" loading="eager">
+            <img src="images/philbrix/philbrix-studio.png" alt="Philbrix Studioz Logo" loading="eager">
           </div>
         </div>
         <div class="studio-hero-copy">
@@ -1101,7 +1101,7 @@ function renderUnderground(view) {
         <div class="underground-hero-brand">
           <div class="underground-logo-halo" aria-hidden="true"></div>
           <div class="underground-logo-shell">
-            <img src="doitfortheunderground.jpg" alt="Do It For The Underground Logo" loading="eager">
+            <img src="images/underground/doitfortheunderground.jpg" alt="Do It For The Underground Logo" loading="eager">
           </div>
         </div>
         <div class="underground-hero-copy">
@@ -1130,7 +1130,7 @@ function renderUnderground(view) {
         <div class="underground-host-card section-system">
           <div class="host-avatar-container">
             <div class="host-avatar">
-              <img class="host-avatar-img" src="robbie.jpg" alt="Robbie Pankow" loading="lazy">
+              <img class="host-avatar-img" src="images/underground/robbie.jpg" alt="Robbie Pankow" loading="lazy">
             </div>
           </div>
           <div class="host-info">
@@ -1222,7 +1222,7 @@ function renderNightOwlPrints(view) {
           <div class="nightowl-hero-brand">
             <div class="nightowl-logo-halo" aria-hidden="true"></div>
             <div class="nightowl-logo-shell">
-              <img src="nightowlprints.png" alt="Night Owl Prints Logo" loading="lazy">
+              <img src="images/nightowlprints/nightowlprints.png" alt="Night Owl Prints Logo" loading="lazy">
             </div>
           </div>
           <div class="nightowl-hero-copy">
@@ -1412,8 +1412,39 @@ function renderMusic(view) {
       <section class="album-stage album-aaa-stage" aria-label="Featured album">
         <div class="album-cover-zone">
           <div class="album-cover-halo" aria-hidden="true"></div>
-          <div class="album-cover-shell">
-            <img id="albumHeroImage" src="${activeAlbum.image}" alt="${activeAlbum.title}" loading="eager" decoding="async">
+          <div class="album-cover-shell" id="playerShell" style="display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 32px; padding: 40px; background: rgba(5, 5, 5, 0.95); box-sizing: border-box;">
+            <!-- Animated visualizer with glowing red bars -->
+            <div class="player-visualizer" id="playerVisualizer" style="display: flex; align-items: flex-end; justify-content: center; gap: 6px; height: 80px; width: 100%; max-width: 240px;">
+              <div class="vis-bar bar1" style="width: 8px; height: 10px; background-color: rgba(216, 209, 185, 0.2); border-radius: 4px;"></div>
+              <div class="vis-bar bar2" style="width: 8px; height: 10px; background-color: rgba(216, 209, 185, 0.2); border-radius: 4px;"></div>
+              <div class="vis-bar bar3" style="width: 8px; height: 10px; background-color: rgba(216, 209, 185, 0.2); border-radius: 4px;"></div>
+              <div class="vis-bar bar4" style="width: 8px; height: 10px; background-color: rgba(216, 209, 185, 0.2); border-radius: 4px;"></div>
+              <div class="vis-bar bar5" style="width: 8px; height: 10px; background-color: rgba(216, 209, 185, 0.2); border-radius: 4px;"></div>
+              <div class="vis-bar bar6" style="width: 8px; height: 10px; background-color: rgba(216, 209, 185, 0.2); border-radius: 4px;"></div>
+              <div class="vis-bar bar7" style="width: 8px; height: 10px; background-color: rgba(216, 209, 185, 0.2); border-radius: 4px;"></div>
+              <div class="vis-bar bar8" style="width: 8px; height: 10px; background-color: rgba(216, 209, 185, 0.2); border-radius: 4px;"></div>
+            </div>
+
+            <!-- Play/Pause Button -->
+            <button class="player-btn" id="playerPlayPauseBtn" type="button" aria-label="Play/Pause" style="background: none; border: none; color: #eee7d7; cursor: pointer; width: 64px; height: 64px; display: flex; align-items: center; justify-content: center; transition: color 0.2s, transform 0.1s; outline: none; box-shadow: none;">
+              <!-- Play Icon SVG -->
+              <svg id="playIcon" viewBox="0 0 24 24" fill="currentColor" style="width: 48px; height: 48px;">
+                <path d="M8 5v14l11-7z"></path>
+              </svg>
+              <!-- Pause Icon SVG -->
+              <svg id="pauseIcon" viewBox="0 0 24 24" fill="currentColor" style="width: 48px; height: 48px; display: none;">
+                <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"></path>
+              </svg>
+            </button>
+
+            <!-- Volume Control -->
+            <div class="player-volume-container" style="display: flex; align-items: center; gap: 12px; color: #aaa59a; width: 100%; max-width: 200px; justify-content: center;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.8;">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+              </svg>
+              <input type="range" id="playerVolumeSlider" min="0" max="1" step="0.05" value="0.5" aria-label="Volume" style="width: 100px; height: 4px; background: rgba(216, 209, 185, 0.15); border: none; outline: none; cursor: pointer;">
+            </div>
           </div>
           <div class="album-mini-meta" id="albumMiniMeta">
             ${renderAlbumMiniMeta(activeAlbum)}
@@ -1650,7 +1681,7 @@ function renderCommunity(view) {
       <!-- Original Community Image & Social/Discord Links -->
       <section class="community-connections">
         <div class="community-featured-block">
-          <img src="src/assets/legionrealminsta.jpeg" alt="Community Image" class="community-featured-image">
+          <img src="images/community/legionrealminsta.jpeg" alt="Community Image" class="community-featured-image">
           <div class="community-action-row">
             ${communityLinks.map((link) => {
               return `
@@ -1983,23 +2014,23 @@ function bindSonGallery() {
   if (!grid || !wrapper || !expandBtn) return;
 
   const images = [
-    "pictures/something outta nothing/463619189_18095114947463274_1773267247556644044_n.jpg",
-    "pictures/something outta nothing/487314944_9647852071939455_2372815069298903342_n.jpg",
-    "pictures/something outta nothing/494118773_9836956476362346_4656582353664272704_n.jpg",
-    "pictures/something outta nothing/494162522_9859845727406754_5573057615568191752_n.jpg",
-    "pictures/something outta nothing/498327952_10010656232325702_4115048481086730564_n.jpg",
-    "pictures/something outta nothing/514318478_24120298870934868_1444515052201366951_n.jpg",
-    "pictures/something outta nothing/514323324_24116425937988828_6520506200923482964_n.jpg",
-    "pictures/something outta nothing/514482713_24120465954251493_7803949417622555633_n.jpg",
-    "pictures/something outta nothing/515083529_24119378957693526_2416044119396794384_n.jpg",
-    "pictures/something outta nothing/557628749_24902326526065428_5975727814885637327_n.jpg",
-    "pictures/something outta nothing/566363742_25041064808858265_4854427230165897640_n.jpg",
-    "pictures/something outta nothing/610975344_25729740873323985_7011612998820304873_n.jpg",
-    "pictures/something outta nothing/648865794_26275632385401495_28440860511883168_n.jpg",
-    "pictures/something outta nothing/668984037_26638569502441113_3766474232566768382_n.jpg",
-    "pictures/something outta nothing/675515938_26732628699701859_6706512719488354866_n.jpg",
-    "pictures/something outta nothing/682301339_26828962450068483_1914265669887023745_n.jpg",
-    "pictures/something outta nothing/grant us eyes.jpeg"
+    "images/son/463619189_18095114947463274_1773267247556644044_n.jpg",
+    "images/son/487314944_9647852071939455_2372815069298903342_n.jpg",
+    "images/son/494118773_9836956476362346_4656582353664272704_n.jpg",
+    "images/son/494162522_9859845727406754_5573057615568191752_n.jpg",
+    "images/son/498327952_10010656232325702_4115048481086730564_n.jpg",
+    "images/son/514318478_24120298870934868_1444515052201366951_n.jpg",
+    "images/son/514323324_24116425937988828_6520506200923482964_n.jpg",
+    "images/son/514482713_24120465954251493_7803949417622555633_n.jpg",
+    "images/son/515083529_24119378957693526_2416044119396794384_n.jpg",
+    "images/son/557628749_24902326526065428_5975727814885637327_n.jpg",
+    "images/son/566363742_25041064808858265_4854427230165897640_n.jpg",
+    "images/son/610975344_25729740873323985_7011612998820304873_n.jpg",
+    "images/son/648865794_26275632385401495_28440860511883168_n.jpg",
+    "images/son/668984037_26638569502441113_3766474232566768382_n.jpg",
+    "images/son/675515938_26732628699701859_6706512719488354866_n.jpg",
+    "images/son/682301339_26828962450068483_1914265669887023745_n.jpg",
+    "images/son/grant us eyes.jpeg"
   ];
 
   grid.innerHTML = "";
@@ -2043,16 +2074,16 @@ function bindPhilbrixGallery() {
   if (!grid || !wrapper || !expandBtn) return;
 
   const images = [
-    "pictures/philbrix/476835669_1359215671904724_8576598953606769678_n.jpg",
-    "pictures/philbrix/482807336_1382493439576947_8217902807504495779_n.jpg",
-    "pictures/philbrix/485306766_1390389605453997_6585223568325336195_n.jpg",
-    "pictures/philbrix/485607046_1391223342037290_8115186038259580136_n.jpg",
-    "pictures/philbrix/485765900_1389591358867155_5581226393361912876_n.jpg",
-    "pictures/philbrix/640077397_18566038576061355_1837353207573859770_n.jpg",
-    "pictures/philbrix/658043423_18580002718061355_4633109479160700946_n.jpg",
-    "pictures/philbrix/709882773_18595140130061355_219960142183883069_n.jpg",
-    "pictures/philbrix/712196901_18596572588061355_6491067378167815969_n.jpg",
-    "pictures/philbrix/725767583_18600967723061355_5369994730697635112_n.jpg"
+    "images/philbrix/476835669_1359215671904724_8576598953606769678_n.jpg",
+    "images/philbrix/482807336_1382493439576947_8217902807504495779_n.jpg",
+    "images/philbrix/485306766_1390389605453997_6585223568325336195_n.jpg",
+    "images/philbrix/485607046_1391223342037290_8115186038259580136_n.jpg",
+    "images/philbrix/485765900_1389591358867155_5581226393361912876_n.jpg",
+    "images/philbrix/640077397_18566038576061355_1837353207573859770_n.jpg",
+    "images/philbrix/658043423_18580002718061355_4633109479160700946_n.jpg",
+    "images/philbrix/709882773_18595140130061355_219960142183883069_n.jpg",
+    "images/philbrix/712196901_18596572588061355_6491067378167815969_n.jpg",
+    "images/philbrix/725767583_18600967723061355_5369994730697635112_n.jpg"
   ];
 
   grid.innerHTML = "";
@@ -2323,6 +2354,7 @@ let previewUrls = { ...fallbackPreviews };
 let previewFetcherPromise = null;
 let currentAudio = null;
 let currentPlayingLi = null;
+let globalVolume = 0.5;
 
 function cleanTitle(title) {
   const base = title.split("(")[0].split("feat.")[0].trim();
@@ -2377,14 +2409,18 @@ function playPreview(title, li) {
     if (currentAudio.src === url) {
       currentAudio = null;
       currentPlayingLi = null;
+      updatePlayerBarState();
       return;
     }
   }
   
   const audio = new Audio(url);
-  audio.volume = 0.5;
-  audio.play().catch(err => {
+  audio.volume = globalVolume;
+  audio.play().then(() => {
+    updatePlayerBarState();
+  }).catch(err => {
     console.error("Audio playback failed:", err);
+    updatePlayerBarState();
   });
   
   li.classList.add("is-playing");
@@ -2397,7 +2433,61 @@ function playPreview(title, li) {
       currentAudio = null;
       currentPlayingLi = null;
     }
+    updatePlayerBarState();
   });
+
+  audio.addEventListener("error", () => {
+    li.classList.remove("is-playing");
+    if (currentAudio === audio) {
+      currentAudio = null;
+      currentPlayingLi = null;
+    }
+    updatePlayerBarState();
+  });
+}
+
+function updatePlayerBarState() {
+  const consoleNode = viewRoot.querySelector("[data-album-console]");
+  if (!consoleNode) return;
+  const playerShell = consoleNode.querySelector("#playerShell");
+  if (!playerShell) return;
+
+  const playIcon = playerShell.querySelector("#playIcon");
+  const pauseIcon = playerShell.querySelector("#pauseIcon");
+  
+  const isPlaying = !!(currentAudio && !currentAudio.paused);
+  
+  playerShell.classList.toggle("is-playing", isPlaying);
+  if (playIcon && pauseIcon) {
+    playIcon.style.display = isPlaying ? "none" : "block";
+    pauseIcon.style.display = isPlaying ? "block" : "none";
+  }
+}
+
+function togglePlayPause() {
+  if (currentAudio) {
+    if (currentPlayingLi) {
+      const trackTitleNode = currentPlayingLi.querySelector(".track-title strong");
+      if (trackTitleNode) {
+        playPreview(trackTitleNode.textContent, currentPlayingLi);
+      }
+    } else {
+      currentAudio.pause();
+      currentAudio = null;
+      updatePlayerBarState();
+    }
+  } else {
+    const consoleNode = viewRoot.querySelector("[data-album-console]");
+    if (consoleNode) {
+      const firstLi = consoleNode.querySelector("#albumTrackList li");
+      if (firstLi) {
+        const trackTitleNode = firstLi.querySelector(".track-title strong");
+        if (trackTitleNode) {
+          playPreview(trackTitleNode.textContent, firstLi);
+        }
+      }
+    }
+  }
 }
 
 function bindAlbumConsole() {
@@ -2418,6 +2508,26 @@ function bindAlbumConsole() {
   const trackCount = consoleNode.querySelector("#albumTrackCount");
   const trackList = consoleNode.querySelector("#albumTrackList");
   const spotifyLink = consoleNode.querySelector("#albumSpotifyLink");
+
+  // Bind custom player controls
+  const playPauseBtn = consoleNode.querySelector("#playerPlayPauseBtn");
+  const volumeSlider = consoleNode.querySelector("#playerVolumeSlider");
+
+  if (playPauseBtn) {
+    playPauseBtn.addEventListener("click", () => {
+      togglePlayPause();
+    });
+  }
+
+  if (volumeSlider) {
+    volumeSlider.value = globalVolume;
+    volumeSlider.addEventListener("input", (e) => {
+      globalVolume = parseFloat(e.target.value);
+      if (currentAudio) {
+        currentAudio.volume = globalVolume;
+      }
+    });
+  }
 
   // Play preview when clicking on a track card
   const setupTrackClicks = () => {
@@ -2452,6 +2562,7 @@ function bindAlbumConsole() {
         currentPlayingLi.classList.remove("is-playing");
         currentPlayingLi = null;
       }
+      updatePlayerBarState();
 
       const album = albums.find((item) => item.id === card.dataset.albumId);
       if (!album) return;
@@ -3145,7 +3256,7 @@ function renderPromote(view) {
             <div class="tiny-channels-grid">
               <!-- Somethin Outta Nothin (S.O.N) -->
               <a href="son.html" class="tiny-channel-card">
-                <img src="pictures/610975344_25729740873323985_7011612998820304873_n.jpg" alt="Somethin Outta Nothin">
+                <img src="images/son/610975344_25729740873323985_7011612998820304873_n.jpg" alt="Somethin Outta Nothin">
                 <div class="tiny-channel-content">
                   <span class="tiny-channel-social">Section</span>
                   <strong class="tiny-channel-name">S.O.N</strong>
@@ -3154,7 +3265,7 @@ function renderPromote(view) {
 
               <!-- Do It For The Underground -->
               <a href="underground.html" class="tiny-channel-card">
-                <img src="doitfortheunderground.jpg" alt="Do It For The Underground">
+                <img src="images/underground/doitfortheunderground.jpg" alt="Do It For The Underground">
                 <div class="tiny-channel-content">
                   <span class="tiny-channel-social">Section</span>
                   <strong class="tiny-channel-name">Underground</strong>
@@ -3163,7 +3274,7 @@ function renderPromote(view) {
 
               <!-- Cult Divinity -->
               <a href="divinity.html" class="tiny-channel-card">
-                <img src="divinity.png" alt="Cult Divinity">
+                <img src="images/divinity/divinity.png" alt="Cult Divinity">
                 <div class="tiny-channel-content">
                   <span class="tiny-channel-social">Section</span>
                   <strong class="tiny-channel-name">Cult Divinity</strong>
@@ -3172,7 +3283,7 @@ function renderPromote(view) {
 
               <!-- Philbrix Studio -->
               <a href="studio.html" class="tiny-channel-card">
-                <img src="philbrix-studio.png" alt="Philbrix Studio">
+                <img src="images/philbrix/philbrix-studio.png" alt="Philbrix Studio">
                 <div class="tiny-channel-content">
                   <span class="tiny-channel-social">Section</span>
                   <strong class="tiny-channel-name">Philbrix</strong>
@@ -3181,7 +3292,7 @@ function renderPromote(view) {
 
               <!-- Night Owl Prints & Keagan Grimm -->
               <a href="nightowlprints.html" class="tiny-channel-card">
-                <img src="nightowlprints.png" alt="Night Owl Prints">
+                <img src="images/nightowlprints/nightowlprints.png" alt="Night Owl Prints">
                 <div class="tiny-channel-content">
                   <span class="tiny-channel-social">Section</span>
                   <strong class="tiny-channel-name">Night Owl</strong>

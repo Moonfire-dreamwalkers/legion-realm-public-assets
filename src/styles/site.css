@@ -2730,7 +2730,7 @@ body {
   background:
     linear-gradient(90deg, rgba(7, 7, 6, 0.92), rgba(7, 7, 6, 0.58) 42%, rgba(7, 7, 6, 0.9)),
     linear-gradient(180deg, rgba(75, 22, 33, 0.35), transparent 42%, rgba(73, 80, 68, 0.2)),
-    url("../../pictures/515083529_24119378957693526_2416044119396794384_n.jpg") center top / cover fixed,
+    url("../../images/son/515083529_24119378957693526_2416044119396794384_n.jpg") center top / cover fixed,
     #070706;
 }
 
@@ -2754,7 +2754,7 @@ body::after {
   background:
     linear-gradient(90deg, rgba(7, 7, 6, 0.94), rgba(7, 7, 6, 0.48) 46%, rgba(7, 7, 6, 0.9)),
     linear-gradient(180deg, rgba(75, 22, 33, 0.2), rgba(7, 7, 6, 0.82)),
-    url("../../pictures/515083529_24119378957693526_2416044119396794384_n.jpg") center center / cover,
+    url("../../images/son/515083529_24119378957693526_2416044119396794384_n.jpg") center center / cover,
     #070706;
 }
 
@@ -2928,7 +2928,7 @@ dt {
   body {
     background:
       linear-gradient(180deg, rgba(7, 7, 6, 0.82), rgba(7, 7, 6, 0.94)),
-      url("../../pictures/515083529_24119378957693526_2416044119396794384_n.jpg") center top / auto 100vh fixed,
+      url("../../images/son/515083529_24119378957693526_2416044119396794384_n.jpg") center top / auto 100vh fixed,
       #070706;
   }
 }
@@ -2944,7 +2944,7 @@ body {
     radial-gradient(circle at 50% 12%, rgba(92, 42, 92, 0.26), transparent 30rem),
     radial-gradient(circle at 80% 76%, rgba(107, 15, 26, 0.24), transparent 28rem),
     linear-gradient(90deg, rgba(13, 13, 13, 0.96), rgba(13, 13, 13, 0.52) 46%, rgba(13, 13, 13, 0.95)),
-    url("../../pictures/515083529_24119378957693526_2416044119396794384_n.jpg") center top / cover fixed,
+    url("../../images/son/515083529_24119378957693526_2416044119396794384_n.jpg") center top / cover fixed,
     #0d0d0d;
   font-size: 0.94rem;
   letter-spacing: 0.01em;
@@ -2977,7 +2977,7 @@ body::after {
   background:
     radial-gradient(circle at 50% 34%, rgba(92, 42, 92, 0.26), transparent 28rem),
     linear-gradient(90deg, rgba(13, 13, 13, 0.97), rgba(13, 13, 13, 0.38) 50%, rgba(13, 13, 13, 0.94)),
-    url("../../pictures/515083529_24119378957693526_2416044119396794384_n.jpg") center center / cover,
+    url("../../images/son/515083529_24119378957693526_2416044119396794384_n.jpg") center center / cover,
     #0d0d0d;
 }
 
@@ -4340,7 +4340,7 @@ body::before {
   overflow: hidden;
   background:
     linear-gradient(180deg, #080706 0%, rgba(8, 7, 6, 0.3) 30%, rgba(8, 7, 6, 0.92) 100%),
-    url("../../pictures/515083529_24119378957693526_2416044119396794384_n.jpg") center 70% / cover;
+    url("../../images/son/515083529_24119378957693526_2416044119396794384_n.jpg") center 70% / cover;
   border-top: 1px solid rgba(217, 201, 176, 0.06);
 }
 
@@ -8281,6 +8281,114 @@ iframe {
   text-shadow: 0 0 8px rgba(240, 24, 32, 0.6);
 }
 
+.custom-player-bar {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+  padding: 12px 20px;
+  background: rgba(10, 10, 10, 0.85) !important;
+  border: 1px solid rgba(216, 209, 185, 0.12) !important;
+  clip-path: polygon(0 0, 98% 0, 100% 22%, 98% 100%, 2% 100%, 0 78%);
+  margin-top: 16px;
+  box-shadow: var(--stone-inner), 0 0 15px rgba(198, 6, 12, 0.1) !important;
+}
+
+.player-btn {
+  background: none !important;
+  border: none !important;
+  color: #eee7d7 !important;
+  cursor: pointer;
+  padding: 0 !important;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s ease, transform 0.1s ease;
+  box-shadow: none !important;
+}
+
+.player-btn:hover {
+  color: #ff2a2a !important;
+  transform: scale(1.05);
+}
+
+.player-btn svg {
+  width: 24px;
+  height: 24px;
+}
+
+.player-visualizer {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 24px;
+  flex-grow: 1;
+  padding: 0 10px;
+}
+
+.vis-bar {
+  width: 4px;
+  height: 4px;
+  background-color: rgba(216, 209, 185, 0.3) !important;
+  border-radius: 2px;
+  transition: height 0.15s ease, background-color 0.2s ease;
+}
+
+.custom-player-bar.is-playing .vis-bar,
+#playerShell.is-playing .vis-bar {
+  background-color: #ff2a2a !important;
+  box-shadow: 0 0 10px rgba(255, 42, 42, 0.8) !important;
+  animation: bounce 1.2s ease infinite alternate;
+}
+
+.custom-player-bar.is-playing .bar1, #playerShell.is-playing .bar1 { animation-delay: 0.1s; }
+.custom-player-bar.is-playing .bar2, #playerShell.is-playing .bar2 { animation-delay: 0.4s; }
+.custom-player-bar.is-playing .bar3, #playerShell.is-playing .bar3 { animation-delay: 0.2s; }
+.custom-player-bar.is-playing .bar4, #playerShell.is-playing .bar4 { animation-delay: 0.6s; }
+.custom-player-bar.is-playing .bar5, #playerShell.is-playing .bar5 { animation-delay: 0.3s; }
+.custom-player-bar.is-playing .bar6, #playerShell.is-playing .bar6 { animation-delay: 0.5s; }
+.custom-player-bar.is-playing .bar7, #playerShell.is-playing .bar7 { animation-delay: 0.15s; }
+.custom-player-bar.is-playing .bar8, #playerShell.is-playing .bar8 { animation-delay: 0.45s; }
+
+@keyframes bounce {
+  0% { height: 4px; }
+  100% { height: 22px; }
+}
+
+.player-volume-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #aaa59a;
+}
+
+.player-volume-container input[type="range"] {
+  width: 80px;
+  height: 4px;
+  -webkit-appearance: none;
+  background: rgba(216, 209, 185, 0.15) !important;
+  border: none !important;
+  border-radius: 2px;
+  outline: none;
+  box-shadow: none !important;
+  cursor: pointer;
+}
+
+.player-volume-container input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #ff2a2a !important;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.player-volume-container input[type="range"]::-webkit-slider-thumb:hover {
+  background: #ff5555 !important;
+}
 
 .track-index {
   color: rgba(216, 209, 185, 0.54) !important;
@@ -10129,8 +10237,8 @@ iframe,
 
 /* Actual stone material pass: use real cracked basalt texture instead of synthetic metal/cyber gradients. */
 :root {
-  --real-stone-texture: url("../assets/occult-stone-texture.webp");
-  --blood-stone-texture: url("../assets/occult-stone-blood-texture.png");
+  --real-stone-texture: url("../../images/assets/occult-stone-texture.webp");
+  --blood-stone-texture: url("../../images/assets/occult-stone-blood-texture.png");
   --real-stone-cut: polygon(18px 0, calc(100% - 18px) 0, 100% 18px, 100% calc(100% - 18px), calc(100% - 18px) 100%, 18px 100%, 0 calc(100% - 18px), 0 18px);
   --real-stone-small-cut: polygon(8px 0, calc(100% - 8px) 0, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px), 0 8px);
   --real-stone-border: rgba(188, 176, 150, 0.2);
@@ -11294,7 +11402,7 @@ body {
   background-image: radial-gradient(ellipse at 50% 46%, transparent 0 22rem, rgba(0, 0, 0, 0.2) 48rem, rgba(0, 0, 0, 0.58) 100%),
     linear-gradient(90deg, rgba(0, 0, 0, 0.56), rgba(0, 0, 0, 0.1) 24%, rgba(0, 0, 0, 0.03) 50%, rgba(0, 0, 0, 0.1) 76%, rgba(0, 0, 0, 0.56)),
     linear-gradient(180deg, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.02) 34%, rgba(0, 0, 0, 0.34)),
-    url("../assets/cult-cave-hallway-bg.png") !important;
+    url("../../images/assets/cult-cave-hallway-bg.png") !important;
   background-size: auto, auto, auto, cover !important;
   background-position: center, center, center, center center !important;
   background-repeat: no-repeat !important;
@@ -11752,7 +11860,7 @@ body::after {
   background: radial-gradient(ellipse at 27% 48%, rgba(255, 58, 40, 0.2), transparent 13rem),
     radial-gradient(ellipse at 73% 48%, rgba(255, 58, 40, 0.2), transparent 13rem),
     radial-gradient(ellipse at 50% 68%, rgba(255, 25, 16, 0.18), transparent 20rem),
-    url("../assets/entry-blood-splatter.png"),
+    url("../../images/assets/entry-blood-splatter.png"),
     radial-gradient(ellipse at 50% 48%, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.2) 34rem, rgba(0, 0, 0, 0.78) 100%) !important;
   background-size: auto,
     auto,
@@ -11902,7 +12010,7 @@ body::after {
     opacity: 0.46 !important;
     background: radial-gradient(ellipse at 18% 58%, rgba(255, 58, 40, 0.16), transparent 8rem),
       radial-gradient(ellipse at 82% 58%, rgba(255, 58, 40, 0.16), transparent 8rem),
-      url("../assets/entry-blood-splatter.png"),
+      url("../../images/assets/entry-blood-splatter.png"),
       radial-gradient(ellipse at 50% 56%, transparent 0 9rem, rgba(0, 0, 0, 0.2) 18rem, rgba(0, 0, 0, 0.8) 100%) !important;
     background-size: auto, auto, 180vw auto, auto !important;
     background-position: center, center, center 44%, center !important;
@@ -11988,7 +12096,7 @@ body::after {
   opacity: 0.86 !important;
   mix-blend-mode: multiply !important;
   background: radial-gradient(ellipse at 50% 62%, rgba(138, 7, 4, 0.18), transparent 24rem),
-    url("../assets/entry-blood-wall.png"),
+    url("../../images/assets/entry-blood-wall.png"),
     radial-gradient(ellipse at 50% 50%, transparent 0 22rem, rgba(0, 0, 0, 0.2) 38rem, rgba(0, 0, 0, 0.82) 100%) !important;
   background-size: auto,
     min(94vw, 1220px) auto,
@@ -12015,7 +12123,7 @@ body::after {
   .entry-scene::before {
     opacity: 0.58 !important;
     mix-blend-mode: multiply !important;
-    background: url("../assets/entry-blood-wall.png"),
+    background: url("../../images/assets/entry-blood-wall.png"),
       radial-gradient(ellipse at 50% 56%, transparent 0 10rem, rgba(0, 0, 0, 0.24) 20rem, rgba(0, 0, 0, 0.82) 100%) !important;
     background-size: 178vw auto, auto !important;
     background-position: center 58%, center !important;
@@ -12033,7 +12141,7 @@ body::after {
   opacity: 0.76 !important;
   mix-blend-mode: multiply !important;
   background: radial-gradient(ellipse at 50% 76%, rgba(138, 7, 4, 0.16), transparent 17rem),
-    url("../assets/entry-blood-wall.png"),
+    url("../../images/assets/entry-blood-wall.png"),
     radial-gradient(ellipse at 50% 50%, transparent 0 22rem, rgba(0, 0, 0, 0.2) 38rem, rgba(0, 0, 0, 0.82) 100%) !important;
   background-size: auto,
     min(58vw, 800px) auto,
@@ -12053,7 +12161,7 @@ body::after {
   .entry-scene::before {
     opacity: 0.5 !important;
     mix-blend-mode: multiply !important;
-    background: url("../assets/entry-blood-wall.png"),
+    background: url("../../images/assets/entry-blood-wall.png"),
       radial-gradient(ellipse at 50% 56%, transparent 0 10rem, rgba(0, 0, 0, 0.24) 20rem, rgba(0, 0, 0, 0.82) 100%) !important;
     background-size: 112vw auto, auto !important;
     background-position: center 76%, center !important;
@@ -12081,7 +12189,7 @@ body::after {
   opacity: 0.82 !important;
   mix-blend-mode: normal !important;
   background: radial-gradient(ellipse at 50% 100%, rgba(164, 8, 4, 0.24), transparent 21rem),
-    url("../assets/entry-blood-floor-door-realistic.png") !important;
+    url("../../images/assets/entry-blood-floor-door-realistic.png") !important;
   background-size: auto,
     min(88vw, 1160px) auto !important;
   background-position: center bottom,
@@ -12109,7 +12217,7 @@ body::after {
   background-image: radial-gradient(ellipse at 50% 70%, rgba(110, 8, 5, 0.18), transparent 24rem),
     linear-gradient(90deg, rgba(0, 0, 0, 0.48), transparent 18%, transparent 82%, rgba(0, 0, 0, 0.48)),
     linear-gradient(180deg, rgba(0, 0, 0, 0.36), transparent 34%, rgba(0, 0, 0, 0.5)),
-    url("../assets/entry-cave-background.png") !important;
+    url("../../images/assets/entry-cave-background.png") !important;
   background-size: auto, auto, auto, cover !important;
   background-position: center, center, center, center !important;
   background-repeat: no-repeat !important;
@@ -12160,7 +12268,7 @@ body::after {
   opacity: 0.78 !important;
   mix-blend-mode: normal !important;
   background: radial-gradient(ellipse at 50% 100%, rgba(164, 8, 4, 0.16), transparent 21rem),
-    url("../assets/entry-blood-floor-door-realistic.png") !important;
+    url("../../images/assets/entry-blood-floor-door-realistic.png") !important;
   background-size: auto,
     min(88vw, 1160px) auto !important;
   background-position: center bottom,
@@ -12211,7 +12319,7 @@ body::after {
   background-image: radial-gradient(ellipse at 50% 69%, rgba(110, 8, 5, 0.18), transparent 45%),
     linear-gradient(90deg, rgba(0, 0, 0, 0.48), transparent 18%, transparent 82%, rgba(0, 0, 0, 0.48)),
     linear-gradient(180deg, rgba(0, 0, 0, 0.36), transparent 34%, rgba(0, 0, 0, 0.5)),
-    url("../assets/entry-cave-background.png") !important;
+    url("../../images/assets/entry-cave-background.png") !important;
   background-size: 100% 100%, 100% 100%, 100% 100%, 100% 100% !important;
   background-position: center !important;
   background-repeat: no-repeat !important;
@@ -13109,7 +13217,7 @@ body[data-view="video"] .site-shell {
   min-height: clamp(480px, 60vh, 720px);
   padding: clamp(46px, 5vw, 82px) clamp(42px, 5.5vw, 92px) clamp(28px, 3.2vw, 48px);
   overflow: visible;
-  background: url("../assets/video-obsidian-frame.png") center top / 100% auto no-repeat;
+  background: url("../../images/assets/video-obsidian-frame.png") center top / 100% auto no-repeat;
   filter: drop-shadow(0 26px 70px rgba(0, 0, 0, 0.82)) drop-shadow(0 0 38px rgba(132, 5, 4, 0.26));
 }
 
@@ -13160,7 +13268,7 @@ body[data-view="video"] .site-shell {
   max-height: min(820px, calc(100vh - 150px));
   padding: clamp(50px, 5vw, 74px) clamp(22px, 2.6vw, 36px) clamp(34px, 3.2vw, 50px);
   overflow: hidden;
-  background: url("../assets/video-obsidian-selector.png") center center / 100% 100% no-repeat;
+  background: url("../../images/assets/video-obsidian-selector.png") center center / 100% 100% no-repeat;
   filter: drop-shadow(0 24px 66px rgba(0, 0, 0, 0.78)) drop-shadow(0 0 28px rgba(132, 5, 4, 0.22));
 }
 
@@ -13553,7 +13661,7 @@ body[data-view="video"] .site-shell {
   gap: clamp(12px, 1.4vw, 18px) !important;
   min-height: clamp(520px, calc(100vh - 180px), 700px) !important;
   padding: clamp(34px, 3.4vw, 54px) clamp(42px, 4.2vw, 70px) clamp(24px, 2.4vw, 36px) !important;
-  background: url("../assets/video-obsidian-frame.png") center / 100% 100% no-repeat !important;
+  background: url("../../images/assets/video-obsidian-frame.png") center / 100% 100% no-repeat !important;
   filter: drop-shadow(0 26px 62px rgba(0, 0, 0, 0.82)) drop-shadow(0 0 22px rgba(140, 8, 6, 0.22)) !important;
 }
 
@@ -13630,7 +13738,7 @@ body[data-view="video"] .site-shell {
   min-height: 0 !important;
   margin-left: 0 !important;
   padding: clamp(42px, 4vw, 58px) clamp(24px, 2.2vw, 32px) clamp(30px, 3vw, 42px) !important;
-  background: url("../assets/video-obsidian-selector.png") center / 100% 100% no-repeat !important;
+  background: url("../../images/assets/video-obsidian-selector.png") center / 100% 100% no-repeat !important;
   filter: drop-shadow(0 24px 58px rgba(0, 0, 0, 0.78)) drop-shadow(0 0 18px rgba(140, 8, 6, 0.2)) !important;
 }
 
