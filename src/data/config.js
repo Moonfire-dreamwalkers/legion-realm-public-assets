@@ -150,6 +150,13 @@ window.siteConfig = {
       summary: "Distribute physical media, and search local live venues by zipcode to bypass corporate algorithmic feeds."
     },
     {
+      id: "announcements",
+      label: "News",
+      kicker: "Latest",
+      title: "Announcements",
+      summary: "Latest news and updates from Legion Realm staff."
+    },
+    {
       id: "store",
       label: "Store",
       kicker: "Store",

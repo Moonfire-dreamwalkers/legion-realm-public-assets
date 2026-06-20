@@ -19269,4 +19269,92 @@ body[data-view="promote"] .promote-page-redesign {
   0% { opacity: 0.22; }
   100% { opacity: 0.46; }
 }
-
+
+/* -- Announcements View ----------------------------------- */
+.announcements-obsidian {
+  min-height: calc(100vh - 200px);
+}
+
+.announcement-card {
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 24px;
+  padding: 28px 32px;
+  border: 1px solid rgba(217, 201, 176, 0.16);
+  background: linear-gradient(135deg, rgba(26, 26, 26, 0.92), rgba(61, 31, 58, 0.14) 48%, rgba(13, 13, 13, 0.9));
+  box-shadow: inset 0 1px 0 rgba(217, 201, 176, 0.08), inset 0 0 28px rgba(0, 0, 0, 0.65), 0 8px 0 rgba(0, 0, 0, 0.18), 0 14px 40px rgba(0, 0, 0, 0.45);
+  transition: transform 200ms ease, box-shadow 200ms ease;
+}
+
+.announcement-card:hover {
+  transform: translateY(-2px);
+  box-shadow: inset 0 1px 0 rgba(217, 201, 176, 0.14), inset 0 0 30px rgba(107, 15, 26, 0.22), 0 12px 0 rgba(0, 0, 0, 0.22), 0 18px 48px rgba(0, 0, 0, 0.55);
+}
+
+.ann-card-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
+  font-size: 0.78rem;
+  color: rgba(217, 201, 176, 0.65);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ann-card-author {
+  color: #8b1a1a;
+  font-weight: 900;
+}
+
+.ann-card-title {
+  margin: 0 0 12px;
+  color: #f1dfc2;
+  font-family: 'Cinzel', Georgia, serif;
+  font-size: clamp(1.3rem, 2vw, 1.7rem);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 0 #0d0d0d;
+}
+
+.ann-card-body {
+  color: rgba(241, 223, 194, 0.88);
+  font-size: 0.98rem;
+  line-height: 1.65;
+  white-space: pre-wrap;
+}
+
+.ann-card-image {
+  margin-top: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(217, 201, 176, 0.2);
+}
+
+.ann-card-image img {
+  display: block;
+  width: 100%;
+  max-height: 460px;
+  object-fit: cover;
+  filter: saturate(0.85) contrast(1.08) brightness(0.72);
+}
+
+.ann-card-link {
+  display: inline-block;
+  margin-top: 16px;
+  color: #8b1a1a;
+  font-size: 0.82rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.ann-card-link:hover {
+  color: #d9c9b0;
+}
+
+@media (max-width: 640px) {
+  .announcement-card {
+    padding: 20px 16px;
+  }
+}

@@ -666,6 +666,23 @@ function initApp() {
 
 
 
+function renderAnnouncements(view) {
+  return `
+    <div class="announcements-obsidian section-system" id="announcementsView">
+      <section class="announcements-hero" style="text-align: center; margin-bottom: 40px; padding: 0 20px;">
+        <h2 class="promo-header-main" style="border-bottom: 1px solid var(--color-line); padding-bottom: 12px; margin-bottom: 16px; font-family: var(--font-display); font-size: 2.2rem; letter-spacing: 2px;">Announcements</h2>
+        <p class="announcements-subtext" style="font-family: var(--font-body); font-size: 1.1rem; color: var(--color-text); max-width: 700px; margin: 0 auto;">Latest news and updates from Legion Realm staff.</p>
+      </section>
+      <div class="announcements-feed" id="announcementsFeed" style="max-width: 800px; margin: 0 auto; padding: 0 20px;">
+        <div class="announcements-loading" style="text-align:center;padding:60px 20px;color:var(--color-muted);">
+          <span style="font-size:1.5rem;">⏳</span>
+          <p style="margin-top:12px;">Loading announcements...</p>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 function renderView(view) {
   const renderers = {
     home: renderHome,
@@ -677,6 +694,7 @@ function renderView(view) {
     music: renderMusic,
     video: renderVideo,
     community: renderCommunity,
+    announcements: renderAnnouncements,
     store: renderStore,
     promote: renderPromote
   };
@@ -1876,6 +1894,11 @@ function bindView(viewId) {
 
   if (viewId === "promote") {
     bindPromoteView();
+    return;
+  }
+
+  if (viewId === "announcements") {
+    bindAnnouncementsView();
     return;
   }
 }
