@@ -3698,6 +3698,14 @@ function renderPromote(view) {
             <p class="choice-card-subtitle">Promotional flyer builder & composition workspace</p>
           </div>
 
+          <div class="campaign-choice-card" id="choiceCardGlobe">
+            <div class="choice-card-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="choice-svg"><circle cx="12" cy="12" r="10"></circle><ellipse cx="12" cy="12" rx="10" ry="4"></ellipse><line x1="2" y1="12" x2="22" y2="12"></line></svg>
+            </div>
+            <h3 class="choice-card-title">Activity Globe</h3>
+            <p class="choice-card-subtitle">3D globe of community reach & network activity</p>
+          </div>
+
           <div class="campaign-choice-card" id="choiceCardTraffic">
             <div class="choice-card-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="choice-svg">
@@ -4374,6 +4382,20 @@ function renderPromote(view) {
         </div>
 
         <!-- SECTION 5: REAL TIME TRACKER WRAPPER -->
+        <div id="sectionGlobe" class="campaign-section-content" style="display: none;">
+          <section class="global-traffic-panel section-system" style="margin-top: 0;">
+            <h2 class="promo-header-main" style="font-size: 1.4rem; margin-bottom: 10px;">Global Activity Globe</h2>
+            <p class="promote-subtitle" style="margin-bottom: 20px;">Privacy-safe aggregated community activity and artist locations worldwide.</p>
+            <div id="globeContainer" style="width:100%;height:500px;max-width:900px;margin:0 auto;background:#0a0a0a;border:1px solid #333;border-radius:4px;position:relative;">
+              <div class="globe-loading" style="text-align:center;padding:60px;color:var(--color-muted);">
+                <span style="font-size:2rem;">🌍</span>
+                <p style="margin-top:12px;">Globe visualization loads here with full JS</p>
+                <p style="font-size:0.8rem;color:#666;">Shows artists, partners, traffic centers & campaign activity</p>
+              </div>
+            </div>
+          </section>
+        </div>
+
         <div id="sectionTraffic" class="campaign-section-content" style="display: none;">
 
           <!-- GLOBAL TRAFFIC MONITOR -->
@@ -4447,11 +4469,13 @@ function bindPromoteView() {
   const choiceScanner = document.getElementById("choiceCardScanner");
   const choiceCustom = document.getElementById("choiceCardCustom");
   const choiceTraffic = document.getElementById("choiceCardTraffic");
+  const choiceGlobe = document.getElementById("choiceCardGlobe");
   
   const sectionSocial = document.getElementById("sectionSocial");
   const sectionPhysical = document.getElementById("sectionPhysical");
   const sectionScanner = document.getElementById("sectionScanner");
   const sectionCustom = document.getElementById("sectionCustom");
+    const sectionGlobe = document.getElementById("sectionGlobe");
   const sectionTraffic = document.getElementById("sectionTraffic");
 
   // Always show the gate initially on visit (do not store status in localStorage)
@@ -4480,29 +4504,33 @@ function bindPromoteView() {
         if (sectionPhysical) sectionPhysical.style.display = "none";
         if (sectionScanner) sectionScanner.style.display = "none";
         if (sectionCustom) sectionCustom.style.display = "none";
+        if (sectionGlobe) sectionGlobe.style.display = "none";
         if (sectionTraffic) sectionTraffic.style.display = "none";
         if (choiceSocial) choiceSocial.classList.remove("active");
         if (choicePhysical) choicePhysical.classList.remove("active");
         if (choiceScanner) choiceScanner.classList.remove("active");
         if (choiceCustom) choiceCustom.classList.remove("active");
+        if (choiceGlobe) choiceGlobe.classList.remove("active");
         if (choiceTraffic) choiceTraffic.classList.remove("active");
       }, 700);
     });
   }
 
   // Handle Choice Card Selection to show/expand Social, Physical, Scanner, Custom, or Traffic Promo
-  if (choiceSocial && choicePhysical && choiceScanner && choiceCustom && choiceTraffic && sectionSocial && sectionPhysical && sectionScanner && sectionCustom && sectionTraffic) {
+  if (choiceSocial && choicePhysical && choiceScanner && choiceCustom && choiceTraffic && choiceGlobe && sectionSocial && sectionPhysical && sectionScanner && sectionCustom && sectionGlobe && sectionTraffic) {
     const deactivateAllSections = () => {
       if (sectionSocial) sectionSocial.style.display = "none";
       if (sectionPhysical) sectionPhysical.style.display = "none";
       if (sectionScanner) sectionScanner.style.display = "none";
       if (sectionCustom) sectionCustom.style.display = "none";
+      if (sectionGlobe) sectionGlobe.style.display = "none";
       if (sectionTraffic) sectionTraffic.style.display = "none";
       
       if (choiceSocial) choiceSocial.classList.remove("active");
       if (choicePhysical) choicePhysical.classList.remove("active");
       if (choiceScanner) choiceScanner.classList.remove("active");
       if (choiceCustom) choiceCustom.classList.remove("active");
+      if (choiceGlobe) choiceGlobe.classList.remove("active");
       if (choiceTraffic) choiceTraffic.classList.remove("active");
     };
 
@@ -4541,6 +4569,13 @@ function bindPromoteView() {
       sectionTraffic.style.display = "block";
       sectionTraffic.style.animation = "fadeInUp 0.6s ease-out";
       initTrafficMapIfPossible();
+    });
+
+    choiceGlobe.addEventListener("click", () => {
+      deactivateAllSections();
+      choiceGlobe.classList.add("active");
+      sectionGlobe.style.display = "block";
+      sectionGlobe.style.animation = "fadeInUp 0.6s ease-out";
     });
   }
 

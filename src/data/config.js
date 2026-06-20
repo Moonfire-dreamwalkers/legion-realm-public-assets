@@ -161,8 +161,7 @@ window.siteConfig = {
       label: "Store",
       kicker: "Store",
       title: "Store",
-      summary: "Merch and music.",
-      hidden: true
+      summary: "Merch, music, masks, and 3D-printed props."
     }
   ],
 
