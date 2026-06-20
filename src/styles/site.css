@@ -18663,4 +18663,22 @@ body[data-view="promote"] .promote-page-redesign {
   min-height: auto !important;
   height: auto !important;
 }
+
+/* Navigation bar build badge styling */
+.build-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.65rem;
+  font-family: monospace;
+  opacity: 0.5;
+  color: var(--blood-text-red) !important;
+  text-shadow: var(--blood-text-shadow-small) !important;
+  padding: 4px 8px;
+  border-left: 1px solid rgba(255, 42, 28, 0.2);
+  margin-left: 8px;
+  white-space: nowrap;
+  letter-spacing: 0.05em;
+  text-transform: none;
+  align-self: center;
+}
 

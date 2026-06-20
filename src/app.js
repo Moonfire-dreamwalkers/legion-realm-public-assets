@@ -548,7 +548,8 @@ function sulfurSvg() {
 }
 
 function renderNav() {
-  nav.innerHTML = views
+  const version = window.LR_BUILD_VERSION || "local";
+  const linksHtml = views
     .filter(view => !view.hidden)
     .map(
       (view) => `
@@ -558,6 +559,8 @@ function renderNav() {
       `
     )
     .join("");
+
+  nav.innerHTML = linksHtml + `<span class="build-badge">${version}</span>`;
 }
 
 function registerThumbnailCache() {
@@ -2391,9 +2394,22 @@ function initPointerTracking() {
   overlay.className = "ambient-pointer-overlay";
   document.body.appendChild(overlay);
 
+  let mouseX = window.innerWidth / 2;
+  let mouseY = window.innerHeight / 2;
+  let ticking = false;
+
   document.addEventListener("mousemove", (event) => {
-    document.documentElement.style.setProperty("--mouse-x", `${event.clientX}px`);
-    document.documentElement.style.setProperty("--mouse-y", `${event.clientY}px`);
+    mouseX = event.clientX;
+    mouseY = event.clientY;
+
+    if (!ticking) {
+      window.requestAnimationFrame(() => {
+        overlay.style.setProperty("--mouse-x", `${mouseX}px`);
+        overlay.style.setProperty("--mouse-y", `${mouseY}px`);
+        ticking = false;
+      });
+      ticking = true;
+    }
   });
 }
 
