@@ -1,7 +1,7 @@
 {
   "cleanUrls": true,
   "functions": {
-    "api/**/*.js": {
+    "api/auth/*.js": {
       "memory": 512,
       "maxDuration": 30
     }
