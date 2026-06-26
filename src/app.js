@@ -1,5213 +1,607 @@
-const cdnBase = (!window.LR_BUILD_VERSION || window.LR_BUILD_VERSION === 'local')
-  ? ''
-  : `https://cdn.jsdelivr.net/gh/Moonfire-dreamwalkers/legion-realm-public-assets@${window.LR_BUILD_VERSION}`;
-
-function resolveUrl(url) {
-  if (!url) return url;
-  const str = String(url);
-  if (str.startsWith('http://') || str.startsWith('https://') || str.startsWith('data:')) {
-    return url;
-  }
-  return cdnBase ? `${cdnBase}/${str.replace(/^\//, '')}` : url;
-}
-
-const {
-  checkoutConfig,
-  discordConfig,
-  externalLinks,
-  profile,
-  products,
-  youtubeChannelId,
-  videoItems,
-  views,
-  artists
-} = window.siteConfig;
-
-// Pre-resolve relative urls in siteConfig arrays
-artists.forEach(artist => {
-  if (artist.image) artist.image = resolveUrl(artist.image);
-});
-products.forEach(product => {
-  if (product.image) product.image = resolveUrl(product.image);
-});
-
-const siteShell = document.querySelector("#siteShell");
-const nav = document.querySelector("#primaryNav");
-const viewRoot = document.querySelector("#viewRoot");
-const currentViewLabel = document.querySelector("#currentViewLabel");
-
-const savedCart = document.cookie ? (localStorage.getItem("legion_realm_cart") ? localStorage.getItem("legion_realm_cart") : "") : "";
-const cart = new Map(savedCart ? JSON.parse(savedCart) : []);
-
-function saveCart() {
-  localStorage.setItem("legion_realm_cart", JSON.stringify(Array.from(cart.entries())));
-}
-
-const money = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD"
-});
-
-const videoThumb = (id) => `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
-const videoThumbnailCache = "son-video-thumbnails-v1";
-const videoPosterFallback = resolveUrl("images/assets/video-obsidian-poster.png");
-const youtubeChannelFeed = (id) => `https://www.youtube.com/feeds/videos.xml?channel_id=${id}`;
-const youtubeFeedProxy = (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-
-function escapeHTML(value = "") {
-  return String(value).replace(/[&<>"']/g, (character) => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;"
-  }[character]));
-}
-
-function youtubeWatchUrl(id) {
-  return `https://www.youtube.com/watch?v=${id}`;
-}
-
-function youtubeEmbedUrl(id) {
-  return `https://www.youtube.com/embed/${id}?autoplay=1&rel=0&modestbranding=1&playsinline=1`;
-}
-
-function spotifyEmbedUrl(url) {
-  try {
-    const artistId = url.split("/artist/")[1]?.split("?")[0];
-    if (artistId) {
-      return `https://open.spotify.com/embed/artist/${artistId}?utm_source=generator&theme=0`;
-    }
-    const albumId = url.split("/album/")[1]?.split("?")[0];
-    if (albumId) {
-      return `https://open.spotify.com/embed/album/${albumId}?utm_source=generator&theme=0`;
-    }
-  } catch (e) {
-    console.error("Failed to parse Spotify ID:", e);
-  }
-  return "";
-}
-
-function normalizeVideoItem(item) {
-  return {
-    title: item.title,
-    youtubeId: item.youtubeId,
-    url: item.url || youtubeWatchUrl(item.youtubeId),
-    published: item.published || "",
-    thumbnail: item.thumbnail || videoThumb(item.youtubeId),
-    fallback: item.fallback || videoPosterFallback
-  };
-}
-
-function productAssets() {
-  const fallbackAssets = artAssets();
-  return products.map((product, index) => ({
-    title: product.title,
-    meta: money.format(product.price),
-    image: product.image,
-    fallback: fallbackAssets[index % fallbackAssets.length]?.image || primaryAsset().image,
-    href: `#product-${product.id}`
-  }));
-}
-
-function videoAssets() {
-  return videoItems.map((item) => ({
-    title: item.title,
-    meta: "Video",
-    image: videoThumb(item.youtubeId),
-    href: "#video"
-  }));
-}
-
-function artAssets() {
-  return [
-    {
-      title: "Legion Realm",
-      meta: "Art",
-      image: resolveUrl("images/son/515083529_24119378957693526_2416044119396794384_n.jpg"),
-      href: "#home"
-    },
-    {
-      title: profile.name,
-      meta: "Music",
-      image: resolveUrl("images/son/610975344_25729740873323985_7011612998820304873_n.jpg"),
-      href: "#music"
-    },
-    {
-      title: "Artwork",
-      meta: "Identity",
-      image: resolveUrl("images/son/498327952_10010656232325702_4115048481086730564_n.jpg"),
-      href: "#home"
-    },
-    {
-      title: "Legion Realm",
-      meta: "Visual",
-      image: resolveUrl("images/son/463619189_18095114947463274_1773267247556644044_n.jpg"),
-      href: "#home"
-    }
-  ];
-}
-
-function sectionPreviewAssets() {
-  return {
-    music: {
-      title: "Music",
-      meta: "Spotify",
-      image: resolveUrl("images/son/610975344_25729740873323985_7011612998820304873_n.jpg"),
-      href: "#music"
-    },
-    video: {
-      title: "Video",
-      meta: "YouTube",
-      image: resolveUrl("images/son/668984037_26638569502441113_3766474232566768382_n.jpg"),
-      href: "#video"
-    },
-    social: {
-      title: "Social",
-      meta: "Links",
-      image: resolveUrl("images/son/486821153_9626876300703699_3145772948132120310_n.jpg"),
-      href: "#social"
-    },
-    community: {
-      title: "Community",
-      meta: "Discord",
-      image: resolveUrl("images/son/498327952_10010656232325702_4115048481086730564_n.jpg"),
-      href: "#community"
-    },
-    store: {
-      title: "Store",
-      meta: "Merch",
-      image: resolveUrl("images/son/682301339_26828962450068483_1914265669887023745_n.jpg"),
-      href: "#store"
-    }
-  };
-}
-
-function musicAlbums() {
-  return [
-    {
-      id: "the-bastard-son",
-      title: "The Bastard Son",
-      eyebrow: "Album",
-      image: "images/son/515083529_24119378957693526_2416044119396794384_n.jpg",
-      accent: "",
-      releaseDate: "March 9, 2025",
-      year: "2025",
-      genre: "Hip-Hop/Rap",
-      label: "Long Live Evil",
-      trackCount: 15,
-      runtime: "50 min",
-      format: "Album",
-      highlight: "A full-length horrorcore transmission with ritual sequencing, heavy narration, and a darker cinematic arc.",
-      description: "A full-length descent into heavy ritual atmosphere, serrated hooks, and the Legion Realm sound at its most direct.",
-      href: "https://open.spotify.com/album/5gQKJ9Pp5JZwTVTJn0BH5e?si=Fs7qCtH6Sf2dMPXtuwoKmQ",
-      tracks: [
-        { title: "Invocation", duration: "02:01" },
-        { title: "The Bastard Son", duration: "04:03" },
-        { title: "Requiem", duration: "03:21", note: "feat. Billy Obey" },
-        { title: "Sulphur", duration: "03:53" },
-        { title: "The Hanged Man", duration: "01:42" },
-        { title: "Where Fear Lives", duration: "03:13" },
-        { title: "Under My Skin", duration: "03:24" },
-        { title: "Tenebrous", duration: "03:51" },
-        { title: "Absolution", duration: "05:20", note: "feat. Keagan Grimm & MJ Lovecraft" },
-        { title: "Three of Swords", duration: "01:27" },
-        { title: "Fire Walk With Me", duration: "03:40" },
-        { title: "The Rot", duration: "02:19" },
-        { title: "Apocalyptic", duration: "04:57", note: "feat. Stray & Novls" },
-        { title: "Death", duration: "03:25" },
-        { title: "Thy Will Be Done", duration: "04:15" }
-      ]
-    },
-    {
-      id: "grant-us-eyes",
-      title: "Grant Us Eyes",
-      eyebrow: "Album",
-      image: "images/son/grant us eyes.jpeg",
-      accent: "",
-      releaseDate: "July 23, 2021",
-      year: "2021",
-      genre: "Horrorcore",
-      label: "Long Live Evil",
-      trackCount: 15,
-      runtime: "47 min",
-      format: "Album",
-      highlight: "The earlier rite: blue-black atmosphere, occult pressure, and the first full portal into the mask.",
-      description: "A darker portal into the project: occult textures, punishing motion, and a sharper glimpse of the world behind the mask.",
-      href: "https://open.spotify.com/album/6IOEnuQXPIEvsQEbakPDrg?si=A7F-ELN9RQiWpAf7dbf0pA",
-      tracks: [
-        { title: "A Terrible Fate", duration: "02:18" },
-        { title: "Grant Us Eyes", duration: "03:44" },
-        { title: "E.V.I.L.", duration: "04:07", note: "feat. MJ Lovecraft" },
-        { title: "King of Dark Energy", duration: "03:44" },
-        { title: "Breathe", duration: "03:17" },
-        { title: "The Descent", duration: "01:55" },
-        { title: "The Mouth of Madness", duration: "04:00" },
-        { title: "Amen", duration: "03:46" },
-        { title: "The Bridge", duration: "02:26" },
-        { title: "What's That Noise?", duration: "04:56" },
-        { title: "The Order of the Blue Rose", duration: "01:13" },
-        { title: "Feed The Beast", duration: "02:45" },
-        { title: "Eye For An Eye", duration: "03:43" },
-        { title: "The Blessing", duration: "03:22" },
-        { title: "The Hive", duration: "03:49" }
-      ]
-    }
-  ];
-}
-
-function keaganAlbums() {
-  return [
-    {
-      "id": "gospell",
-      "title": "Gospell",
-      "eyebrow": "Album",
-      "image": "images/keagan/gospell.jpg",
-      "accent": "",
-      "releaseDate": "February 29, 2024",
-      "year": "2024",
-      "genre": "Hip-Hop/Rap",
-      "label": "Night Owl Media",
-      "trackCount": 12,
-      "runtime": "40 min",
-      "format": "Album",
-      "highlight": "A gritty blend of dark southern hip-hop and dirty blues, the soundtrack to armageddon.",
-      "description": "A dark descent into the southern heat, drenching rap verses in gravelly vocals and bluesy instrumentation.",
-      "href": "https://open.spotify.com/album/0HmYECeIpPdB6mPD93g8n4",
-      "tracks": [
-        {
-          "title": "First Communion",
-          "duration": "02:16"
-        },
-        {
-          "title": "Chuurch",
-          "duration": "03:48"
-        },
-        {
-          "title": "Indigo",
-          "duration": "03:02"
-        },
-        {
-          "title": "Arson Welles",
-          "duration": "03:08"
-        },
-        {
-          "title": "Warship",
-          "duration": "04:02",
-          "note": "feat. Famz"
-        },
-        {
-          "title": "Old Mister Misery",
-          "duration": "03:12"
-        },
-        {
-          "title": "Nasty Habits",
-          "duration": "02:40",
-          "note": "feat. Sleep Lyrical"
-        },
-        {
-          "title": "Runaway",
-          "duration": "03:51"
-        },
-        {
-          "title": "Weathered",
-          "duration": "03:19",
-          "note": "feat. Nastie Ink, Stray"
-        },
-        {
-          "title": "Sin Repent Repeat",
-          "duration": "02:54"
-        },
-        {
-          "title": "Danse Macabre",
-          "duration": "04:57",
-          "note": "feat. Billy Obey, Somethin Outta Nothin"
-        },
-        {
-          "title": "Fine By Me",
-          "duration": "03:12"
-        }
-      ]
-    },
-    {
-      "id": "gravel-mouth",
-      "title": "Gravel Mouth",
-      "eyebrow": "Album",
-      "image": "images/keagan/gravel-mouth.jpg",
-      "accent": "",
-      "releaseDate": "February 12, 2021",
-      "year": "2021",
-      "genre": "Horrorcore / Blues Hip-Hop",
-      "label": "Carpe Noctem",
-      "trackCount": 7,
-      "runtime": "25 min",
-      "format": "Album",
-      "highlight": "Raw independent recordings clawing out of northeast Ohio's cold isolation.",
-      "description": "The raw underground roots of Keagan Grimm, featuring slow-drag rhythm and gravel-coated delivery.",
-      "href": "https://open.spotify.com/album/1SFqg7viWDny2HJ7FRP7Xh",
-      "tracks": [
-        {
-          "title": "I Decay",
-          "duration": "02:06"
-        },
-        {
-          "title": "Cobblestones",
-          "duration": "03:34",
-          "note": "feat. Nastie Ink, Don Orias"
-        },
-        {
-          "title": "Oath of the Hopeless",
-          "duration": "02:57"
-        },
-        {
-          "title": "Murder Show",
-          "duration": "05:18",
-          "note": "feat. McNastee"
-        },
-        {
-          "title": "Knockaround",
-          "duration": "03:42"
-        },
-        {
-          "title": "Gravel Mouth",
-          "duration": "02:58"
-        },
-        {
-          "title": "12 Bodies, One Grave",
-          "duration": "04:47",
-          "note": "feat. Destiny Everything And Nothing, The Culprit, Claas, Madd Maxxx, Donnie Menace, Labrynthine, Mars, A-Game, Cody Manson"
-        }
-      ]
-    },
-    {
-      "id": "the-obscure",
-      "title": "The Obscure",
-      "eyebrow": "Album",
-      "image": "images/keagan/the-obscure.jpg",
-      "accent": "",
-      "releaseDate": "July 10, 2019",
-      "year": "2019",
-      "genre": "Hip-Hop/Rap",
-      "label": "Sev'rd Nervez Music",
-      "trackCount": 11,
-      "runtime": "44 min",
-      "format": "Album",
-      "highlight": "A haunting archive of raw, cold-isolated underground hip-hop storytelling.",
-      "description": "A stark exploration of dark themes and gritty production, documenting Keagan's early independent roots.",
-      "href": "https://open.spotify.com/album/5uBbVgTNyArgSCXeaTSHx5",
-      "tracks": [
-        {
-          "title": "All My Life",
-          "duration": "03:51",
-          "note": "feat. Grewsum"
-        },
-        {
-          "title": "The Ghost Inside",
-          "duration": "03:40",
-          "note": "feat. Sleep Lyrical, Loonatic"
-        },
-        {
-          "title": "Southbound",
-          "duration": "03:57",
-          "note": "feat. A-Game, Vice Gripp"
-        },
-        {
-          "title": "Crown on the Head of the Rat King",
-          "duration": "04:18",
-          "note": "feat. The Culprit, Danny Drive-By"
-        },
-        {
-          "title": "Irish Standdown",
-          "duration": "03:23",
-          "note": "feat. B-Bear, Tilly Ill"
-        },
-        {
-          "title": "shroud",
-          "duration": "04:52",
-          "note": "feat. Xtra OverDoze"
-        },
-        {
-          "title": "In the After",
-          "duration": "03:50",
-          "note": "feat. Tilly Ill, The J.Hexx Project"
-        },
-        {
-          "title": "Diary of an Arsonist",
-          "duration": "03:14"
-        },
-        {
-          "title": "Single Barrel",
-          "duration": "04:45"
-        },
-        {
-          "title": "The Great Escape",
-          "duration": "04:07",
-          "note": "feat. Tilly Ill"
-        },
-        {
-          "title": "Hell or New Orleans",
-          "duration": "04:11",
-          "note": "feat. Labrynthine"
-        }
-      ]
-    },
-    {
-      "id": "cinderblock-saints",
-      "title": "Cinderblock Saints",
-      "eyebrow": "EP",
-      "image": "images/keagan/cinderblock-saints.jpg",
-      "accent": "",
-      "releaseDate": "August 30, 2022",
-      "year": "2022",
-      "genre": "Hip-Hop/Rap",
-      "label": "Keagan Grimm",
-      "trackCount": 6,
-      "runtime": "20 min",
-      "format": "EP",
-      "highlight": "Heavy mid-tempo beats and gravel-laced bars forming a dark hip-hop EP.",
-      "description": "A compact, heavy-hitting EP bridging raw street-level realism with dark, southern-fried blues instrumentation.",
-      "href": "https://open.spotify.com/album/04JKwcuHaQagsKnmDqE20l",
-      "tracks": [
-        {
-          "title": "Third Strike (Intro)",
-          "duration": "00:42",
-          "note": "feat. Labrynthine"
-        },
-        {
-          "title": "Earthbound",
-          "duration": "04:08",
-          "note": "feat. Labrynthine"
-        },
-        {
-          "title": "Godforsaken",
-          "duration": "04:27",
-          "note": "feat. Labrynthine"
-        },
-        {
-          "title": "Outta My Life",
-          "duration": "03:43",
-          "note": "feat. Labrynthine"
-        },
-        {
-          "title": "Roll Away",
-          "duration": "03:32",
-          "note": "feat. Labrynthine, MVNDI"
-        },
-        {
-          "title": "Shouldaneva",
-          "duration": "03:33",
-          "note": "feat. Labrynthine"
-        }
-      ]
-    }
-  ];
-}
-
-function primaryAsset() {
-  return artAssets()[0] || videoAssets()[0] || {
-    title: profile.name,
-    meta: "Legion Realm",
-    image: "",
-    href: "#home"
-  };
-}
-
-function renderVisualFrame(asset, className = "") {
-  if (!asset?.image) {
-    return `<div class="visual-frame ${className}" aria-hidden="true">${sulfurSvg()}</div>`;
-  }
-
-  return `
-    <a class="visual-frame ${className}" href="${asset.href}" aria-label="${asset.title}">
-      <img src="${asset.image}" data-fallback="${asset.fallback || primaryAsset().image}" alt="" loading="lazy" decoding="async">
-      <span>${asset.meta}</span>
-      <strong>${asset.title}</strong>
-    </a>
-  `;
-}
-
-function renderMiniFrames(assets, limit = 5) {
-  return assets
-    .slice(0, limit)
-    .map((asset, index) => renderVisualFrame(asset, `mini-frame mini-frame-${index + 1}`))
-    .join("");
-}
-
-function renderArtSlices(assets, limit = 3) {
-  return assets
-    .slice(0, limit)
-    .map(
-      (asset, index) => `
-        <div class="art-slice art-slice-${index + 1}" aria-hidden="true">
-          <img src="${asset.image}" alt="" loading="lazy" decoding="async">
-        </div>
-      `
-    )
-    .join("");
-}
-
-function renderSignalPanel(label, className = "") {
-  return `
-    <div class="signal-panel ${className}">
-      <div class="sigil sigil-stage">${sulfurSvg()}</div>
-      <span>${label}</span>
-    </div>
-  `;
-}
-
-function renderSignalSet(labels) {
-  return labels.map((label) => renderSignalPanel(label, "signal-cell")).join("");
-}
-
-function sulfurSvg() {
-  return `
-    <svg class="sulfur-sigil" viewBox="0 0 120 140" aria-hidden="true">
-      <path d="M60 12 L108 94 H12 Z"></path>
-      <path d="M60 92 V128 M37 111 H83"></path>
-    </svg>
-  `;
-}
-
-function renderNav() {
-  const version = window.LR_BUILD_VERSION || "local";
-  const linksHtml = views
-    .filter(view => !view.hidden)
-    .map(
-      (view) => `
-        <a href="${view.id === "home" ? "index.html" : view.id + ".html"}" data-route="${view.id}">
-          <span>${view.label}</span>
-        </a>
-      `
-    )
-    .join("");
-
-  nav.innerHTML = linksHtml + `<span class="build-badge">${version}</span>`;
-}
-
-function registerThumbnailCache() {
-  if (!("serviceWorker" in navigator)) return;
-  if (!/^https?:$/.test(location.protocol)) return;
-
-  navigator.serviceWorker.register("sw.js").catch(() => {
-    // Thumbnail caching is an enhancement; the page should stay quiet if blocked.
-  });
-}
-
-async function warmVideoThumbnailCache(list) {
-  if (!("caches" in window) || !list) return;
-
-  try {
-    const cache = await caches.open(videoThumbnailCache);
-    const urls = Array.from(list.querySelectorAll("[data-video-thumb]"))
-      .map((item) => item.dataset.videoThumb)
-      .filter(Boolean);
-
-    await Promise.all(urls.map(async (url) => {
-      const request = new Request(url, { mode: "no-cors" });
-      const cached = await cache.match(request);
-      if (cached) return;
-
-      const response = await fetch(request);
-      await cache.put(request, response);
-    }));
-  } catch {
-    // Browser caching is progressive enhancement.
-  }
-}
-
-function activateView(requestedView) {
-  const view = views.find((item) => item.id === requestedView) || views[0];
-  
-  // Stop preview audio when navigating away
-  if (typeof currentAudio !== "undefined" && currentAudio) {
-    currentAudio.pause();
-    currentAudio = null;
-  }
-
-  // Clean up portal active class in case we navigated from Promote portal
-  if (siteShell) {
-    siteShell.classList.remove("portal-active");
-  }
-
-  document.body.dataset.view = view.id;
-  currentViewLabel.innerHTML = sulfurSvg();
-
-  document.querySelectorAll("[data-route]").forEach((link) => {
-    link.classList.toggle("is-active", link.dataset.route === view.id);
-  });
-
-  const activeNavLink = nav.querySelector(".is-active");
-  activeNavLink?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
-
-  viewRoot.innerHTML = renderView(view);
-  bindImageFallbacks();
-  bindView(view.id);
-  window.scrollTo({ top: 0, behavior: "auto" });
-}
-
-function initApp() {
-  let currentPage = location.pathname.split("/").pop().replace(".html", "");
-  if (currentPage === "" || currentPage === "index") {
-    currentPage = "home";
-  }
-
-  if (siteShell) {
-    siteShell.classList.remove("is-hidden");
-  }
-  document.body.classList.add("entered");
-
-  renderNav();
-  initPointerTracking();
-  registerThumbnailCache();
-
-  activateView(currentPage);
-  loadBigCartelProducts();
-}
-
-
-
+const cdnBase = (!window.LR_BUILD_VERSION || window.LR_BUILD_VERSION === 'local')? '': `https://cdn.jsdelivr.net/gh/Moonfire-dreamwalkers/legion-realm-public-assets@${window.LR_BUILD_VERSION}`;
+function resolveUrl(url) {if (!url) return url;const str = String(url);if (str.startsWith('http://') || str.startsWith('https://') || str.startsWith('data:')) {return url;}return cdnBase ? `${cdnBase}/${str.replace(/^\//, '')}` : url;}
+const {checkoutConfig,discordConfig,externalLinks,profile,products,youtubeChannelId,videoItems,views,artists} = window.siteConfig;
+artists.forEach(artist => {if (artist.image) artist.image = resolveUrl(artist.image);});products.forEach(product => {if (product.image) product.image = resolveUrl(product.image);});
+const siteShell = document.querySelector("#siteShell");const nav = document.querySelector("#primaryNav");const viewRoot = document.querySelector("#viewRoot");const currentViewLabel = document.querySelector("#currentViewLabel");
+const savedCart = document.cookie ? (localStorage.getItem("legion_realm_cart") ? localStorage.getItem("legion_realm_cart") : "") : "";const cart = new Map(savedCart ? JSON.parse(savedCart) : []);
+function saveCart() {localStorage.setItem("legion_realm_cart", JSON.stringify(Array.from(cart.entries())));}
+const money = new Intl.NumberFormat("en-US", {style: "currency",currency: "USD"});
+const videoThumb = (id) => `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;const videoThumbnailCache = "son-video-thumbnails-v1";const videoPosterFallback = resolveUrl("images/assets/video-obsidian-poster.png");const youtubeChannelFeed = (id) => `https://www.youtube.com/feeds/videos.xml?channel_id=${id}`;const youtubeFeedProxy = (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+function escapeHTML(value = "") {return String(value).replace(/[&<>"']/g, (character) => ({"&": "&amp;","<": "&lt;",">": "&gt;",'"': "&quot;","'": "&#39;"}[character]));}
+function youtubeWatchUrl(id) {return `https://www.youtube.com/watch?v=${id}`;}
+function youtubeEmbedUrl(id) {return `https://www.youtube.com/embed/${id}?autoplay=1&rel=0&modestbranding=1&playsinline=1`;}
+function spotifyEmbedUrl(url) {try {const artistId = url.split("/artist/")[1]?.split("?")[0];if (artistId) {return `https://open.spotify.com/embed/artist/${artistId}?utm_source=generator&theme=0`;}const albumId = url.split("/album/")[1]?.split("?")[0];if (albumId) {return `https://open.spotify.com/embed/album/${albumId}?utm_source=generator&theme=0`;}} catch (e) {console.error("Failed to parse Spotify ID:", e);}return "";}
+function normalizeVideoItem(item) {return {title: item.title,youtubeId: item.youtubeId,url: item.url || youtubeWatchUrl(item.youtubeId),published: item.published || "",thumbnail: item.thumbnail || videoThumb(item.youtubeId),fallback: item.fallback || videoPosterFallback};}
+function productAssets() {const fallbackAssets = artAssets();return products.map((product, index) => ({title: product.title,meta: money.format(product.price),image: product.image,fallback: fallbackAssets[index % fallbackAssets.length]?.image || primaryAsset().image,href: `#product-${product.id}`}));}
+function videoAssets() {return videoItems.map((item) => ({title: item.title,meta: "Video",image: videoThumb(item.youtubeId),href: "#video"}));}
+function artAssets() {return [{title: "Legion Realm",meta: "Art",image: resolveUrl("images/son/515083529_24119378957693526_2416044119396794384_n.jpg"),href: "#home"},{title: profile.name,meta: "Music",image: resolveUrl("images/son/610975344_25729740873323985_7011612998820304873_n.jpg"),href: "#music"},{title: "Artwork",meta: "Identity",image: resolveUrl("images/son/498327952_10010656232325702_4115048481086730564_n.jpg"),href: "#home"},{title: "Legion Realm",meta: "Visual",image: resolveUrl("images/son/463619189_18095114947463274_1773267247556644044_n.jpg"),href: "#home"}];}
+function sectionPreviewAssets() {return {music: {title: "Music",meta: "Spotify",image: resolveUrl("images/son/610975344_25729740873323985_7011612998820304873_n.jpg"),href: "#music"},video: {title: "Video",meta: "YouTube",image: resolveUrl("images/son/668984037_26638569502441113_3766474232566768382_n.jpg"),href: "#video"},social: {title: "Social",meta: "Links",image: resolveUrl("images/son/486821153_9626876300703699_3145772948132120310_n.jpg"),href: "#social"},community: {title: "Community",meta: "Discord",image: resolveUrl("images/son/498327952_10010656232325702_4115048481086730564_n.jpg"),href: "#community"},store: {title: "Store",meta: "Merch",image: resolveUrl("images/son/682301339_26828962450068483_1914265669887023745_n.jpg"),href: "#store"}};}
+function musicAlbums() {return [{id: "the-bastard-son",title: "The Bastard Son",eyebrow: "Album",image: "images/son/515083529_24119378957693526_2416044119396794384_n.jpg",accent: "",releaseDate: "March 9, 2025",year: "2025",genre: "Hip-Hop/Rap",label: "Long Live Evil",trackCount: 15,runtime: "50 min",format: "Album",highlight: "A full-length horrorcore transmission with ritual sequencing, heavy narration, and a darker cinematic arc.",description: "A full-length descent into heavy ritual atmosphere, serrated hooks, and the Legion Realm sound at its most direct.",href: "https://open.spotify.com/album/5gQKJ9Pp5JZwTVTJn0BH5e?si=Fs7qCtH6Sf2dMPXtuwoKmQ",tracks: [{ title: "Invocation", duration: "02:01" },{ title: "The Bastard Son", duration: "04:03" },{ title: "Requiem", duration: "03:21", note: "feat. Billy Obey" },{ title: "Sulphur", duration: "03:53" },{ title: "The Hanged Man", duration: "01:42" },{ title: "Where Fear Lives", duration: "03:13" },{ title: "Under My Skin", duration: "03:24" },{ title: "Tenebrous", duration: "03:51" },{ title: "Absolution", duration: "05:20", note: "feat. Keagan Grimm & MJ Lovecraft" },{ title: "Three of Swords", duration: "01:27" },{ title: "Fire Walk With Me", duration: "03:40" },{ title: "The Rot", duration: "02:19" },{ title: "Apocalyptic", duration: "04:57", note: "feat. Stray & Novls" },{ title: "Death", duration: "03:25" },{ title: "Thy Will Be Done", duration: "04:15" }]},{id: "grant-us-eyes",title: "Grant Us Eyes",eyebrow: "Album",image: "images/son/grant us eyes.jpeg",accent: "",releaseDate: "July 23, 2021",year: "2021",genre: "Horrorcore",label: "Long Live Evil",trackCount: 15,runtime: "47 min",format: "Album",highlight: "The earlier rite: blue-black atmosphere, occult pressure, and the first full portal into the mask.",description: "A darker portal into the project: occult textures, punishing motion, and a sharper glimpse of the world behind the mask.",href: "https://open.spotify.com/album/6IOEnuQXPIEvsQEbakPDrg?si=A7F-ELN9RQiWpAf7dbf0pA",tracks: [{ title: "A Terrible Fate", duration: "02:18" },{ title: "Grant Us Eyes", duration: "03:44" },{ title: "E.V.I.L.", duration: "04:07", note: "feat. MJ Lovecraft" },{ title: "King of Dark Energy", duration: "03:44" },{ title: "Breathe", duration: "03:17" },{ title: "The Descent", duration: "01:55" },{ title: "The Mouth of Madness", duration: "04:00" },{ title: "Amen", duration: "03:46" },{ title: "The Bridge", duration: "02:26" },{ title: "What's That Noise?", duration: "04:56" },{ title: "The Order of the Blue Rose", duration: "01:13" },{ title: "Feed The Beast", duration: "02:45" },{ title: "Eye For An Eye", duration: "03:43" },{ title: "The Blessing", duration: "03:22" },{ title: "The Hive", duration: "03:49" }]}];}
+function keaganAlbums() {return [{"id": "gospell","title": "Gospell","eyebrow": "Album","image": "images/keagan/gospell.jpg","accent": "","releaseDate": "February 29, 2024","year": "2024","genre": "Hip-Hop/Rap","label": "Night Owl Media","trackCount": 12,"runtime": "40 min","format": "Album","highlight": "A gritty blend of dark southern hip-hop and dirty blues, the soundtrack to armageddon.","description": "A dark descent into the southern heat, drenching rap verses in gravelly vocals and bluesy instrumentation.","href": "https://open.spotify.com/album/0HmYECeIpPdB6mPD93g8n4","tracks": [{"title": "First Communion","duration": "02:16"},{"title": "Chuurch","duration": "03:48"},{"title": "Indigo","duration": "03:02"},{"title": "Arson Welles","duration": "03:08"},{"title": "Warship","duration": "04:02","note": "feat. Famz"},{"title": "Old Mister Misery","duration": "03:12"},{"title": "Nasty Habits","duration": "02:40","note": "feat. Sleep Lyrical"},{"title": "Runaway","duration": "03:51"},{"title": "Weathered","duration": "03:19","note": "feat. Nastie Ink, Stray"},{"title": "Sin Repent Repeat","duration": "02:54"},{"title": "Danse Macabre","duration": "04:57","note": "feat. Billy Obey, Somethin Outta Nothin"},{"title": "Fine By Me","duration": "03:12"}]},{"id": "gravel-mouth","title": "Gravel Mouth","eyebrow": "Album","image": "images/keagan/gravel-mouth.jpg","accent": "","releaseDate": "February 12, 2021","year": "2021","genre": "Horrorcore / Blues Hip-Hop","label": "Carpe Noctem","trackCount": 7,"runtime": "25 min","format": "Album","highlight": "Raw independent recordings clawing out of northeast Ohio's cold isolation.","description": "The raw underground roots of Keagan Grimm, featuring slow-drag rhythm and gravel-coated delivery.","href": "https://open.spotify.com/album/1SFqg7viWDny2HJ7FRP7Xh","tracks": [{"title": "I Decay","duration": "02:06"},{"title": "Cobblestones","duration": "03:34","note": "feat. Nastie Ink, Don Orias"},{"title": "Oath of the Hopeless","duration": "02:57"},{"title": "Murder Show","duration": "05:18","note": "feat. McNastee"},{"title": "Knockaround","duration": "03:42"},{"title": "Gravel Mouth","duration": "02:58"},{"title": "12 Bodies, One Grave","duration": "04:47","note": "feat. Destiny Everything And Nothing, The Culprit, Claas, Madd Maxxx, Donnie Menace, Labrynthine, Mars, A-Game, Cody Manson"}]},{"id": "the-obscure","title": "The Obscure","eyebrow": "Album","image": "images/keagan/the-obscure.jpg","accent": "","releaseDate": "July 10, 2019","year": "2019","genre": "Hip-Hop/Rap","label": "Sev'rd Nervez Music","trackCount": 11,"runtime": "44 min","format": "Album","highlight": "A haunting archive of raw, cold-isolated underground hip-hop storytelling.","description": "A stark exploration of dark themes and gritty production, documenting Keagan's early independent roots.","href": "https://open.spotify.com/album/5uBbVgTNyArgSCXeaTSHx5","tracks": [{"title": "All My Life","duration": "03:51","note": "feat. Grewsum"},{"title": "The Ghost Inside","duration": "03:40","note": "feat. Sleep Lyrical, Loonatic"},{"title": "Southbound","duration": "03:57","note": "feat. A-Game, Vice Gripp"},{"title": "Crown on the Head of the Rat King","duration": "04:18","note": "feat. The Culprit, Danny Drive-By"},{"title": "Irish Standdown","duration": "03:23","note": "feat. B-Bear, Tilly Ill"},{"title": "shroud","duration": "04:52","note": "feat. Xtra OverDoze"},{"title": "In the After","duration": "03:50","note": "feat. Tilly Ill, The J.Hexx Project"},{"title": "Diary of an Arsonist","duration": "03:14"},{"title": "Single Barrel","duration": "04:45"},{"title": "The Great Escape","duration": "04:07","note": "feat. Tilly Ill"},{"title": "Hell or New Orleans","duration": "04:11","note": "feat. Labrynthine"}]},{"id": "cinderblock-saints","title": "Cinderblock Saints","eyebrow": "EP","image": "images/keagan/cinderblock-saints.jpg","accent": "","releaseDate": "August 30, 2022","year": "2022","genre": "Hip-Hop/Rap","label": "Keagan Grimm","trackCount": 6,"runtime": "20 min","format": "EP","highlight": "Heavy mid-tempo beats and gravel-laced bars forming a dark hip-hop EP.","description": "A compact, heavy-hitting EP bridging raw street-level realism with dark, southern-fried blues instrumentation.","href": "https://open.spotify.com/album/04JKwcuHaQagsKnmDqE20l","tracks": [{"title": "Third Strike (Intro)","duration": "00:42","note": "feat. Labrynthine"},{"title": "Earthbound","duration": "04:08","note": "feat. Labrynthine"},{"title": "Godforsaken","duration": "04:27","note": "feat. Labrynthine"},{"title": "Outta My Life","duration": "03:43","note": "feat. Labrynthine"},{"title": "Roll Away","duration": "03:32","note": "feat. Labrynthine, MVNDI"},{"title": "Shouldaneva","duration": "03:33","note": "feat. Labrynthine"}]}];}
+function primaryAsset() {return artAssets()[0] || videoAssets()[0] || {title: profile.name,meta: "Legion Realm",image: "",href: "#home"};}
+function renderVisualFrame(asset, className = "") {if (!asset?.image) {return `<div class="visual-frame ${className}" aria-hidden="true">${sulfurSvg()}</div>`;}
+return `<a class="visual-frame ${className}" href="${asset.href}" aria-label="${asset.title}"><img src="${asset.image}" data-fallback="${asset.fallback || primaryAsset().image}" alt="" loading="lazy" decoding="async"><span>${asset.meta}</span><strong>${asset.title}</strong></a>`;}
+function renderMiniFrames(assets, limit = 5) {return assets.slice(0, limit).map((asset, index) => renderVisualFrame(asset, `mini-frame mini-frame-${index + 1}`)).join("");}
+function renderArtSlices(assets, limit = 3) {return assets.slice(0, limit).map((asset, index) => `<div class="art-slice art-slice-${index + 1}" aria-hidden="true"><img src="${asset.image}" alt="" loading="lazy" decoding="async"></div>`).join("");}
+function renderSignalPanel(label, className = "") {return `<div class="signal-panel ${className}"><div class="sigil sigil-stage">${sulfurSvg()}</div><span>${label}</span></div>`;}
+function renderSignalSet(labels) {return labels.map((label) => renderSignalPanel(label, "signal-cell")).join("");}
+function sulfurSvg() {return `<svg class="sulfur-sigil" viewBox="0 0 120 140" aria-hidden="true"><path d="M60 12 L108 94 H12 Z"></path><path d="M60 92 V128 M37 111 H83"></path></svg>`;}
+function renderNav() {const version = window.LR_BUILD_VERSION || "local";const linksHtml = views.filter(view => !view.hidden).map((view) => `<a href="${view.id === "home" ? "index.html" : view.id + ".html"}" data-route="${view.id}"><span>${view.label}</span></a>`).join("");
+nav.innerHTML = linksHtml + `<span class="build-badge">${version}</span>`;}
+function registerThumbnailCache() {if (!("serviceWorker" in navigator)) return;if (!/^https?:$/.test(location.protocol)) return;
+navigator.serviceWorker.register("sw.js").catch(() => {
+});}
+async function warmVideoThumbnailCache(list) {if (!("caches" in window) || !list) return;
+try {const cache = await caches.open(videoThumbnailCache);const urls = Array.from(list.querySelectorAll("[data-video-thumb]")).map((item) => item.dataset.videoThumb).filter(Boolean);
+await Promise.all(urls.map(async (url) => {const request = new Request(url, { mode: "no-cors" });const cached = await cache.match(request);if (cached) return;
+const response = await fetch(request);await cache.put(request, response);}));} catch {
+}}
+function activateView(requestedView) {const view = views.find((item) => item.id === requestedView) || views[0];
+if (typeof currentAudio !== "undefined" && currentAudio) {currentAudio.pause();currentAudio = null;}
+if (siteShell) {siteShell.classList.remove("portal-active");}
+document.body.dataset.view = view.id;currentViewLabel.innerHTML = sulfurSvg();
+document.querySelectorAll("[data-route]").forEach((link) => {link.classList.toggle("is-active", link.dataset.route === view.id);});
+const activeNavLink = nav.querySelector(".is-active");activeNavLink?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+viewRoot.innerHTML = renderView(view);bindImageFallbacks();bindView(view.id);window.scrollTo({ top: 0, behavior: "auto" });}
+function initApp() {let currentPage = location.pathname.split("/").pop().replace(".html", "");if (currentPage === "" || currentPage === "index") {currentPage = "home";}
+if (siteShell) {siteShell.classList.remove("is-hidden");}document.body.classList.add("entered");
+renderNav();initPointerTracking();registerThumbnailCache();
+activateView(currentPage);loadBigCartelProducts();}
 function renderAnnouncements(view) {
-  return `
-    <div class="announcements-obsidian section-system" id="announcementsView">
-      <section class="announcements-hero">
-        <div class="announcements-hero-sigil" aria-hidden="true">${sulfurSvg()}</div>
-        <h2 class="promo-header-main">LEGION REALM DISPATCHES</h2>
-        <p class="announcements-subtext">Official news and updates broadcast directly from Legion Realm command.</p>
-      </section>
-      <div class="announcements-feed" id="announcementsFeed">
-        <div class="announcements-loading">
-          <div class="announcements-shimmer"></div>
-          <div class="announcements-shimmer"></div>
-          <div class="announcements-shimmer"></div>
-          <p>Loading announcements...</p>
-        </div>
-      </div>
-    </div>
-  `;
+return `
+<div class="announcements-obsidian section-system" id="announcementsView">
+<section class="announcements-hero">
+<div class="announcements-hero-sigil" aria-hidden="true">${sulfurSvg()}</div>
+<h2 class="promo-header-main">LEGION REALM DISPATCHES</h2>
+<p class="announcements-subtext">Official news and updates broadcast directly from Legion Realm command.</p>
+</section>
+<div class="announcements-feed" id="announcementsFeed">
+<div class="announcements-loading">
+<div class="announcements-shimmer"></div>
+<div class="announcements-shimmer"></div>
+<div class="announcements-shimmer"></div>
+<p>Loading announcements...</p>
+</div>
+</div>
+</div>
+`;
 }
-function renderView(view) {
-  const renderers = {
-    home: renderHome,
-    son: renderSon,
-    underground: renderUnderground,
-    divinity: renderDivinity,
-    studio: renderStudio,
-    nightowlprints: renderNightOwlPrints,
-    music: renderMusic,
-    video: renderVideo,
-    community: renderCommunity,
-    announcements: renderAnnouncements,
-    store: renderStore,
-    promote: renderPromote
-  };
-
-  let html = `
-    <section class="view band view-${view.id}" data-view="${view.id}" tabindex="-1">
-      <div class="view-ghost" aria-hidden="true">${sulfurSvg()}</div>
-      ${renderers[view.id](view)}
-    </section>
-  `;
-
-  // Pre-resolve relative src attributes in HTML string to load from CDN in production
-  if (cdnBase) {
-    html = html.replace(/src=["'](?!https?:\/\/|data:)([^"']+)["']/g, (match, p1) => {
-      return `src="${cdnBase}/${p1.replace(/^\//, '')}"`;
-    });
-  }
-
-  return html;
-}
-
-function renderViewHead(view) {
-  return `
-    <div class="view-head">
-      <p class="section-label">${view.kicker || view.label}</p>
-      <h2>${view.title}</h2>
-      <p>${view.summary}</p>
-    </div>
-  `;
-}
-
-function renderDivinity(view) {
-  return `
-    <div class="divinity-page">
-      <!-- Hero Banner Section -->
-      <section class="divinity-hero section-system">
-        <div class="divinity-hero-brand">
-          <div class="divinity-logo-halo" aria-hidden="true"></div>
-          <div class="divinity-logo-shell">
-            <img src="images/divinity/divinity.png" alt="Cult Divinity Logo" loading="eager">
-          </div>
-        </div>
-        <div class="divinity-hero-copy">
-          <h1>Cult Divinity</h1>
-          <p class="divinity-desc">
-            Cult Divinity is a collaborative partnership between <strong>Krystalyn Deneve</strong> and <strong>Luna Serafina</strong>. Together, they deliver custom storefront development, advanced 3D fabrication, and hand-finished physical art. From digital platform engineering to custom prop and merchandise manufacturing, they bring complex ideas into reality.
-          </p>
-          
-          <div class="divinity-social-actions">
-            <a href="https://www.cultdivinity.com/" target="_blank" rel="noreferrer" class="button button-secondary" aria-label="Cult Divinity Website">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px;"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
-              Cult Divinity Site
-            </a>
-            <a href="https://www.lunaserafina.com/" target="_blank" rel="noreferrer" class="button button-secondary" aria-label="Luna Serafina Website">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px;"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
-              Luna Serafina Site
-            </a>
-            <a href="https://discord.gg/FvVu98Kksd" target="_blank" rel="noreferrer" class="button button-secondary" aria-label="Discord Server">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="margin-right:8px;"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.094 13.094 0 0 1-1.873-.894.077.077 0 0 1-.008-.128c.126-.093.252-.19.372-.287a.075.075 0 0 1 .077-.011c3.92 1.793 8.18 1.793 12.061 0a.073.073 0 0 1 .078.009c.12.099.246.195.373.289a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.156-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.156 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.156-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.156 2.418z"/></svg>
-              Discord
-            </a>
-            <a href="https://www.facebook.com/CultDivinity" target="_blank" rel="noreferrer" class="button button-secondary" aria-label="Facebook Page">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="margin-right:8px;"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>
-              Facebook
-            </a>
-          </div>
-        </div>
-      </section>
-
-      <!-- Partners Split Section -->
-      <section class="divinity-split-grid">
-        <!-- Luna Serafina Profile Card -->
-        <div class="divinity-partner-card section-system">
-          <div class="partner-avatar-container">
-            <div class="partner-avatar">
-              <img class="partner-avatar-img" src="images/divinity/lunaserafina.jpg" alt="Luna Serafina" loading="lazy">
-            </div>
-          </div>
-          <div class="partner-info">
-            <h2>Luna Serafina</h2>
-            <p class="partner-role">Technical Lead & Engineer</p>
-            <div class="partner-contacts">
-              <span class="partner-contact">Discord: <code>luna.serafina</code></span>
-              <a href="https://www.facebook.com/LunaSerafina333/" target="_blank" rel="noreferrer" class="partner-contact partner-facebook-link" aria-label="Luna Serafina Facebook">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="margin-right:4px;"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>
-                Facebook
-              </a>
-            </div>
-            <p class="partner-bio">
-              Luna specializes in custom 3D printing and hardware fabrication, full-stack application development, systems solutions, and community operations. She brings deep technical analysis and architecture to complex design problems.
-            </p>
-            
-            <h3 class="services-title">Services & Expertise</h3>
-            <ul class="services-list">
-              <li><span>3D Printing & Fabrication</span></li>
-              <li><span>Custom Web & App Development</span></li>
-              <li><span>Platform Engineering</span></li>
-              <li><span>Community Management</span></li>
-              <li><span>Guerilla Marketing</span></li>
-              <li><span>Technical Solutions Consulting</span></li>
-              <li><span>Polarizing Metaphysical Analysis</span></li>
-            </ul>
-          </div>
-        </div>
-
-        <!-- Krystalyn Deneve Profile Card -->
-        <div class="divinity-partner-card section-system">
-          <div class="partner-avatar-container">
-            <div class="partner-avatar">
-              <img class="partner-avatar-img" src="images/divinity/krystalyn.webp" alt="Krystalyn Deneve" loading="lazy">
-            </div>
-          </div>
-          <div class="partner-info">
-            <h2>Krystalyn Deneve</h2>
-            <p class="partner-role">Universal Dark Artist</p>
-            <div class="partner-contacts">
-              <span class="partner-contact">Discord: <code>remote_controlled</code></span>
-              <a href="https://www.facebook.com/profile.php?id=61582653399927" target="_blank" rel="noreferrer" class="partner-contact partner-facebook-link" aria-label="Krystalyn Deneve Facebook">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="margin-right:4px;"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>
-                Facebook
-              </a>
-            </div>
-            <p class="partner-bio">
-              Krystalyn has been an artist her whole life, producing detailed digital concepts and physical acrylic, watercolor, and ink paintings. Her work bridges graffiti, creative writing, and custom hand-finishing for physical storefront products.
-            </p>
-            
-            <h3 class="services-title">Creative Portfolio</h3>
-            <ul class="services-list">
-              <li><span>Custom Digital Drawings & Vector Art</span></li>
-              <li><span>Acrylic & Watercolor Painting</span></li>
-              <li><span>Post-Processing & Finishing of 3D Prints</span></li>
-              <li><span>Graffiti, Ink Drawings & Photography</span></li>
-              <li><span>Creative Writing & Music Production</span></li>
-              <li><span>Occult & Dark Concept Art</span></li>
-              <li><span>Custom Product Development & Refinement</span></li>
-            </ul>
-          </div>
-        </div>
-      </section>
-
-      <!-- Collaborative Pipeline Section -->
-      <section class="divinity-pipeline section-system">
-        <h2 class="pipeline-title">Custom Product Workflow</h2>
-        <p class="pipeline-subtitle">How Luna and Krystalyn collaborate to bring custom merchandise and designs to life</p>
-        
-        <div class="pipeline-steps">
-          <div class="pipeline-step">
-            <div class="step-image-shell">
-              <img src="images/divinity/wallmount.png" alt="Design & Concept Mockup" loading="lazy">
-            </div>
-            <div class="step-badge">1</div>
-            <h3>Design & Concept</h3>
-            <p>Collaboratively designing unique assets and custom products tailored to storefront brand identities.</p>
-          </div>
-          <div class="pipeline-step-arrow" aria-hidden="true">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
-          </div>
-          <div class="pipeline-step">
-            <div class="step-image-shell">
-              <img src="images/divinity/3dprintingmasks.png" alt="3D Fabrication Preview" loading="lazy">
-            </div>
-            <div class="step-badge">2</div>
-            <h3>3D Fabrication (Luna)</h3>
-            <p>Precision manufacturing using calibrated 3D printers, focusing on dimensional accuracy and layer structure.</p>
-          </div>
-          <div class="pipeline-step-arrow" aria-hidden="true">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
-          </div>
-          <div class="pipeline-step">
-            <div class="step-image-shell">
-              <img src="images/divinity/maskpostprocess.jpg" alt="Artistic Finishing Phase" loading="lazy">
-            </div>
-            <div class="step-badge">3</div>
-            <h3>Artistic Finishing (Krystalyn)</h3>
-            <p>Post-processing cleanup, hand-detailing, paint weathering, and final protection layers are applied by hand.</p>
-          </div>
-          <div class="pipeline-step-arrow" aria-hidden="true">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
-          </div>
-          <div class="pipeline-step">
-            <div class="step-image-shell">
-              <img src="images/divinity/snat.webp" alt="Completed Creation" loading="lazy">
-            </div>
-            <div class="step-badge">4</div>
-            <h3>Finished Product</h3>
-            <p>The completed custom merchandise, fully finished and ready for storefront display and collectors.</p>
-          </div>
-        </div>
-      </section>
-
-      <!-- Divinity Portfolio Gallery Section -->
-      <section class="divinity-gallery-section section-system">
-        <p class="section-label">Universal Dark Art Gallery</p>
-        <h2 class="pipeline-title">THE ART OF KRYSTALYN DENEVE</h2>
-        <p class="pipeline-subtitle">Custom Digital Concept Art, Fine Paintings & Esoteric Creations</p>
-        <p class="divinity-gallery-intro">
-          Krystalyn Deneve is available for custom art commissions and design inquiries. Contact her on Discord: <code>remote_controlled</code> or via email at <a href="mailto:d3n3v3666@outlook.com" class="dv-email-btn">d3n3v3666@outlook.com</a>.
-        </p>
-
-        <div class="divinity-portfolio-wrapper is-collapsed" id="divinityPortWrapper">
-          <div class="divinity-portfolio-grid" id="divinityPortGrid">
-            <!-- Images injected via JS -->
-          </div>
-          
-          <button class="divinity-portfolio-expand-btn button button-secondary" id="divinityPortExpandBtn" aria-label="Explore the full art archive">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;"><polyline points="6 9 12 15 18 9"></polyline></svg>
-            <span>Explore All Archive</span>
-          </button>
-        </div>
-      </section>
-    </div>
-  `;
-}
-
-function renderStudio(view) {
-  const channel = {
-    name: "Philbrix Studioz",
-    url: "https://www.youtube.com/@PhilbrixVidz",
-    channelId: "UC08h40iLjITY1yQ-mfSGHAw",
-    feedUrl: youtubeChannelFeed("UC08h40iLjITY1yQ-mfSGHAw"),
-    videos: [
-      { title: "Camp Xul, Lee Carver Freestyles to Bango Skank on Kazoo & Clown Girls With Squeaky Boobs", youtubeId: "J1zjIVMlS34" },
-      { title: "FROGMAN Cometh! Zombie Frog Maskin and Dancin with the Accordion", youtubeId: "gdMJRsgTU6s" },
-      { title: "Hellgazer Whispers to the King of Dark Energy from Legion Realm", youtubeId: "s_A42aMe0lU" },
-      { title: "Asmodeus The Hell Priest Mask Try On", youtubeId: "RJVuCosSMUI" },
-      { title: "Mephisto Tells Some Bad Jokes And Selects Winners", youtubeId: "4jGDfIusQcU" },
-      { title: "Uncle Frank (Hellraiser) inspired peeled face latex mask", youtubeId: "KHJtV5uqhOY" },
-      { title: "LIVING DEAD GIRL CASKET PROP CREATION: Practical Effects", youtubeId: "P60BOAPUqfI" },
-      { title: "Bango Skank in Puppet Master Mask - Jokes From The Crypt", youtubeId: "1yCHiiCJlDE" },
-      { title: "The Dead Bitches Brunch: A Mess of Fun!", youtubeId: "aJlCuY38_4c" },
-      { title: "The Dead Bitches Brunch Gets High and Haunted!", youtubeId: "oFpD4tvEgj8" },
-      { title: "Airbrushing the Book Of Xul / Necro Bible Cover", youtubeId: "NoCa4jSsrm8" },
-      { title: "Jason Voorhees X Forever Face Battle", youtubeId: "bhgIKELLq2I" }
-    ].map(normalizeVideoItem)
-  };
-  const featuredVideo = channel.videos[0];
-  const idSuffix = "-studio";
-
-  return `
-    <div class="studio-page">
-      <!-- Hero Banner Section -->
-      <section class="studio-hero section-system">
-        <div class="studio-hero-brand">
-          <div class="studio-logo-halo" aria-hidden="true"></div>
-          <div class="studio-logo-shell">
-            <img src="images/philbrix/philbrix-studio.png" alt="Philbrix Studioz Logo" loading="eager">
-          </div>
-        </div>
-        <div class="studio-hero-copy">
-          <h1>Philbrix Studioz</h1>
-          <p class="studio-desc">
-            Philbrix Studioz is a latex mask making studio with creations from Gravity Bleeds and brought to you by our mascot, Bango Skank. Everything you see from philbrix studioz is created by Gravity: design, sculpts, masks, painting, illustrations, photography, shitty copywriting, this site, everything. Do or DIY! That's our motto.
-          </p>
-          <div class="studio-social-actions">
-            <a href="https://www.philbrix.com/" target="_blank" rel="noreferrer" class="button button-secondary" aria-label="Official Website">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px;"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
-              Official Site
-            </a>
-            <a href="https://www.instagram.com/gravitybleeds/" target="_blank" rel="noreferrer" class="button button-secondary" aria-label="Instagram Account">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px;"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
-              Instagram
-            </a>
-            <a href="https://www.youtube.com/@PhilbrixVidz" target="_blank" rel="noreferrer" class="button button-secondary" aria-label="YouTube Channel">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="margin-right:8px;"><path d="M23.498 6.163a3.003 3.003 0 0 0-2.11-2.108C19.524 3.545 12 3.545 12 3.545s-7.525 0-9.387.51A3.003 3.003 0 0 0 .502 6.163C0 8.07 0 12 0 12s0 3.93.502 5.837a3.003 3.003 0 0 0 2.11 2.108c1.862.51 9.387.51 9.387.51s7.524 0 9.387-.51a3.003 3.003 0 0 0 2.11-2.108c.502-1.907.502-5.837.502-5.837s0-3.93-.502-5.837zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
-              YouTube
-            </a>
-          </div>
-        </div>
-      </section>
-
-      <!-- Services Section -->
-      <section class="studio-services section-system">
-        <h2>custom mask creation, props & fx</h2>
-        <p class="capabilities-desc">Everything you see from philbrix studioz is created by Gravity. Do or DIY! That's our motto.</p>
-        <div class="capabilities-grid">
-          <div class="capability-card">
-            <h3>† custom mask creation †</h3>
-            <p>Bring your next character to life with a custom creation that you can have exclusive rights for reproduction and resale. This includes an original clay sculpt, mold, and a prototype mask. You retain access to the mold for further reproduction at a lower cost than single creation.</p>
-          </div>
-          <div class="capability-card">
-            <h3>† gruesome graphix †</h3>
-            <p>I would love to Turn your mask design into your next album cover and carry that branding throughout your next release. With this being the last remnants from a previous life I will only take on horror related design projects focusing on album art and branding. No mainstream shit.</p>
-          </div>
-          <div class="capability-card">
-            <h3>† prop creation †</h3>
-            <p>Looking to have a prop made for a stage show or music video? How about a mini mascot, a mic stand or a demonic corpse to hang from your bedroom ceiling? I'm new to the prop game, but Im cheap. Hit me up with your idea and we'll see if we can bring it to life.</p>
-          </div>
-          <div class="capability-card">
-            <h3>† practical fx †</h3>
-            <p>Nothing too crazy. We're talking indie film from the 80's style shit, but still, we can shoot blood, cum, smoke, or dandelions at your crowd or create a 2 mask face peeling type effect with slime for your next project. Extremely limited availability.</p>
-          </div>
-        </div>
-      </section>
-
-      <!-- Video Board Section -->
-      <section class="studio-videos section-system">
-        <div
-          class="video-obsidian"
-          data-video-sanctum
-          data-index="${idSuffix}"
-          data-channel-id="${channel.channelId}"
-          data-feed-url="${channel.feedUrl}"
-        >
-          <div class="video-obsidian-core">
-            <section class="video-obsidian-player" aria-label="Philbrix Studioz video player">
-              <div class="video-screen" id="videoScreen${idSuffix}">
-                <img
-                  id="activeVideoPoster${idSuffix}"
-                  src="${featuredVideo.thumbnail}"
-                  data-fallback="${featuredVideo.fallback}"
-                  alt=""
-                  loading="eager"
-                  decoding="async"
-                >
-                <iframe
-                  id="activeVideoFrame${idSuffix}"
-                  title="${escapeHTML(featuredVideo.title)}"
-                  referrerpolicy="strict-origin-when-cross-origin"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  allowfullscreen
-                  hidden
-                ></iframe>
-                <div class="video-screen-veil" aria-hidden="true"></div>
-                <button class="video-play" type="button" id="videoPlayButton${idSuffix}" aria-label="Play selected video">
-                  <span aria-hidden="true"></span>
-                </button>
-              </div>
-            </section>
-
-            <aside class="video-obsidian-index" aria-label="Video playlist">
-              <span class="video-feed-status" id="videoFeedStatus${idSuffix}" aria-live="polite">Channel feed loading</span>
-              <span class="video-count" id="videoCount${idSuffix}">${channel.videos.length} videos</span>
-              <div class="video-list" id="videoTabletList${idSuffix}">
-                ${channel.videos.map((item, index) => renderVideoItem(item, index)).join("")}
-              </div>
-              <a class="video-channel" href="${channel.url}" target="_blank" rel="noreferrer" aria-label="Open YouTube channel"></a>
-            </aside>
-          </div>
-        </div>
-      </section>
-
-      <!-- Philbrix Gallery Section -->
-      <section class="divinity-gallery-section section-system">
-        <p class="section-label">Philbrix Gallery</p>
-        <h2 class="pipeline-title">PHILBRIX CREATIONS</h2>
-        <p class="pipeline-subtitle">Latex Masks, Sculptures & Special FX</p>
-        <div class="divinity-portfolio-wrapper is-collapsed" id="philbrixPortWrapper">
-          <div class="divinity-portfolio-grid" id="philbrixPortGrid"></div>
-          <button class="divinity-portfolio-expand-btn button button-secondary" id="philbrixPortExpandBtn" aria-label="Explore all Philbrix images">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;"><polyline points="6 9 12 15 18 9"></polyline></svg>
-            <span>Explore All Philbrix Archive</span>
-          </button>
-        </div>
-      </section>
-    </div>
-  `;
-}
-
-function renderSon() {
-  const musicView = views.find((v) => v.id === "music");
-  const storeView = views.find((v) => v.id === "store");
-
-  return `
-    <div class="son-scrolling-page">
-      <div class="son-section-music">
-        ${renderMusic(musicView)}
-      </div>
-
-      <!-- S.O.N Gallery Section -->
-      <section class="divinity-gallery-section section-system">
-        <p class="section-label">Somethin Outta Nothin Gallery</p>
-        <h2 class="pipeline-title">S.O.N GALLERY</h2>
-        <p class="pipeline-subtitle">Visuals, Cover Art & Moments</p>
-        <div class="divinity-portfolio-wrapper is-collapsed" id="sonPortWrapper">
-          <div class="divinity-portfolio-grid" id="sonPortGrid"></div>
-          <button class="divinity-portfolio-expand-btn button button-secondary" id="sonPortExpandBtn" aria-label="Explore all S.O.N images">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;"><polyline points="6 9 12 15 18 9"></polyline></svg>
-            <span>Explore All S.O.N Archive</span>
-          </button>
-        </div>
-      </section>
-
-      <div class="son-section-store">
-        ${renderStore(storeView)}
-      </div>
-    </div>
-  `;
-}
-
-function renderUnderground(view) {
-  const channel = {
-    name: "Do It For The Underground",
-    url: "https://www.youtube.com/@doitfortheunderground",
-    channelId: "UCLpqCCh1DE29YCiEVMmXUwA",
-    feedUrl: youtubeChannelFeed("UCLpqCCh1DE29YCiEVMmXUwA"),
-    videos: [
-      { title: "Season 3, Episode 2! Stray and Charlie Beans! S.O.N's Big Boy Birthday Bash! Mission:Infect! Nastie!", youtubeId: "v-_zW-T5yCk" },
-      { title: "Nastie - The Kodoku Interview", youtubeId: "b7ERHwWpSLo" },
-      { title: "Season 3 Premiere! Rogue Hollow! Juggalo Weekend recap! Marijuambies! Alla Xul Elu! Ouija Macc!", youtubeId: "FN-yBijKor0" },
-      { title: "We are so back! Season 3 debuts next week!", youtubeId: "FkBP1TCPtVk" },
-      { title: "Merry Christmas from all of us at Legion Realm!", youtubeId: "LeDtUmG_nUE" },
-      { title: "When the holiday spirit hits", youtubeId: "udBVH5V6uxI" },
-      { title: "DIFTUG Wrapped - Looking Back at 2025 with S.O.N", youtubeId: "Y0iWE90YdG0" },
-      { title: "Anatomy of an Album: Alla Xul Elu - Head of Horns", youtubeId: "j7RwYO7pgWo" },
-      { title: "Anatomy of an Album: Nastie Ink - Nuisance", youtubeId: "q6XPZME66XI" },
-      { title: "September, 2025: Camp Xul 5 Recap, Acid Kult, Nastie Ink and Hellz Bellz", youtubeId: "PPDrX9U3JjY" },
-      { title: "The First Annual DIFTUG Music Awards!", youtubeId: "wxigp6yQqlM" },
-      { title: "LIVE! The DMA AMA with Robbie and Fatz!", youtubeId: "mX3mIH_nvec" },
-      { title: "Klokwerk E, Somethin Outta Nothin (S.O.N) & Apollo Exodus live at Gathering of the Juggalos 2025", youtubeId: "tJ8Fgo5-CTc" },
-      { title: "July 2025: ICP prepare The Naught, Alla Xul Elu go independent, Ouija Macc live, HooliganZ interview", youtubeId: "BKSDFfDFEBg" },
-      { title: "SPECIAL PRESENTATION: Enjoy the View Deep Dive with Stray!", youtubeId: "nImx9dWvpt4" }
-    ].map(normalizeVideoItem)
-  };
-  
-  const featuredVideo = channel.videos[0];
-  const idSuffix = "-1";
-
-  return `
-    <div class="underground-page">
-      <!-- Hero Banner Section -->
-      <section class="underground-hero section-system">
-        <div class="underground-hero-brand">
-          <div class="underground-logo-halo" aria-hidden="true"></div>
-          <div class="underground-logo-shell">
-            <img src="images/underground/doitfortheunderground.jpg" alt="Do It For The Underground Logo" loading="eager">
-          </div>
-        </div>
-        <div class="underground-hero-copy">
-          <h1>${view.title}</h1>
-          <p class="underground-desc">${view.summary}</p>
-          
-          <div class="underground-social-actions">
-            <a href="${channel.url}" target="_blank" rel="noreferrer" class="button button-secondary" aria-label="YouTube Channel">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="margin-right:8px;"><path d="M23.498 6.163a3.003 3.003 0 0 0-2.11-2.108C19.524 3.545 12 3.545 12 3.545s-7.525 0-9.387.51A3.003 3.003 0 0 0 .502 6.163C0 8.07 0 12 0 12s0 3.93.502 5.837a3.003 3.003 0 0 0 2.11 2.108c1.862.51 9.387.51 9.387.51s7.524 0 9.387-.51a3.003 3.003 0 0 0 2.11-2.108c.502-1.907.502-5.837.502-5.837s0-3.93-.502-5.837zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
-              YouTube
-            </a>
-            <a href="https://www.instagram.com/doitfortheunderground/" target="_blank" rel="noreferrer" class="button button-secondary" aria-label="Instagram">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px;"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
-              Instagram
-            </a>
-            <a href="https://www.facebook.com/profile.php?id=61556609008190" target="_blank" rel="noreferrer" class="button button-secondary" aria-label="Facebook Page">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="margin-right:8px;"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>
-              Facebook
-            </a>
-          </div>
-        </div>
-      </section>
-
-      <section class="underground-split-grid">
-        <!-- Host Bio Card -->
-        <div class="underground-host-card section-system">
-          <div class="host-avatar-container">
-            <div class="host-avatar">
-              <img class="host-avatar-img" src="images/underground/robbie.jpg" alt="Robbie Pankow" loading="lazy">
-            </div>
-          </div>
-          <div class="host-info">
-            <h2>Robbie Pankow</h2>
-            <p>Robbie Pankow is the driving force behind <strong>Do It For The Underground</strong>, dedicating his life to documenting and discussing underground hip-hop and the horrorcore subgenre. As the founder, curator, and host, Robbie conducts raw, unfiltered interviews with both legendary icons and emerging artists, alongside producing deep-dive reviews and historical retrospectives. His mission is to amplify the voices of the underground scene and keep the culture's authentic stories alive.</p>
-            <a href="https://www.facebook.com/robbie.pankow" target="_blank" rel="noreferrer" class="button button-primary host-facebook-button">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="margin-right:8px;"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>
-              Connect with Robbie
-            </a>
-          </div>
-        </div>
-
-        <!-- Spotify Embed Section -->
-        <div class="underground-spotify-section section-system">
-          <div class="spotify-widget-container">
-            <iframe 
-              style="border: none; background: transparent; display: block;" 
-              src="https://open.spotify.com/embed/playlist/38R74I9cIV1Bdb14jVA2Lm?utm_source=generator&theme=0" 
-              width="100%" 
-              height="100%" 
-              frameBorder="0" 
-              allowfullscreen="" 
-              allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" 
-              loading="lazy">
-            </iframe>
-          </div>
-        </div>
-      </section>
-
-
-
-      <div
-        class="video-obsidian"
-        data-video-sanctum
-        data-index="${idSuffix}"
-        data-channel-id="${channel.channelId}"
-        data-feed-url="${channel.feedUrl}"
-        style="margin-bottom: 80px;"
-      >
-        <div class="video-obsidian-core">
-          <section class="video-obsidian-player" aria-label="Do It For The Underground video player">
-            <div class="video-screen" id="videoScreen${idSuffix}">
-              <img
-                id="activeVideoPoster${idSuffix}"
-                src="${featuredVideo.thumbnail}"
-                data-fallback="${featuredVideo.fallback}"
-                alt=""
-                loading="eager"
-                decoding="async"
-              >
-              <iframe
-                id="activeVideoFrame${idSuffix}"
-                title="${escapeHTML(featuredVideo.title)}"
-                referrerpolicy="strict-origin-when-cross-origin"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowfullscreen
-                hidden
-              ></iframe>
-              <div class="video-screen-veil" aria-hidden="true"></div>
-              <button class="video-play" type="button" id="videoPlayButton${idSuffix}" aria-label="Play selected video">
-                <span aria-hidden="true"></span>
-              </button>
-            </div>
-          </section>
-
-          <aside class="video-obsidian-index" aria-label="Video playlist">
-            <span class="video-feed-status" id="videoFeedStatus${idSuffix}" aria-live="polite">Channel feed loading</span>
-            <span class="video-count" id="videoCount${idSuffix}">${channel.videos.length} videos</span>
-            <div class="video-list" id="videoTabletList${idSuffix}">
-              ${channel.videos.map((item, index) => renderVideoItem(item, index)).join("")}
-            </div>
-            <a class="video-channel" href="${channel.url}" target="_blank" rel="noreferrer" aria-label="Open YouTube channel"></a>
-          </aside>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-function renderNightOwlPrints(view) {
-  return `
-    <div class="nightowl-page">
-      <!-- Keagan Grimm Music Console -->
-      ${renderKeaganMusic()}
-
-      <!-- Solutions Capability Section -->
-      <section class="nightowl-services section-system" style="margin-top: 80px; margin-bottom: 80px;">
-        <div class="nightowl-hero" style="border: none !important; background: transparent !important; box-shadow: none !important; padding: 0 !important; margin-bottom: 40px;">
-          <div class="nightowl-hero-brand">
-            <div class="nightowl-logo-halo" aria-hidden="true"></div>
-            <div class="nightowl-logo-shell">
-              <img src="images/nightowlprints/nightowlprints.png" alt="Night Owl Prints Logo" loading="lazy">
-            </div>
-          </div>
-          <div class="nightowl-hero-copy">
-            <h2 style="font-family: var(--font-display); font-size: 2.2rem; color: #f1dfc2; margin-bottom: 12px; text-transform: uppercase; text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);">Night Owl Prints</h2>
-            <p class="capabilities-desc" style="margin-bottom: 0;">
-              Night Owl Prints is the custom merchandising engine powering Keagan Grimm. Specializing in high-end custom screen printing, premium apparel construction, DTF prints, and professional design preparation, we bring high-quality merchandising solutions to independent artists and brands.
-            </p>
-          </div>
-        </div>
-
-        <div class="capabilities-grid">
-          <div class="capability-card">
-            <h3>† Custom Printed Tees †</h3>
-            <p>Custom garment printing sizes S-6X. Small and large runs. Wholesale and bulk pricing available. Upgrades available.</p>
-          </div>
-          <div class="capability-card">
-            <h3>† Custom Printed Hoodies, Sweatshirts, & Joggers †</h3>
-            <p>Custom hoodies, crewneck sweatshirts, and joggers to stay warm! Tops include 1 front OR back print, up to 15x20 inches. Joggers are 2 full leg prints.</p>
-          </div>
-          <div class="capability-card">
-            <h3>† Custom DTF Prints †</h3>
-            <p>We print, you press! Commercial heat press is required. No fabric or color limitations.</p>
-          </div>
-          <div class="capability-card">
-            <h3>† Pre-Press & Vector Prep †</h3>
-            <p>Need print-ready formatting? Our team refines and color-separates your designs for razor-sharp visual output on all custom apparel runs.</p>
-          </div>
-        </div>
-
-        <div style="text-align: center; margin-top: 40px;">
-          <a href="https://nightowlprints.com/" target="_blank" rel="noreferrer" class="button button-primary" aria-label="Night Owl Prints Website">
-            Visit Night Owl Prints Website
-          </a>
-        </div>
-      </section>
-    </div>
-  `;
-}
-
-function renderKeaganMusic() {
-  const albums = keaganAlbums();
-  const activeAlbum = albums[0];
-
-  return `
-    <div class="album-console music-vault section-system" data-keagan-console style="margin-top: 40px;">
-      <img class="album-console-bg" id="keaganHeroBg" src="${activeAlbum.image}" alt="" loading="lazy" decoding="async">
-
-      <section class="music-vault-head" aria-label="Music overview">
-        <div>
-          <div class="artist-social-actions" style="display: flex; gap: 16px; justify-content: center; align-items: center; flex-wrap: wrap;">
-            <a href="https://www.keagangrimm.com" target="_blank" rel="noreferrer" class="social-icon-link" aria-label="Website" title="Official Website">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
-            </a>
-            <a href="https://keagangrimm.carrd.co/" target="_blank" rel="noreferrer" class="social-icon-link" aria-label="Music Hub" title="Music Hub (Carrd)">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
-            </a>
-            <a href="https://www.youtube.com/@KeaganGrimmMusic" target="_blank" rel="noreferrer" class="social-icon-link" aria-label="YouTube" title="YouTube Channel">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.163a3.003 3.003 0 0 0-2.11-2.108C19.524 3.545 12 3.545 12 3.545s-7.525 0-9.387.51A3.003 3.003 0 0 0 .502 6.163C0 8.07 0 12 0 12s0 3.93.502 5.837a3.003 3.003 0 0 0 2.11 2.108c1.862.51 9.387.51 9.387.51s7.524 0 9.387-.51a3.003 3.003 0 0 0 2.11-2.108c.502-1.907.502-5.837.502-5.837s0-3.93-.502-5.837zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
-            </a>
-            <a href="https://www.instagram.com/KeaganGrimm" target="_blank" rel="noreferrer" class="social-icon-link" aria-label="Instagram" title="Instagram Profile">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
-            </a>
-            <a href="https://www.facebook.com/KeaganHamel" target="_blank" rel="noreferrer" class="social-icon-link" aria-label="Facebook" title="Facebook Page">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>
-            </a>
-          </div>
-        </div>
-      </section>
-
-      <section class="album-stage album-aaa-stage" aria-label="Featured album">
-        <div class="album-cover-zone">
-          <div class="album-cover-halo" aria-hidden="true"></div>
-          <div class="album-cover-shell">
-            <img id="keaganHeroImage" src="${activeAlbum.image}" alt="${activeAlbum.title}" loading="eager" decoding="async">
-          </div>
-          <div class="album-mini-meta" id="keaganMiniMeta">
-            <span>${activeAlbum.year}</span>
-            <span>${activeAlbum.runtime}</span>
-          </div>
-        </div>
-
-        <div class="album-copy">
-          <h2 id="keaganHeroTitle">${activeAlbum.title}</h2>
-          <strong id="keaganHeroAccent">${activeAlbum.accent}</strong>
-          <div class="album-fact-grid" id="keaganFactGrid">
-            ${renderKeaganAlbumFacts(activeAlbum)}
-          </div>
-          <div class="album-actions">
-            <div class="album-spotify-wrapper">
-              <iframe 
-                id="keaganHeroEmbed"
-                src="${spotifyEmbedUrl(activeAlbum.href)}" 
-                width="100%" 
-                height="80" 
-                frameBorder="0" 
-                allowfullscreen="" 
-                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" 
-                loading="lazy">
-              </iframe>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="album-lower-grid">
-        <div class="track-panel">
-          <div class="track-panel-head">
-            <p class="section-label">Tracklist</p>
-            <span id="keaganTrackCount">${activeAlbum.trackCount} tracks / ${activeAlbum.runtime}</span>
-          </div>
-          <ol class="track-list" id="keaganTrackList">
-            ${renderTrackList(activeAlbum)}
-          </ol>
-        </div>
-
-        <aside class="album-selector" aria-label="Albums">
-          ${albums.map((album, index) => renderKeaganAlbumCard(album, index === 0)).join("")}
-        </aside>
-      </section>
-    </div>
-  `;
-}
-
-function renderKeaganAlbumFacts(album) {
-  const facts = [
-    ["Artist", "Keagan Grimm"],
-    ["Release", album.releaseDate],
-    ["Tracks", `${album.trackCount} songs`],
-    ["Runtime", album.runtime],
-    ["Label", album.label],
-    ["Format", album.format]
-  ];
-
-  return facts
-    .map(([label, value]) => `
-      <div>
-        <span>${label}</span>
-        <strong>${value}</strong>
-      </div>
-    `)
-    .join("");
-}
-
-function renderKeaganAlbumCard(album, isActive = false) {
-  return `
-    <button
-      class="album-card ${isActive ? "is-active" : ""}"
-      type="button"
-      data-keagan-album-id="${album.id}"
-      data-keagan-album-title="${album.title}"
-      data-keagan-album-image="${album.image}"
-      aria-pressed="${isActive ? "true" : "false"}"
-    >
-      <img src="${album.image}" alt="" loading="lazy" decoding="async">
-      <strong>${album.title}</strong>
-      <small>${album.runtime}</small>
-    </button>
-  `;
-}
-
-function renderHome(view) {
-  return renderCommunity(view);
-}
-
-function renderMusic(view) {
-  const albums = musicAlbums();
-  const activeAlbum = albums[0];
-
-  return `
-    <div class="album-console music-vault section-system" data-album-console>
-      <img class="album-console-bg" id="albumHeroBg" src="${activeAlbum.image}" alt="" loading="lazy" decoding="async">
-
-      <section class="music-vault-head" aria-label="Music overview">
-        <div>
-          <h2>${view.title}</h2>
-          <div class="artist-social-actions" style="display: flex; gap: 16px; justify-content: center; margin-top: 16px;">
-            <a href="https://www.facebook.com/kingofdarkenergy" target="_blank" rel="noreferrer" class="social-icon-link" aria-label="Facebook">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>
-            </a>
-            <a href="https://www.instagram.com/KINGOFDARKENERGY" target="_blank" rel="noreferrer" class="social-icon-link" aria-label="Instagram">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
-            </a>
-          </div>
-        </div>
-      </section>
-
-      <section class="album-stage album-aaa-stage" aria-label="Featured album">
-        <div class="album-cover-zone">
-          <div class="album-cover-halo" aria-hidden="true"></div>
-          <div class="album-cover-shell" id="playerShell">
-            <img id="albumHeroImage" src="${activeAlbum.image}" alt="${activeAlbum.title}" loading="eager" decoding="async">
-          </div>
-
-          <div class="player-controls-container">
-            <!-- Animated visualizer with glowing red bars -->
-            <canvas id="playerVisualizer" width="430" height="80" style="display: block; width: 100%; max-width: 430px; height: 80px;"></canvas>
-
-            <!-- Control Row: Symmetrical 3-Column Layout -->
-            <div class="player-control-row">
-              <!-- Left Column: Sleek Track Display -->
-              <div class="player-track-display" id="playerTrackDisplay">
-                SELECT A TRACK
-              </div>
-
-              <!-- Center Column: Play/Pause Button -->
-              <div class="player-center-control">
-                <button class="player-btn" id="playerPlayPauseBtn" type="button" aria-label="Play/Pause">
-                  <!-- Play Icon SVG (Sulfur Sigil) -->
-                  <svg id="playIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 2.5 L19.5 15.5 L4.5 15.5 Z" />
-                    <path d="M12 15.2 L12 21.5" />
-                    <path d="M8.5 18.5 L15.5 18.5" />
-                  </svg>
-                  <!-- Pause Icon SVG (Cohesive Bold Lines) -->
-                  <svg id="pauseIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
-                    <path d="M9 5v14" />
-                    <path d="M15 5v14" />
-                  </svg>
-                </button>
-              </div>
-
-              <!-- Right Column: Volume Control -->
-              <div class="player-volume-container" id="playerVolumeContainer">
-                <button class="volume-toggle-btn" id="volumeToggleBtn" type="button" aria-label="Toggle Volume Slider">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.8; color: #ff2a2a;">
-                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-                  </svg>
-                </button>
-                <div class="volume-slider-wrapper">
-                  <input type="range" id="playerVolumeSlider" min="0" max="1" step="0.05" value="0.5" aria-label="Volume">
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="album-copy">
-          <h2 id="albumHeroTitle">${activeAlbum.title}</h2>
-          <strong id="albumHeroAccent">${activeAlbum.accent}</strong>
-          <div class="album-fact-grid" id="albumFactGrid">
-            ${renderAlbumFacts(activeAlbum)}
-          </div>
-          <div class="album-actions">
-            <a 
-              id="albumSpotifyLink"
-              href="${activeAlbum.href}" 
-              target="_blank" 
-              rel="noreferrer" 
-              class="button button-primary full" 
-              style="text-align: center; justify-content: center; text-transform: uppercase; letter-spacing: 1px;"
-            >
-              STREAM NOW ON SPOTIFY
-            </a>
-          </div>
-        </div>
-      </section>
-
-      <section class="album-lower-grid">
-        <div class="track-panel">
-          <div class="track-panel-head">
-            <p class="section-label">Tracklist</p>
-            <span id="albumTrackCount">${activeAlbum.trackCount} tracks / ${activeAlbum.runtime}</span>
-          </div>
-          <ol class="track-list" id="albumTrackList">
-            ${renderTrackList(activeAlbum)}
-          </ol>
-        </div>
-
-        <aside class="album-selector" aria-label="Albums">
-          ${albums.map((album, index) => renderAlbumCard(album, index === 0)).join("")}
-        </aside>
-      </section>
-    </div>
-  `;
-}
-
-function renderAlbumMiniMeta(album) {
-  return `
-    <span>${album.year}</span>
-    <span>${album.runtime}</span>
-  `;
-}
-
-function renderAlbumFacts(album) {
-  const facts = [
-    ["Artist", profile.name],
-    ["Release", album.releaseDate],
-    ["Tracks", `${album.trackCount} songs`],
-    ["Runtime", album.runtime],
-    ["Label", album.label],
-    ["Format", album.format]
-  ];
-
-  return facts
-    .map(([label, value]) => `
-      <div>
-        <span>${label}</span>
-        <strong>${value}</strong>
-      </div>
-    `)
-    .join("");
-}
-
-function renderTrackList(album) {
-  return album.tracks
-    .map((track, index) => `
-      <li>
-        <span class="track-index">${String(index + 1).padStart(2, "0")}</span>
-        <span class="track-title">
-          <strong>${track.title}</strong>
-          ${track.note ? `<small>${track.note}</small>` : ""}
-        </span>
-        <span class="track-duration">${track.duration}</span>
-      </li>
-    `)
-    .join("");
-}
-
-function renderAlbumCard(album, isActive = false) {
-  return `
-    <button
-      class="album-card ${isActive ? "is-active" : ""}"
-      type="button"
-      data-album-id="${album.id}"
-      data-album-title="${album.title}"
-      data-album-eyebrow="${album.eyebrow}"
-      data-album-image="${album.image}"
-      aria-pressed="${isActive ? "true" : "false"}"
-    >
-      <img src="${album.image}" alt="" loading="lazy" decoding="async">
-      <strong>${album.title}</strong>
-      <small>${album.runtime}</small>
-    </button>
-  `;
-}
-
-function renderVideo(view) {
-  const youtube = externalLinks.find((link) => link.label === "YouTube");
-  
-  const channels = [
-    {
-      name: "Somethin Outta Nothin",
-      url: youtube.href,
-      channelId: youtubeChannelId,
-      feedUrl: youtubeChannelFeed(youtubeChannelId),
-      videos: videoItems.map(normalizeVideoItem)
-    },
-    {
-      name: "Do It For The Underground",
-      url: "https://www.youtube.com/@DoItForTheUnderground",
-      channelId: "UCLpqCCh1DE29YCiEVMmXUwA",
-      feedUrl: youtubeChannelFeed("UCLpqCCh1DE29YCiEVMmXUwA"),
-      videos: [
-        { title: "Season 3, Episode 2! Stray and Charlie Beans! S.O.N's Big Boy Birthday Bash! Mission:Infect! Nastie!", youtubeId: "v-_zW-T5yCk" },
-        { title: "Nastie - The Kodoku Interview", youtubeId: "b7ERHwWpSLo" },
-        { title: "Season 3 Premiere! Rogue Hollow! Juggalo Weekend recap! Marijuambies! Alla Xul Elu! Ouija Macc!", youtubeId: "FN-yBijKor0" },
-        { title: "We are so back! Season 3 debuts next week!", youtubeId: "FkBP1TCPtVk" },
-        { title: "Merry Christmas from all of us at Legion Realm!", youtubeId: "LeDtUmG_nUE" },
-        { title: "When the holiday spirit hits", youtubeId: "udBVH5V6uxI" },
-        { title: "DIFTUG Wrapped - Looking Back at 2025 with S.O.N", youtubeId: "Y0iWE90YdG0" },
-        { title: "Anatomy of an Album: Alla Xul Elu - Head of Horns", youtubeId: "j7RwYO7pgWo" },
-        { title: "Anatomy of an Album: Nastie Ink - Nuisance", youtubeId: "q6XPZME66XI" },
-        { title: "September, 2025: Camp Xul 5 Recap, Acid Kult, Nastie Ink and Hellz Bellz", youtubeId: "PPDrX9U3JjY" },
-        { title: "The First Annual DIFTUG Music Awards!", youtubeId: "wxigp6yQqlM" },
-        { title: "LIVE! The DMA AMA with Robbie and Fatz!", youtubeId: "mX3mIH_nvec" },
-        { title: "Klokwerk E, Somethin Outta Nothin (S.O.N) & Apollo Exodus live at Gathering of the Juggalos 2025", youtubeId: "tJ8Fgo5-CTc" },
-        { title: "July 2025: ICP prepare The Naught, Alla Xul Elu go independent, Ouija Macc live, HooliganZ interview", youtubeId: "BKSDFfDFEBg" },
-        { title: "SPECIAL PRESENTATION: Enjoy the View Deep Dive with Stray!", youtubeId: "nImx9dWvpt4" }
-      ].map(normalizeVideoItem)
-    }
-  ];
-
-  return `
-    <div class="video-page-wrapper" style="width: 100%;">
-      ${channels.map((channel, i) => {
-        const featuredVideo = channel.videos[0] || { thumbnail: videoPosterFallback, title: channel.name, fallback: videoPosterFallback, youtubeId: "" };
-        const idSuffix = i === 0 ? "" : `-${i}`;
-        
-        return `
-          <div style="text-align: center; margin-top: ${i === 0 ? '0' : '120px'}; margin-bottom: 40px;">
-            <h2 style="font-family: var(--font-display); color: #f1dfc2; text-transform: uppercase; font-size: 1.4rem;">${channel.name}</h2>
-          </div>
-          <div
-            class="video-obsidian"
-            data-video-sanctum
-            data-index="${idSuffix}"
-            data-channel-id="${channel.channelId}"
-            data-feed-url="${channel.feedUrl}"
-            style="margin-bottom: 80px;"
-          >
-            <div class="video-obsidian-core">
-              <section class="video-obsidian-player" aria-label="${channel.name} video player">
-                <div class="video-screen" id="videoScreen${idSuffix}">
-                  <img
-                    id="activeVideoPoster${idSuffix}"
-                    src="${featuredVideo.thumbnail}"
-                    data-fallback="${featuredVideo.fallback}"
-                    alt=""
-                    loading="eager"
-                    decoding="async"
-                  >
-                  <iframe
-                    id="activeVideoFrame${idSuffix}"
-                    title="${escapeHTML(featuredVideo.title)}"
-                    referrerpolicy="strict-origin-when-cross-origin"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    allowfullscreen
-                    hidden
-                  ></iframe>
-                  <div class="video-screen-veil" aria-hidden="true"></div>
-                  <button class="video-play" type="button" id="videoPlayButton${idSuffix}" aria-label="Play selected video">
-                    <span aria-hidden="true"></span>
-                  </button>
-                </div>
-              </section>
-
-              <aside class="video-obsidian-index" aria-label="Video playlist">
-                <span class="video-feed-status" id="videoFeedStatus${idSuffix}" aria-live="polite">Channel feed loading</span>
-                <span class="video-count" id="videoCount${idSuffix}">${channel.videos.length} videos</span>
-                <div class="video-list" id="videoTabletList${idSuffix}">
-                  ${channel.videos.map((item, index) => renderVideoItem(item, index)).join("")}
-                </div>
-                <a class="video-channel" href="${channel.url}" target="_blank" rel="noreferrer" aria-label="Open YouTube channel"></a>
-              </aside>
-            </div>
-          </div>
-        `;
-      }).join("")}
-    </div>
-  `;
-}
-
-function renderCommunity(view) {
-  const communityLinks = externalLinks.filter((link) => link.type === "community");
-
-  return `
-    <div class="community-obsidian section-system">
-
-      <!-- Who Is Legion Realm -->
-      <section class="who-is-legion" style="text-align: center; margin-bottom: 48px; padding: 0 20px;">
-        <h2 class="promo-header-main" style="border-bottom: 1px solid var(--color-line); padding-bottom: 12px; margin-bottom: 20px; font-family: var(--font-display); font-size: 2.2rem; letter-spacing: 2px;">Who is Legion Realm</h2>
-        <p class="community-intro-text" style="font-family: var(--font-body); font-size: 1.15rem; line-height: 1.6; color: var(--color-text); max-width: 800px; margin: 0 auto; text-shadow: 0 0 10px rgba(0, 0, 0, 0.5);">
-          Legion Realm is a network of like-minded creators, promoters, and fans offering quality services and serious dedication. It is an environment to authentically and cooperatively create, coming together under a single banner as a force to build something far greater than ourselves, for together, we are One.
-        </p>
-      </section>
-
-      <!-- Creators / Listings on Legion Realm -->
-      <section class="realm-listings" style="margin-bottom: 48px;">
-        <h3 class="promo-header-main" style="border-bottom: 1px solid var(--color-line); padding-bottom: 12px; margin-bottom: 28px; font-family: var(--font-display); font-size: 1.6rem; letter-spacing: 1.5px; text-transform: uppercase;">Realm Listings</h3>
-        <div class="artist-selector-grid">
-          <div class="artist-cards">
-            ${artists.map(artist => `
-              <a href="${artist.href}" class="artist-card ${artist.id === 'son' ? 'artist-card-son' : 'artist-card-text'}">
-                ${artist.image ? `<img src="${artist.image}" alt="${artist.name}" loading="lazy">` : `<div class="artist-card-bg" aria-hidden="true"></div>`}
-                <div class="artist-card-content">
-                  <strong class="artist-name">${artist.name}</strong>
-                </div>
-              </a>
-            `).join("")}
-          </div>
-        </div>
-      </section>
-
-      <!-- Original Community Image & Social/Discord Links -->
-      <section class="community-connections">
-        <div class="community-featured-block">
-          <img src="images/community/legionrealminsta.jpeg" alt="Community Image" class="community-featured-image">
-          <div class="community-action-row">
-            ${communityLinks.map((link) => {
-              return `
-                <a href="${link.href}" target="_blank" rel="noreferrer" class="community-action-button">
-                  ${link.label}
-                </a>
-              `;
-            }).join("")}
-          </div>
-        </div>
-      </section>
-
-    </div>
-  `;
-}
-
-function renderStore(view) {
-  return `
-    <div class="store-layout section-system">
-      <div class="product-grid">
-        ${products.map(renderProduct).join("")}
-      </div>
-      <aside class="cart" aria-label="Store cart">
-        <h3>Cart</h3>
-        <div class="cart-items" id="cartItems"></div>
-        <div class="cart-total">
-          <span>Total</span>
-          <strong id="cartTotal">$0.00</strong>
-        </div>
-        <button class="button button-primary full" id="checkout" type="button">Checkout</button>
-        <p class="cart-status" id="cartStatus" aria-live="polite"></p>
-        <p class="fine-print">Payment, shipping, and final order confirmation open at checkout.</p>
-      </aside>
-    </div>
-  `;
-}
-
-function renderLinkCard(link) {
-  return `
-    <a class="link-card" href="${link.href}" target="_blank" rel="noreferrer">
-      <span>${link.type}</span>
-      <strong>${link.label}</strong>
-    </a>
-  `;
-}
-
-function renderPlainLink(link) {
-  return `<a href="${link.href}" target="_blank" rel="noreferrer">${link.label}</a>`;
-}
-
-function renderVideoItem(item) {
-  const video = normalizeVideoItem(item);
-  const title = escapeHTML(video.title);
-  const date = video.published ? new Date(video.published).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric"
-  }) : "Legion Realm";
-
-  return `
-    <button
-      class="video-item"
-      type="button"
-      data-video-id="${video.youtubeId}"
-      data-video-title="${title}"
-      data-video-url="${video.url}"
-      data-video-thumb="${video.thumbnail}"
-      data-video-fallback="${video.fallback}"
-      data-video-date="${escapeHTML(date)}"
-    >
-      <img src="${video.thumbnail}" data-fallback="${video.fallback}" alt="" loading="lazy" decoding="async">
-      <strong>${title}</strong>
-    </button>
-  `;
-}
-
-function renderProduct(product, index = 0) {
-  const availableOptions = product.options.filter((option) => !option.soldOut);
-  const selectedOption = availableOptions[0];
-  const fallbackAssets = artAssets();
-  const fallbackImage = fallbackAssets[index % fallbackAssets.length]?.image || primaryAsset().image;
-
-  return `
-    <article class="product-card" id="product-${product.id}" style="scroll-margin-top: 80px;">
-      <div class="product-image-link">
-        <img src="${product.image}" data-fallback="${fallbackImage}" alt="${product.title}" loading="eager" decoding="async">
-      </div>
-      <div class="product-info">
-        <span>${availableOptions.length ? "Available" : "Sold out"}</span>
-        <h3>${product.title}</h3>
-        <p>${money.format(product.price)}</p>
-        <small>${product.note}</small>
-      </div>
-      <label class="select-label">
-        <span>Variant</span>
-        <select data-option-select="${product.id}" ${availableOptions.length ? "" : "disabled"}>
-          ${product.options
-      .map(
-        (option) => `
-                <option value="${option.id}" ${option.soldOut ? "disabled" : ""} ${selectedOption?.id === option.id ? "selected" : ""}>
-                  ${option.name}${option.soldOut ? " - Sold out" : ""}
-                </option>
-              `
-      )
-      .join("")}
-        </select>
-      </label>
-      <div class="product-actions">
-        <button class="button button-secondary full" type="button" data-add="${product.id}" ${availableOptions.length ? "" : "disabled"}>
-          Add
-        </button>
-      </div>
-    </article>
-  `;
-}
-
-function bindImageFallbacks() {
-  viewRoot.querySelectorAll("img[data-fallback]").forEach((img) => {
-    img.addEventListener(
-      "error",
-      () => {
-        const fallback = img.dataset.fallback;
-        if (fallback && img.src !== new URL(fallback, location.href).href) {
-          img.src = fallback;
-          img.classList.add("is-fallback-image");
-        } else {
-          img.classList.add("is-missing-image");
-        }
-      },
-      { once: true }
-    );
-  });
-}
-
-function bindView(viewId) {
-  if (viewId === "home") {
-    bindHomeBoard();
-    return;
-  }
-
-  if (viewId === "video") {
-    bindVideoBoard();
-    return;
-  }
-
-  if (viewId === "music") {
-    bindAlbumConsole();
-    return;
-  }
-
-  if (viewId === "store") {
-    bindStoreElements();
-    return;
-  }
-
-  if (viewId === "son") {
-    bindAlbumConsole();
-    bindStoreElements();
-    bindSonGallery();
-    return;
-  }
-
-  if (viewId === "underground") {
-    bindVideoBoard();
-    return;
-  }
-
-  if (viewId === "studio") {
-    bindVideoBoard();
-    bindPhilbrixGallery();
-    return;
-  }
-
-  if (viewId === "nightowlprints") {
-    bindKeaganAlbumConsole();
-    return;
-  }
-
-  if (viewId === "divinity") {
-    bindDivinityPortfolio();
-    return;
-  }
-
-  if (viewId === "promote") {
-    bindPromoteView();
-    return;
-  }
-
-  if (viewId === "announcements") {
-    bindAnnouncementsView();
-    return;
-  }
-}
-
+function renderView(view) {const renderers = {home: renderHome,son: renderSon,underground: renderUnderground,divinity: renderDivinity,studio: renderStudio,nightowlprints: renderNightOwlPrints,music: renderMusic,video: renderVideo,community: renderCommunity,announcements: renderAnnouncements,store: renderStore,promote: renderPromote};
+let html = `<section class="view band view-${view.id}" data-view="${view.id}" tabindex="-1"><div class="view-ghost" aria-hidden="true">${sulfurSvg()}</div>${renderers[view.id](view)}</section>`;
+if (cdnBase) {html = html.replace(/src=["'](?!https?:\/\/|data:)([^"']+)["']/g, (match, p1) => {return `src="${cdnBase}/${p1.replace(/^\//, '')}"`;});}
+return html;}
+function renderViewHead(view) {return `<div class="view-head"><p class="section-label">${view.kicker || view.label}</p><h2>${view.title}</h2><p>${view.summary}</p></div>`;}
+function renderDivinity(view) {return `<div class="divinity-page"><!-- Hero Banner Section --><section class="divinity-hero section-system"><div class="divinity-hero-brand"><div class="divinity-logo-halo" aria-hidden="true"></div><div class="divinity-logo-shell"><img src="images/divinity/divinity.png" alt="Cult Divinity Logo" loading="eager"></div></div><div class="divinity-hero-copy"><h1>Cult Divinity</h1><p class="divinity-desc">Cult Divinity is a collaborative partnership between <strong>Krystalyn Deneve</strong> and <strong>Luna Serafina</strong>. Together, they deliver custom storefront development, advanced 3D fabrication, and hand-finished physical art. From digital platform engineering to custom prop and merchandise manufacturing, they bring complex ideas into reality.</p>
+<div class="divinity-social-actions"><a href="https://www.cultdivinity.com/" target="_blank" rel="noreferrer" class="button button-secondary" aria-label="Cult Divinity Website"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px;"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>Cult Divinity Site</a><a href="https://www.lunaserafina.com/" target="_blank" rel="noreferrer" class="button button-secondary" aria-label="Luna Serafina Website"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px;"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>Luna Serafina Site</a><a href="https://discord.gg/FvVu98Kksd" target="_blank" rel="noreferrer" class="button button-secondary" aria-label="Discord Server"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="margin-right:8px;"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.094 13.094 0 0 1-1.873-.894.077.077 0 0 1-.008-.128c.126-.093.252-.19.372-.287a.075.075 0 0 1 .077-.011c3.92 1.793 8.18 1.793 12.061 0a.073.073 0 0 1 .078.009c.12.099.246.195.373.289a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.156-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.156 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.156-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.156 2.418z"/></svg>Discord</a><a href="https://www.facebook.com/CultDivinity" target="_blank" rel="noreferrer" class="button button-secondary" aria-label="Facebook Page"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="margin-right:8px;"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>Facebook</a></div></div></section>
+<!-- Partners Split Section --><section class="divinity-split-grid"><!-- Luna Serafina Profile Card --><div class="divinity-partner-card section-system"><div class="partner-avatar-container"><div class="partner-avatar"><img class="partner-avatar-img" src="images/divinity/lunaserafina.jpg" alt="Luna Serafina" loading="lazy"></div></div><div class="partner-info"><h2>Luna Serafina</h2><p class="partner-role">Technical Lead & Engineer</p><div class="partner-contacts"><span class="partner-contact">Discord: <code>luna.serafina</code></span><a href="https://www.facebook.com/LunaSerafina333/" target="_blank" rel="noreferrer" class="partner-contact partner-facebook-link" aria-label="Luna Serafina Facebook"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="margin-right:4px;"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>Facebook</a></div><p class="partner-bio">Luna specializes in custom 3D printing and hardware fabrication, full-stack application development, systems solutions, and community operations. She brings deep technical analysis and architecture to complex design problems.</p>
+<h3 class="services-title">Services & Expertise</h3><ul class="services-list"><li><span>3D Printing & Fabrication</span></li><li><span>Custom Web & App Development</span></li><li><span>Platform Engineering</span></li><li><span>Community Management</span></li><li><span>Guerilla Marketing</span></li><li><span>Technical Solutions Consulting</span></li><li><span>Polarizing Metaphysical Analysis</span></li></ul></div></div>
+<!-- Krystalyn Deneve Profile Card --><div class="divinity-partner-card section-system"><div class="partner-avatar-container"><div class="partner-avatar"><img class="partner-avatar-img" src="images/divinity/krystalyn.webp" alt="Krystalyn Deneve" loading="lazy"></div></div><div class="partner-info"><h2>Krystalyn Deneve</h2><p class="partner-role">Universal Dark Artist</p><div class="partner-contacts"><span class="partner-contact">Discord: <code>remote_controlled</code></span><a href="https://www.facebook.com/profile.php?id=61582653399927" target="_blank" rel="noreferrer" class="partner-contact partner-facebook-link" aria-label="Krystalyn Deneve Facebook"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="margin-right:4px;"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>Facebook</a></div><p class="partner-bio">Krystalyn has been an artist her whole life, producing detailed digital concepts and physical acrylic, watercolor, and ink paintings. Her work bridges graffiti, creative writing, and custom hand-finishing for physical storefront products.</p>
+<h3 class="services-title">Creative Portfolio</h3><ul class="services-list"><li><span>Custom Digital Drawings & Vector Art</span></li><li><span>Acrylic & Watercolor Painting</span></li><li><span>Post-Processing & Finishing of 3D Prints</span></li><li><span>Graffiti, Ink Drawings & Photography</span></li><li><span>Creative Writing & Music Production</span></li><li><span>Occult & Dark Concept Art</span></li><li><span>Custom Product Development & Refinement</span></li></ul></div></div></section>
+<!-- Collaborative Pipeline Section --><section class="divinity-pipeline section-system"><h2 class="pipeline-title">Custom Product Workflow</h2><p class="pipeline-subtitle">How Luna and Krystalyn collaborate to bring custom merchandise and designs to life</p>
+<div class="pipeline-steps"><div class="pipeline-step"><div class="step-image-shell"><img src="images/divinity/wallmount.png" alt="Design & Concept Mockup" loading="lazy"></div><div class="step-badge">1</div><h3>Design & Concept</h3><p>Collaboratively designing unique assets and custom products tailored to storefront brand identities.</p></div><div class="pipeline-step-arrow" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></div><div class="pipeline-step"><div class="step-image-shell"><img src="images/divinity/3dprintingmasks.png" alt="3D Fabrication Preview" loading="lazy"></div><div class="step-badge">2</div><h3>3D Fabrication (Luna)</h3><p>Precision manufacturing using calibrated 3D printers, focusing on dimensional accuracy and layer structure.</p></div><div class="pipeline-step-arrow" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></div><div class="pipeline-step"><div class="step-image-shell"><img src="images/divinity/maskpostprocess.jpg" alt="Artistic Finishing Phase" loading="lazy"></div><div class="step-badge">3</div><h3>Artistic Finishing (Krystalyn)</h3><p>Post-processing cleanup, hand-detailing, paint weathering, and final protection layers are applied by hand.</p></div><div class="pipeline-step-arrow" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></div><div class="pipeline-step"><div class="step-image-shell"><img src="images/divinity/snat.webp" alt="Completed Creation" loading="lazy"></div><div class="step-badge">4</div><h3>Finished Product</h3><p>The completed custom merchandise, fully finished and ready for storefront display and collectors.</p></div></div></section>
+<!-- Divinity Portfolio Gallery Section --><section class="divinity-gallery-section section-system"><p class="section-label">Universal Dark Art Gallery</p><h2 class="pipeline-title">THE ART OF KRYSTALYN DENEVE</h2><p class="pipeline-subtitle">Custom Digital Concept Art, Fine Paintings & Esoteric Creations</p><p class="divinity-gallery-intro">Krystalyn Deneve is available for custom art commissions and design inquiries. Contact her on Discord: <code>remote_controlled</code> or via email at <a href="mailto:d3n3v3666@outlook.com" class="dv-email-btn">d3n3v3666@outlook.com</a>.</p>
+<div class="divinity-portfolio-wrapper is-collapsed" id="divinityPortWrapper"><div class="divinity-portfolio-grid" id="divinityPortGrid"><!-- Images injected via JS --></div>
+<button class="divinity-portfolio-expand-btn button button-secondary" id="divinityPortExpandBtn" aria-label="Explore the full art archive"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;"><polyline points="6 9 12 15 18 9"></polyline></svg><span>Explore All Archive</span></button></div></section></div>`;}
+function renderStudio(view) {const channel = {name: "Philbrix Studioz",url: "https://www.youtube.com/@PhilbrixVidz",channelId: "UC08h40iLjITY1yQ-mfSGHAw",feedUrl: youtubeChannelFeed("UC08h40iLjITY1yQ-mfSGHAw"),videos: [{ title: "Camp Xul, Lee Carver Freestyles to Bango Skank on Kazoo & Clown Girls With Squeaky Boobs", youtubeId: "J1zjIVMlS34" },{ title: "FROGMAN Cometh! Zombie Frog Maskin and Dancin with the Accordion", youtubeId: "gdMJRsgTU6s" },{ title: "Hellgazer Whispers to the King of Dark Energy from Legion Realm", youtubeId: "s_A42aMe0lU" },{ title: "Asmodeus The Hell Priest Mask Try On", youtubeId: "RJVuCosSMUI" },{ title: "Mephisto Tells Some Bad Jokes And Selects Winners", youtubeId: "4jGDfIusQcU" },{ title: "Uncle Frank (Hellraiser) inspired peeled face latex mask", youtubeId: "KHJtV5uqhOY" },{ title: "LIVING DEAD GIRL CASKET PROP CREATION: Practical Effects", youtubeId: "P60BOAPUqfI" },{ title: "Bango Skank in Puppet Master Mask - Jokes From The Crypt", youtubeId: "1yCHiiCJlDE" },{ title: "The Dead Bitches Brunch: A Mess of Fun!", youtubeId: "aJlCuY38_4c" },{ title: "The Dead Bitches Brunch Gets High and Haunted!", youtubeId: "oFpD4tvEgj8" },{ title: "Airbrushing the Book Of Xul / Necro Bible Cover", youtubeId: "NoCa4jSsrm8" },{ title: "Jason Voorhees X Forever Face Battle", youtubeId: "bhgIKELLq2I" }].map(normalizeVideoItem)};const featuredVideo = channel.videos[0];const idSuffix = "-studio";
+return `<div class="studio-page"><!-- Hero Banner Section --><section class="studio-hero section-system"><div class="studio-hero-brand"><div class="studio-logo-halo" aria-hidden="true"></div><div class="studio-logo-shell"><img src="images/philbrix/philbrix-studio.png" alt="Philbrix Studioz Logo" loading="eager"></div></div><div class="studio-hero-copy"><h1>Philbrix Studioz</h1><p class="studio-desc">Philbrix Studioz is a latex mask making studio with creations from Gravity Bleeds and brought to you by our mascot, Bango Skank. Everything you see from philbrix studioz is created by Gravity: design, sculpts, masks, painting, illustrations, photography, shitty copywriting, this site, everything. Do or DIY! That's our motto.</p><div class="studio-social-actions"><a href="https://www.philbrix.com/" target="_blank" rel="noreferrer" class="button button-secondary" aria-label="Official Website"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px;"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>Official Site</a><a href="https://www.instagram.com/gravitybleeds/" target="_blank" rel="noreferrer" class="button button-secondary" aria-label="Instagram Account"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px;"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>Instagram</a><a href="https://www.youtube.com/@PhilbrixVidz" target="_blank" rel="noreferrer" class="button button-secondary" aria-label="YouTube Channel"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="margin-right:8px;"><path d="M23.498 6.163a3.003 3.003 0 0 0-2.11-2.108C19.524 3.545 12 3.545 12 3.545s-7.525 0-9.387.51A3.003 3.003 0 0 0 .502 6.163C0 8.07 0 12 0 12s0 3.93.502 5.837a3.003 3.003 0 0 0 2.11 2.108c1.862.51 9.387.51 9.387.51s7.524 0 9.387-.51a3.003 3.003 0 0 0 2.11-2.108c.502-1.907.502-5.837.502-5.837s0-3.93-.502-5.837zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>YouTube</a></div></div></section>
+<!-- Services Section --><section class="studio-services section-system"><h2>custom mask creation, props & fx</h2><p class="capabilities-desc">Everything you see from philbrix studioz is created by Gravity. Do or DIY! That's our motto.</p><div class="capabilities-grid"><div class="capability-card"><h3>† custom mask creation †</h3><p>Bring your next character to life with a custom creation that you can have exclusive rights for reproduction and resale. This includes an original clay sculpt, mold, and a prototype mask. You retain access to the mold for further reproduction at a lower cost than single creation.</p></div><div class="capability-card"><h3>† gruesome graphix †</h3><p>I would love to Turn your mask design into your next album cover and carry that branding throughout your next release. With this being the last remnants from a previous life I will only take on horror related design projects focusing on album art and branding. No mainstream shit.</p></div><div class="capability-card"><h3>† prop creation †</h3><p>Looking to have a prop made for a stage show or music video? How about a mini mascot, a mic stand or a demonic corpse to hang from your bedroom ceiling? I'm new to the prop game, but Im cheap. Hit me up with your idea and we'll see if we can bring it to life.</p></div><div class="capability-card"><h3>† practical fx †</h3><p>Nothing too crazy. We're talking indie film from the 80's style shit, but still, we can shoot blood, cum, smoke, or dandelions at your crowd or create a 2 mask face peeling type effect with slime for your next project. Extremely limited availability.</p></div></div></section>
+<!-- Video Board Section --><section class="studio-videos section-system"><divclass="video-obsidian"data-video-sanctumdata-index="${idSuffix}"data-channel-id="${channel.channelId}"data-feed-url="${channel.feedUrl}"><div class="video-obsidian-core"><section class="video-obsidian-player" aria-label="Philbrix Studioz video player"><div class="video-screen" id="videoScreen${idSuffix}"><imgid="activeVideoPoster${idSuffix}"src="${featuredVideo.thumbnail}"data-fallback="${featuredVideo.fallback}"alt=""loading="eager"decoding="async"><iframeid="activeVideoFrame${idSuffix}"title="${escapeHTML(featuredVideo.title)}"referrerpolicy="strict-origin-when-cross-origin"allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"allowfullscreenhidden></iframe><div class="video-screen-veil" aria-hidden="true"></div><button class="video-play" type="button" id="videoPlayButton${idSuffix}" aria-label="Play selected video"><span aria-hidden="true"></span></button></div></section>
+<aside class="video-obsidian-index" aria-label="Video playlist"><span class="video-feed-status" id="videoFeedStatus${idSuffix}" aria-live="polite">Channel feed loading</span><span class="video-count" id="videoCount${idSuffix}">${channel.videos.length} videos</span><div class="video-list" id="videoTabletList${idSuffix}">${channel.videos.map((item, index) => renderVideoItem(item, index)).join("")}</div><a class="video-channel" href="${channel.url}" target="_blank" rel="noreferrer" aria-label="Open YouTube channel"></a></aside></div></div></section>
+<!-- Philbrix Gallery Section --><section class="divinity-gallery-section section-system"><p class="section-label">Philbrix Gallery</p><h2 class="pipeline-title">PHILBRIX CREATIONS</h2><p class="pipeline-subtitle">Latex Masks, Sculptures & Special FX</p><div class="divinity-portfolio-wrapper is-collapsed" id="philbrixPortWrapper"><div class="divinity-portfolio-grid" id="philbrixPortGrid"></div><button class="divinity-portfolio-expand-btn button button-secondary" id="philbrixPortExpandBtn" aria-label="Explore all Philbrix images"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;"><polyline points="6 9 12 15 18 9"></polyline></svg><span>Explore All Philbrix Archive</span></button></div></section></div>`;}
+function renderSon() {const musicView = views.find((v) => v.id === "music");const storeView = views.find((v) => v.id === "store");
+return `<div class="son-scrolling-page"><div class="son-section-music">${renderMusic(musicView)}</div>
+<!-- S.O.N Gallery Section --><section class="divinity-gallery-section section-system"><p class="section-label">Somethin Outta Nothin Gallery</p><h2 class="pipeline-title">S.O.N GALLERY</h2><p class="pipeline-subtitle">Visuals, Cover Art & Moments</p><div class="divinity-portfolio-wrapper is-collapsed" id="sonPortWrapper"><div class="divinity-portfolio-grid" id="sonPortGrid"></div><button class="divinity-portfolio-expand-btn button button-secondary" id="sonPortExpandBtn" aria-label="Explore all S.O.N images"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;"><polyline points="6 9 12 15 18 9"></polyline></svg><span>Explore All S.O.N Archive</span></button></div></section>
+<div class="son-section-store">${renderStore(storeView)}</div></div>`;}
+function renderUnderground(view) {const channel = {name: "Do It For The Underground",url: "https://www.youtube.com/@doitfortheunderground",channelId: "UCLpqCCh1DE29YCiEVMmXUwA",feedUrl: youtubeChannelFeed("UCLpqCCh1DE29YCiEVMmXUwA"),videos: [{ title: "Season 3, Episode 2! Stray and Charlie Beans! S.O.N's Big Boy Birthday Bash! Mission:Infect! Nastie!", youtubeId: "v-_zW-T5yCk" },{ title: "Nastie - The Kodoku Interview", youtubeId: "b7ERHwWpSLo" },{ title: "Season 3 Premiere! Rogue Hollow! Juggalo Weekend recap! Marijuambies! Alla Xul Elu! Ouija Macc!", youtubeId: "FN-yBijKor0" },{ title: "We are so back! Season 3 debuts next week!", youtubeId: "FkBP1TCPtVk" },{ title: "Merry Christmas from all of us at Legion Realm!", youtubeId: "LeDtUmG_nUE" },{ title: "When the holiday spirit hits", youtubeId: "udBVH5V6uxI" },{ title: "DIFTUG Wrapped - Looking Back at 2025 with S.O.N", youtubeId: "Y0iWE90YdG0" },{ title: "Anatomy of an Album: Alla Xul Elu - Head of Horns", youtubeId: "j7RwYO7pgWo" },{ title: "Anatomy of an Album: Nastie Ink - Nuisance", youtubeId: "q6XPZME66XI" },{ title: "September, 2025: Camp Xul 5 Recap, Acid Kult, Nastie Ink and Hellz Bellz", youtubeId: "PPDrX9U3JjY" },{ title: "The First Annual DIFTUG Music Awards!", youtubeId: "wxigp6yQqlM" },{ title: "LIVE! The DMA AMA with Robbie and Fatz!", youtubeId: "mX3mIH_nvec" },{ title: "Klokwerk E, Somethin Outta Nothin (S.O.N) & Apollo Exodus live at Gathering of the Juggalos 2025", youtubeId: "tJ8Fgo5-CTc" },{ title: "July 2025: ICP prepare The Naught, Alla Xul Elu go independent, Ouija Macc live, HooliganZ interview", youtubeId: "BKSDFfDFEBg" },{ title: "SPECIAL PRESENTATION: Enjoy the View Deep Dive with Stray!", youtubeId: "nImx9dWvpt4" }].map(normalizeVideoItem)};
+const featuredVideo = channel.videos[0];const idSuffix = "-1";
+return `<div class="underground-page"><!-- Hero Banner Section --><section class="underground-hero section-system"><div class="underground-hero-brand"><div class="underground-logo-halo" aria-hidden="true"></div><div class="underground-logo-shell"><img src="images/underground/doitfortheunderground.jpg" alt="Do It For The Underground Logo" loading="eager"></div></div><div class="underground-hero-copy"><h1>${view.title}</h1><p class="underground-desc">${view.summary}</p>
+<div class="underground-social-actions"><a href="${channel.url}" target="_blank" rel="noreferrer" class="button button-secondary" aria-label="YouTube Channel"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="margin-right:8px;"><path d="M23.498 6.163a3.003 3.003 0 0 0-2.11-2.108C19.524 3.545 12 3.545 12 3.545s-7.525 0-9.387.51A3.003 3.003 0 0 0 .502 6.163C0 8.07 0 12 0 12s0 3.93.502 5.837a3.003 3.003 0 0 0 2.11 2.108c1.862.51 9.387.51 9.387.51s7.524 0 9.387-.51a3.003 3.003 0 0 0 2.11-2.108c.502-1.907.502-5.837.502-5.837s0-3.93-.502-5.837zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>YouTube</a><a href="https://www.instagram.com/doitfortheunderground/" target="_blank" rel="noreferrer" class="button button-secondary" aria-label="Instagram"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px;"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>Instagram</a><a href="https://www.facebook.com/profile.php?id=61556609008190" target="_blank" rel="noreferrer" class="button button-secondary" aria-label="Facebook Page"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="margin-right:8px;"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>Facebook</a></div></div></section>
+<section class="underground-split-grid"><!-- Host Bio Card --><div class="underground-host-card section-system"><div class="host-avatar-container"><div class="host-avatar"><img class="host-avatar-img" src="images/underground/robbie.jpg" alt="Robbie Pankow" loading="lazy"></div></div><div class="host-info"><h2>Robbie Pankow</h2><p>Robbie Pankow is the driving force behind <strong>Do It For The Underground</strong>, dedicating his life to documenting and discussing underground hip-hop and the horrorcore subgenre. As the founder, curator, and host, Robbie conducts raw, unfiltered interviews with both legendary icons and emerging artists, alongside producing deep-dive reviews and historical retrospectives. His mission is to amplify the voices of the underground scene and keep the culture's authentic stories alive.</p><a href="https://www.facebook.com/robbie.pankow" target="_blank" rel="noreferrer" class="button button-primary host-facebook-button"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="margin-right:8px;"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>Connect with Robbie</a></div></div>
+<!-- Spotify Embed Section --><div class="underground-spotify-section section-system"><div class="spotify-widget-container"><iframe style="border: none; background: transparent; display: block;" src="https://open.spotify.com/embed/playlist/38R74I9cIV1Bdb14jVA2Lm?utm_source=generator&theme=0" width="100%" height="100%" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe></div></div></section>
+<divclass="video-obsidian"data-video-sanctumdata-index="${idSuffix}"data-channel-id="${channel.channelId}"data-feed-url="${channel.feedUrl}"style="margin-bottom: 80px;"><div class="video-obsidian-core"><section class="video-obsidian-player" aria-label="Do It For The Underground video player"><div class="video-screen" id="videoScreen${idSuffix}"><imgid="activeVideoPoster${idSuffix}"src="${featuredVideo.thumbnail}"data-fallback="${featuredVideo.fallback}"alt=""loading="eager"decoding="async"><iframeid="activeVideoFrame${idSuffix}"title="${escapeHTML(featuredVideo.title)}"referrerpolicy="strict-origin-when-cross-origin"allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"allowfullscreenhidden></iframe><div class="video-screen-veil" aria-hidden="true"></div><button class="video-play" type="button" id="videoPlayButton${idSuffix}" aria-label="Play selected video"><span aria-hidden="true"></span></button></div></section>
+<aside class="video-obsidian-index" aria-label="Video playlist"><span class="video-feed-status" id="videoFeedStatus${idSuffix}" aria-live="polite">Channel feed loading</span><span class="video-count" id="videoCount${idSuffix}">${channel.videos.length} videos</span><div class="video-list" id="videoTabletList${idSuffix}">${channel.videos.map((item, index) => renderVideoItem(item, index)).join("")}</div><a class="video-channel" href="${channel.url}" target="_blank" rel="noreferrer" aria-label="Open YouTube channel"></a></aside></div></div></div>`;}
+function renderNightOwlPrints(view) {return `<div class="nightowl-page"><!-- Keagan Grimm Music Console -->${renderKeaganMusic()}
+<!-- Solutions Capability Section --><section class="nightowl-services section-system" style="margin-top: 80px; margin-bottom: 80px;"><div class="nightowl-hero" style="border: none !important; background: transparent !important; box-shadow: none !important; padding: 0 !important; margin-bottom: 40px;"><div class="nightowl-hero-brand"><div class="nightowl-logo-halo" aria-hidden="true"></div><div class="nightowl-logo-shell"><img src="images/nightowlprints/nightowlprints.png" alt="Night Owl Prints Logo" loading="lazy"></div></div><div class="nightowl-hero-copy"><h2 style="font-family: var(--font-display); font-size: 2.2rem; color: #f1dfc2; margin-bottom: 12px; text-transform: uppercase; text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);">Night Owl Prints</h2><p class="capabilities-desc" style="margin-bottom: 0;">Night Owl Prints is the custom merchandising engine powering Keagan Grimm. Specializing in high-end custom screen printing, premium apparel construction, DTF prints, and professional design preparation, we bring high-quality merchandising solutions to independent artists and brands.</p></div></div>
+<div class="capabilities-grid"><div class="capability-card"><h3>† Custom Printed Tees †</h3><p>Custom garment printing sizes S-6X. Small and large runs. Wholesale and bulk pricing available. Upgrades available.</p></div><div class="capability-card"><h3>† Custom Printed Hoodies, Sweatshirts, & Joggers †</h3><p>Custom hoodies, crewneck sweatshirts, and joggers to stay warm! Tops include 1 front OR back print, up to 15x20 inches. Joggers are 2 full leg prints.</p></div><div class="capability-card"><h3>† Custom DTF Prints †</h3><p>We print, you press! Commercial heat press is required. No fabric or color limitations.</p></div><div class="capability-card"><h3>† Pre-Press & Vector Prep †</h3><p>Need print-ready formatting? Our team refines and color-separates your designs for razor-sharp visual output on all custom apparel runs.</p></div></div>
+<div style="text-align: center; margin-top: 40px;"><a href="https://nightowlprints.com/" target="_blank" rel="noreferrer" class="button button-primary" aria-label="Night Owl Prints Website">Visit Night Owl Prints Website</a></div></section></div>`;}
+function renderKeaganMusic() {const albums = keaganAlbums();const activeAlbum = albums[0];
+return `<div class="album-console music-vault section-system" data-keagan-console style="margin-top: 40px;"><img class="album-console-bg" id="keaganHeroBg" src="${activeAlbum.image}" alt="" loading="lazy" decoding="async">
+<section class="music-vault-head" aria-label="Music overview"><div><div class="artist-social-actions" style="display: flex; gap: 16px; justify-content: center; align-items: center; flex-wrap: wrap;"><a href="https://www.keagangrimm.com" target="_blank" rel="noreferrer" class="social-icon-link" aria-label="Website" title="Official Website"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg></a><a href="https://keagangrimm.carrd.co/" target="_blank" rel="noreferrer" class="social-icon-link" aria-label="Music Hub" title="Music Hub (Carrd)"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg></a><a href="https://www.youtube.com/@KeaganGrimmMusic" target="_blank" rel="noreferrer" class="social-icon-link" aria-label="YouTube" title="YouTube Channel"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.163a3.003 3.003 0 0 0-2.11-2.108C19.524 3.545 12 3.545 12 3.545s-7.525 0-9.387.51A3.003 3.003 0 0 0 .502 6.163C0 8.07 0 12 0 12s0 3.93.502 5.837a3.003 3.003 0 0 0 2.11 2.108c1.862.51 9.387.51 9.387.51s7.524 0 9.387-.51a3.003 3.003 0 0 0 2.11-2.108c.502-1.907.502-5.837.502-5.837s0-3.93-.502-5.837zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg></a><a href="https://www.instagram.com/KeaganGrimm" target="_blank" rel="noreferrer" class="social-icon-link" aria-label="Instagram" title="Instagram Profile"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg></a><a href="https://www.facebook.com/KeaganHamel" target="_blank" rel="noreferrer" class="social-icon-link" aria-label="Facebook" title="Facebook Page"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg></a></div></div></section>
+<section class="album-stage album-aaa-stage" aria-label="Featured album"><div class="album-cover-zone"><div class="album-cover-halo" aria-hidden="true"></div><div class="album-cover-shell"><img id="keaganHeroImage" src="${activeAlbum.image}" alt="${activeAlbum.title}" loading="eager" decoding="async"></div><div class="album-mini-meta" id="keaganMiniMeta"><span>${activeAlbum.year}</span><span>${activeAlbum.runtime}</span></div></div>
+<div class="album-copy"><h2 id="keaganHeroTitle">${activeAlbum.title}</h2><strong id="keaganHeroAccent">${activeAlbum.accent}</strong><div class="album-fact-grid" id="keaganFactGrid">${renderKeaganAlbumFacts(activeAlbum)}</div><div class="album-actions"><div class="album-spotify-wrapper"><iframe id="keaganHeroEmbed"src="${spotifyEmbedUrl(activeAlbum.href)}" width="100%" height="80" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe></div></div></div></section>
+<section class="album-lower-grid"><div class="track-panel"><div class="track-panel-head"><p class="section-label">Tracklist</p><span id="keaganTrackCount">${activeAlbum.trackCount} tracks / ${activeAlbum.runtime}</span></div><ol class="track-list" id="keaganTrackList">${renderTrackList(activeAlbum)}</ol></div>
+<aside class="album-selector" aria-label="Albums">${albums.map((album, index) => renderKeaganAlbumCard(album, index === 0)).join("")}</aside></section></div>`;}
+function renderKeaganAlbumFacts(album) {const facts = [["Artist", "Keagan Grimm"],["Release", album.releaseDate],["Tracks", `${album.trackCount} songs`],["Runtime", album.runtime],["Label", album.label],["Format", album.format]];
+return facts.map(([label, value]) => `<div><span>${label}</span><strong>${value}</strong></div>`).join("");}
+function renderKeaganAlbumCard(album, isActive = false) {return `<buttonclass="album-card ${isActive ? "is-active" : ""}"type="button"data-keagan-album-id="${album.id}"data-keagan-album-title="${album.title}"data-keagan-album-image="${album.image}"aria-pressed="${isActive ? "true" : "false"}"><img src="${album.image}" alt="" loading="lazy" decoding="async"><strong>${album.title}</strong><small>${album.runtime}</small></button>`;}
+function renderHome(view) {return renderCommunity(view);}
+function renderMusic(view) {const albums = musicAlbums();const activeAlbum = albums[0];
+return `<div class="album-console music-vault section-system" data-album-console><img class="album-console-bg" id="albumHeroBg" src="${activeAlbum.image}" alt="" loading="lazy" decoding="async">
+<section class="music-vault-head" aria-label="Music overview"><div><h2>${view.title}</h2><div class="artist-social-actions" style="display: flex; gap: 16px; justify-content: center; margin-top: 16px;"><a href="https://www.facebook.com/kingofdarkenergy" target="_blank" rel="noreferrer" class="social-icon-link" aria-label="Facebook"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg></a><a href="https://www.instagram.com/KINGOFDARKENERGY" target="_blank" rel="noreferrer" class="social-icon-link" aria-label="Instagram"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg></a></div></div></section>
+<section class="album-stage album-aaa-stage" aria-label="Featured album"><div class="album-cover-zone"><div class="album-cover-halo" aria-hidden="true"></div><div class="album-cover-shell" id="playerShell"><img id="albumHeroImage" src="${activeAlbum.image}" alt="${activeAlbum.title}" loading="eager" decoding="async"></div>
+<div class="player-controls-container"><!-- Animated visualizer with glowing red bars --><canvas id="playerVisualizer" width="430" height="80" style="display: block; width: 100%; max-width: 430px; height: 80px;"></canvas>
+<!-- Control Row: Symmetrical 3-Column Layout --><div class="player-control-row"><!-- Left Column: Sleek Track Display --><div class="player-track-display" id="playerTrackDisplay">SELECT A TRACK</div>
+<!-- Center Column: Play/Pause Button --><div class="player-center-control"><button class="player-btn" id="playerPlayPauseBtn" type="button" aria-label="Play/Pause"><!-- Play Icon SVG (Sulfur Sigil) --><svg id="playIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5 L19.5 15.5 L4.5 15.5 Z" /><path d="M12 15.2 L12 21.5" /><path d="M8.5 18.5 L15.5 18.5" /></svg><!-- Pause Icon SVG (Cohesive Bold Lines) --><svg id="pauseIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: none;"><path d="M9 5v14" /><path d="M15 5v14" /></svg></button></div>
+<!-- Right Column: Volume Control --><div class="player-volume-container" id="playerVolumeContainer"><button class="volume-toggle-btn" id="volumeToggleBtn" type="button" aria-label="Toggle Volume Slider"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.8; color: #ff2a2a;"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg></button><div class="volume-slider-wrapper"><input type="range" id="playerVolumeSlider" min="0" max="1" step="0.05" value="0.5" aria-label="Volume"></div></div></div></div></div>
+<div class="album-copy"><h2 id="albumHeroTitle">${activeAlbum.title}</h2><strong id="albumHeroAccent">${activeAlbum.accent}</strong><div class="album-fact-grid" id="albumFactGrid">${renderAlbumFacts(activeAlbum)}</div><div class="album-actions"><a id="albumSpotifyLink"href="${activeAlbum.href}" target="_blank" rel="noreferrer" class="button button-primary full" style="text-align: center; justify-content: center; text-transform: uppercase; letter-spacing: 1px;">STREAM NOW ON SPOTIFY</a></div></div></section>
+<section class="album-lower-grid"><div class="track-panel"><div class="track-panel-head"><p class="section-label">Tracklist</p><span id="albumTrackCount">${activeAlbum.trackCount} tracks / ${activeAlbum.runtime}</span></div><ol class="track-list" id="albumTrackList">${renderTrackList(activeAlbum)}</ol></div>
+<aside class="album-selector" aria-label="Albums">${albums.map((album, index) => renderAlbumCard(album, index === 0)).join("")}</aside></section></div>`;}
+function renderAlbumMiniMeta(album) {return `<span>${album.year}</span><span>${album.runtime}</span>`;}
+function renderAlbumFacts(album) {const facts = [["Artist", profile.name],["Release", album.releaseDate],["Tracks", `${album.trackCount} songs`],["Runtime", album.runtime],["Label", album.label],["Format", album.format]];
+return facts.map(([label, value]) => `<div><span>${label}</span><strong>${value}</strong></div>`).join("");}
+function renderTrackList(album) {return album.tracks.map((track, index) => `<li><span class="track-index">${String(index + 1).padStart(2, "0")}</span><span class="track-title"><strong>${track.title}</strong>${track.note ? `<small>${track.note}</small>` : ""}</span><span class="track-duration">${track.duration}</span></li>`).join("");}
+function renderAlbumCard(album, isActive = false) {return `<buttonclass="album-card ${isActive ? "is-active" : ""}"type="button"data-album-id="${album.id}"data-album-title="${album.title}"data-album-eyebrow="${album.eyebrow}"data-album-image="${album.image}"aria-pressed="${isActive ? "true" : "false"}"><img src="${album.image}" alt="" loading="lazy" decoding="async"><strong>${album.title}</strong><small>${album.runtime}</small></button>`;}
+function renderVideo(view) {const youtube = externalLinks.find((link) => link.label === "YouTube");
+const channels = [{name: "Somethin Outta Nothin",url: youtube.href,channelId: youtubeChannelId,feedUrl: youtubeChannelFeed(youtubeChannelId),videos: videoItems.map(normalizeVideoItem)},{name: "Do It For The Underground",url: "https://www.youtube.com/@DoItForTheUnderground",channelId: "UCLpqCCh1DE29YCiEVMmXUwA",feedUrl: youtubeChannelFeed("UCLpqCCh1DE29YCiEVMmXUwA"),videos: [{ title: "Season 3, Episode 2! Stray and Charlie Beans! S.O.N's Big Boy Birthday Bash! Mission:Infect! Nastie!", youtubeId: "v-_zW-T5yCk" },{ title: "Nastie - The Kodoku Interview", youtubeId: "b7ERHwWpSLo" },{ title: "Season 3 Premiere! Rogue Hollow! Juggalo Weekend recap! Marijuambies! Alla Xul Elu! Ouija Macc!", youtubeId: "FN-yBijKor0" },{ title: "We are so back! Season 3 debuts next week!", youtubeId: "FkBP1TCPtVk" },{ title: "Merry Christmas from all of us at Legion Realm!", youtubeId: "LeDtUmG_nUE" },{ title: "When the holiday spirit hits", youtubeId: "udBVH5V6uxI" },{ title: "DIFTUG Wrapped - Looking Back at 2025 with S.O.N", youtubeId: "Y0iWE90YdG0" },{ title: "Anatomy of an Album: Alla Xul Elu - Head of Horns", youtubeId: "j7RwYO7pgWo" },{ title: "Anatomy of an Album: Nastie Ink - Nuisance", youtubeId: "q6XPZME66XI" },{ title: "September, 2025: Camp Xul 5 Recap, Acid Kult, Nastie Ink and Hellz Bellz", youtubeId: "PPDrX9U3JjY" },{ title: "The First Annual DIFTUG Music Awards!", youtubeId: "wxigp6yQqlM" },{ title: "LIVE! The DMA AMA with Robbie and Fatz!", youtubeId: "mX3mIH_nvec" },{ title: "Klokwerk E, Somethin Outta Nothin (S.O.N) & Apollo Exodus live at Gathering of the Juggalos 2025", youtubeId: "tJ8Fgo5-CTc" },{ title: "July 2025: ICP prepare The Naught, Alla Xul Elu go independent, Ouija Macc live, HooliganZ interview", youtubeId: "BKSDFfDFEBg" },{ title: "SPECIAL PRESENTATION: Enjoy the View Deep Dive with Stray!", youtubeId: "nImx9dWvpt4" }].map(normalizeVideoItem)}];
+return `<div class="video-page-wrapper" style="width: 100%;">${channels.map((channel, i) => {const featuredVideo = channel.videos[0] || { thumbnail: videoPosterFallback, title: channel.name, fallback: videoPosterFallback, youtubeId: "" };const idSuffix = i === 0 ? "" : `-${i}`;
+return `<div style="text-align: center; margin-top: ${i === 0 ? '0' : '120px'}; margin-bottom: 40px;"><h2 style="font-family: var(--font-display); color: #f1dfc2; text-transform: uppercase; font-size: 1.4rem;">${channel.name}</h2></div><divclass="video-obsidian"data-video-sanctumdata-index="${idSuffix}"data-channel-id="${channel.channelId}"data-feed-url="${channel.feedUrl}"style="margin-bottom: 80px;"><div class="video-obsidian-core"><section class="video-obsidian-player" aria-label="${channel.name} video player"><div class="video-screen" id="videoScreen${idSuffix}"><imgid="activeVideoPoster${idSuffix}"src="${featuredVideo.thumbnail}"data-fallback="${featuredVideo.fallback}"alt=""loading="eager"decoding="async"><iframeid="activeVideoFrame${idSuffix}"title="${escapeHTML(featuredVideo.title)}"referrerpolicy="strict-origin-when-cross-origin"allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"allowfullscreenhidden></iframe><div class="video-screen-veil" aria-hidden="true"></div><button class="video-play" type="button" id="videoPlayButton${idSuffix}" aria-label="Play selected video"><span aria-hidden="true"></span></button></div></section>
+<aside class="video-obsidian-index" aria-label="Video playlist"><span class="video-feed-status" id="videoFeedStatus${idSuffix}" aria-live="polite">Channel feed loading</span><span class="video-count" id="videoCount${idSuffix}">${channel.videos.length} videos</span><div class="video-list" id="videoTabletList${idSuffix}">${channel.videos.map((item, index) => renderVideoItem(item, index)).join("")}</div><a class="video-channel" href="${channel.url}" target="_blank" rel="noreferrer" aria-label="Open YouTube channel"></a></aside></div></div>`;}).join("")}</div>`;}
+function renderCommunity(view) {const communityLinks = externalLinks.filter((link) => link.type === "community");
+return `<div class="community-obsidian section-system">
+<!-- Who Is Legion Realm --><section class="who-is-legion" style="text-align: center; margin-bottom: 48px; padding: 0 20px;"><h2 class="promo-header-main" style="border-bottom: 1px solid var(--color-line); padding-bottom: 12px; margin-bottom: 20px; font-family: var(--font-display); font-size: 2.2rem; letter-spacing: 2px;">Who is Legion Realm</h2><p class="community-intro-text" style="font-family: var(--font-body); font-size: 1.15rem; line-height: 1.6; color: var(--color-text); max-width: 800px; margin: 0 auto; text-shadow: 0 0 10px rgba(0, 0, 0, 0.5);">Legion Realm is a network of like-minded creators, promoters, and fans offering quality services and serious dedication. It is an environment to authentically and cooperatively create, coming together under a single banner as a force to build something far greater than ourselves, for together, we are One.</p></section>
+<!-- Creators / Listings on Legion Realm --><section class="realm-listings" style="margin-bottom: 48px;"><h3 class="promo-header-main" style="border-bottom: 1px solid var(--color-line); padding-bottom: 12px; margin-bottom: 28px; font-family: var(--font-display); font-size: 1.6rem; letter-spacing: 1.5px; text-transform: uppercase;">Realm Listings</h3><div class="artist-selector-grid"><div class="artist-cards">${artists.map(artist => `<a href="${artist.href}" class="artist-card ${artist.id === 'son' ? 'artist-card-son' : 'artist-card-text'}">${artist.image ? `<img src="${artist.image}" alt="${artist.name}" loading="lazy">` : `<div class="artist-card-bg" aria-hidden="true"></div>`}<div class="artist-card-content"><strong class="artist-name">${artist.name}</strong></div></a>`).join("")}</div></div></section>
+<!-- Original Community Image & Social/Discord Links --><section class="community-connections"><div class="community-featured-block"><img src="images/community/legionrealminsta.jpeg" alt="Community Image" class="community-featured-image"><div class="community-action-row">${communityLinks.map((link) => {return `<a href="${link.href}" target="_blank" rel="noreferrer" class="community-action-button">${link.label}</a>`;}).join("")}</div></div></section>
+</div>`;}
+function renderStore(view) {return `<div class="store-layout section-system"><div class="product-grid">${products.map(renderProduct).join("")}</div><aside class="cart" aria-label="Store cart"><h3>Cart</h3><div class="cart-items" id="cartItems"></div><div class="cart-total"><span>Total</span><strong id="cartTotal">$0.00</strong></div><button class="button button-primary full" id="checkout" type="button">Checkout</button><p class="cart-status" id="cartStatus" aria-live="polite"></p><p class="fine-print">Payment, shipping, and final order confirmation open at checkout.</p></aside></div>`;}
+function renderLinkCard(link) {return `<a class="link-card" href="${link.href}" target="_blank" rel="noreferrer"><span>${link.type}</span><strong>${link.label}</strong></a>`;}
+function renderPlainLink(link) {return `<a href="${link.href}" target="_blank" rel="noreferrer">${link.label}</a>`;}
+function renderVideoItem(item) {const video = normalizeVideoItem(item);const title = escapeHTML(video.title);const date = video.published ? new Date(video.published).toLocaleDateString("en-US", {month: "short",day: "numeric",year: "numeric"}) : "Legion Realm";
+return `<buttonclass="video-item"type="button"data-video-id="${video.youtubeId}"data-video-title="${title}"data-video-url="${video.url}"data-video-thumb="${video.thumbnail}"data-video-fallback="${video.fallback}"data-video-date="${escapeHTML(date)}"><img src="${video.thumbnail}" data-fallback="${video.fallback}" alt="" loading="lazy" decoding="async"><strong>${title}</strong></button>`;}
+function renderProduct(product, index = 0) {const availableOptions = product.options.filter((option) => !option.soldOut);const selectedOption = availableOptions[0];const fallbackAssets = artAssets();const fallbackImage = fallbackAssets[index % fallbackAssets.length]?.image || primaryAsset().image;
+return `<article class="product-card" id="product-${product.id}" style="scroll-margin-top: 80px;"><div class="product-image-link"><img src="${product.image}" data-fallback="${fallbackImage}" alt="${product.title}" loading="eager" decoding="async"></div><div class="product-info"><span>${availableOptions.length ? "Available" : "Sold out"}</span><h3>${product.title}</h3><p>${money.format(product.price)}</p><small>${product.note}</small></div><label class="select-label"><span>Variant</span><select data-option-select="${product.id}" ${availableOptions.length ? "" : "disabled"}>${product.options.map((option) => `<option value="${option.id}" ${option.soldOut ? "disabled" : ""} ${selectedOption?.id === option.id ? "selected" : ""}>${option.name}${option.soldOut ? " - Sold out" : ""}</option>`).join("")}</select></label><div class="product-actions"><button class="button button-secondary full" type="button" data-add="${product.id}" ${availableOptions.length ? "" : "disabled"}>Add</button></div></article>`;}
+function bindImageFallbacks() {viewRoot.querySelectorAll("img[data-fallback]").forEach((img) => {img.addEventListener("error",() => {const fallback = img.dataset.fallback;if (fallback && img.src !== new URL(fallback, location.href).href) {img.src = fallback;img.classList.add("is-fallback-image");} else {img.classList.add("is-missing-image");}},{ once: true });});}
+function bindView(viewId) {if (viewId === "home") {bindHomeBoard();return;}
+if (viewId === "video") {bindVideoBoard();return;}
+if (viewId === "music") {bindAlbumConsole();return;}
+if (viewId === "store") {bindStoreElements();return;}
+if (viewId === "son") {bindAlbumConsole();bindStoreElements();bindSonGallery();return;}
+if (viewId === "underground") {bindVideoBoard();return;}
+if (viewId === "studio") {bindVideoBoard();bindPhilbrixGallery();return;}
+if (viewId === "nightowlprints") {bindKeaganAlbumConsole();return;}
+if (viewId === "divinity") {bindDivinityPortfolio();return;}
+if (viewId === "promote") {bindPromoteView();return;}
+if (viewId === "announcements") {bindAnnouncementsView();return;}}
 async function bindAnnouncementsView() {
-  const feed = document.getElementById("announcementsFeed");
-  if (!feed) return;
-
-  // Check staff status from auth (available globally via src/auth.js)
-  const isStaff = (typeof authState !== "undefined" && authState.user && authState.user.isStaff === true);
-
-  // Primary: fetch from GitHub public assets CDN
-  // Fallback: Vercel API
-  const cdnUrl = cdnBase
-    ? `${cdnBase}/announcements.json`
-    : `https://cdn.jsdelivr.net/gh/Moonfire-dreamwalkers/legion-realm-public-assets@main/announcements.json`;
-
-  let data = null;
-
-  try {
-    const cdnRes = await fetch(cdnUrl, { cache: "no-store" });
-    if (cdnRes.ok) {
-      data = await cdnRes.json();
-    }
-  } catch (e) {
-    console.warn("[announcements] CDN fetch failed, trying API fallback");
-  }
-
-  if (!data || !Array.isArray(data)) {
-    try {
-      const apiRes = await fetch("/api/announcements");
-      if (apiRes.ok) {
-        data = await apiRes.json();
-      }
-    } catch (apiErr) {
-      console.error("[announcements] API fallback also failed");
-    }
-  }
-
-  if (!Array.isArray(data) || data.length === 0) {
-    feed.innerHTML = `
-      <div class="announcements-empty">
-        <div class="announcements-empty-sigil">${sulfurSvg()}</div>
-        <p>No announcements have been broadcast yet.</p>
-      </div>
-    `;
-    return;
-  }
-
-  
-  // Filter out archived announcements for public view
-  const visibleData = data.filter(function(item) { return !item.archived; });
-
-  if (visibleData.length === 0) {
-    feed.innerHTML = `
-      <div class="announcements-empty">
-        <div class="announcements-empty-sigil">${sulfurSvg()}</div>
-        <p>No active announcements. Check back soon.</p>
-      </div>
-    `;
-    return;
-  }
-
-  feed.innerHTML = visibleData.map(item => {
-    const date = item.timestamp ? new Date(item.timestamp).toLocaleDateString("en-US", {
-      month: "long",
-      day: "numeric",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit"
-    }) : "";
-
-    return `
-      <article class="announcement-card">
-        ${isStaff ? `<span class="announcement-card-id">${escapeHTML(item.id)}</span>` : ""}
-        <div class="announcement-card-header">
-          <div>
-            ${item.title ? `<h3 class="announcement-card-title">${escapeHTML(item.title)}</h3>` : ""}
-            <div class="announcement-card-meta">
-              ${item.author ? `By <strong>${escapeHTML(item.author)}</strong> &bull; ` : ""}
-              <span>${date}</span>
-            </div>
-          </div>
-        </div>
-        ${item.content ? `<div class="announcement-card-body">${escapeHTML(item.content)}</div>` : ""}
-        ${item.imageUrl ? `<div class="announcement-card-image"><img src="${escapeHTML(item.imageUrl)}" alt="" loading="lazy"></div>` : ""}
-        ${item.discordMessageLink ? `
-          <a href="${escapeHTML(item.discordMessageLink)}" target="_blank" rel="noreferrer" class="announcement-card-discord-link">
-            View on Discord
-          </a>
-        ` : ""}
-      </article>
-    `;
-  }).join("");
+const feed = document.getElementById("announcementsFeed");
+if (!feed) return;
+const isStaff = (typeof authState !== "undefined" && authState.user && authState.user.isStaff === true);
+const cdnUrl = cdnBase
+? `${cdnBase}/announcements.json`
+: `https://cdn.jsdelivr.net/gh/Moonfire-dreamwalkers/legion-realm-public-assets@main/announcements.json`;
+let data = null;
+try {
+const cdnRes = await fetch(cdnUrl, { cache: "no-store" });
+if (cdnRes.ok) {
+data = await cdnRes.json();
 }
-function bindKeaganAlbumConsole() {
-  const consoleNode = viewRoot.querySelector("[data-keagan-console]");
-  if (!consoleNode) return;
-
-  const cards = consoleNode.querySelectorAll("[data-keagan-album-id]");
-  const albums = keaganAlbums();
-  const background = consoleNode.querySelector("#keaganHeroBg");
-  const image = consoleNode.querySelector("#keaganHeroImage");
-  const title = consoleNode.querySelector("#keaganHeroTitle");
-  const accent = consoleNode.querySelector("#keaganHeroAccent");
-  const miniMeta = consoleNode.querySelector("#keaganMiniMeta");
-  const factGrid = consoleNode.querySelector("#keaganFactGrid");
-  const trackCount = consoleNode.querySelector("#keaganTrackCount");
-  const trackList = consoleNode.querySelector("#keaganTrackList");
-  const embed = consoleNode.querySelector("#keaganHeroEmbed");
-
-  cards.forEach((card) => {
-    card.addEventListener("click", () => {
-      const album = albums.find((item) => item.id === card.dataset.keaganAlbumId);
-      if (!album) return;
-
-      cards.forEach((candidate) => {
-        candidate.classList.toggle("is-active", candidate === card);
-        candidate.setAttribute("aria-pressed", candidate === card ? "true" : "false");
-      });
-
-      consoleNode.classList.remove("is-swapping");
-      void consoleNode.offsetWidth;
-      consoleNode.classList.add("is-swapping");
-
-      if (image) {
-        image.src = album.image;
-        image.alt = album.title;
-      }
-      if (background) background.src = album.image;
-      if (title) title.textContent = album.title;
-      if (accent) accent.textContent = album.accent;
-      if (miniMeta) {
-        miniMeta.innerHTML = `
-          <span>${album.year}</span>
-          <span>${album.runtime}</span>
-        `;
-      }
-      if (factGrid) factGrid.innerHTML = renderKeaganAlbumFacts(album);
-      if (trackCount) trackCount.textContent = `${album.trackCount} tracks / ${album.runtime}`;
-      if (trackList) trackList.innerHTML = renderTrackList(album);
-      if (embed) {
-        const wrapper = embed.parentElement;
-        if (wrapper) {
-          wrapper.classList.add("is-loading");
-
-          let resolved = false;
-          const done = () => {
-            if (resolved) return;
-            resolved = true;
-            wrapper.classList.remove("is-loading");
-          };
-
-          embed.onload = done;
-          window.setTimeout(done, 2500);
-        }
-        embed.src = spotifyEmbedUrl(album.href);
-      }
-    });
-  });
+} catch (e) {
+console.warn("[announcements] CDN fetch failed, trying API fallback");
 }
-
-function bindDivinityPortfolio() {
-  const grid = document.getElementById("divinityPortGrid");
-  const wrapper = document.getElementById("divinityPortWrapper");
-  const expandBtn = document.getElementById("divinityPortExpandBtn");
-  if (!grid || !wrapper || !expandBtn) return;
-
-  const images = [
-    "1.webp", "2.webp", "3.webp", "4.webp", "5.webp", "6.webp", "7.webp", "8.webp", "9.webp", "10.webp",
-    "11.webp", "12.webp", "13.webp", "14.webp", "15.webp", "16.webp", "17.webp", "18.webp", "19.webp", "20.webp",
-    "21.webp", "22.webp", "23.webp", "24.webp", "25.webp", "26.webp", "27.webp", "28.webp", "29.webp", "30.webp",
-    "31.webp", "33.webp", "34.webp", "35.webp", "36.webp", "37.webp", "38.webp", "39.webp", "40.webp", "41.webp",
-    "42.webp", "44.webp", "45.webp", "46.webp", "47.webp", "48.webp", "49.webp", "50.webp", "51.webp", "52.webp",
-    "53.webp", "54.webp", "55.webp", "56.webp", "57.webp", "59.webp", "60.webp", "61.webp", "62.webp", "63.webp",
-    "64.webp", "65.webp", "66.webp", "67.webp",
-    "485003291_691489600295865_2384445148084926291_n.webp",
-    "485083509_694222683355890_5379994471757009428_n.webp",
-    "489457983_714205418024283_7226064868915706508_n.webp",
-    "547522565_854522917325865_3462510322021611757_n.webp",
-    "616812952_960232680088221_2095537101605772302_n.webp",
-    "FB_IMG_1774912266470.webp", "FB_IMG_1774912273586.webp", "FB_IMG_1774912302070.webp", "FB_IMG_1774912308908.webp",
-    "FB_IMG_1774912313060.webp", "FB_IMG_1774912321880.webp", "FB_IMG_1774912334252.webp", "FB_IMG_1774912356144.webp",
-    "FB_IMG_1774912369249.webp", "FB_IMG_1774912374560.webp", "FB_IMG_1774912389485.webp", "FB_IMG_1774912398719.webp",
-    "FB_IMG_1774912404146.webp", "FB_IMG_1774912412954.webp", "FB_IMG_1774912421993.webp", "FB_IMG_1774912428187.webp",
-    "FB_IMG_1774912455572.webp", "FB_IMG_1774912470973.webp", "FB_IMG_1774912543557.webp", "FB_IMG_1774912559329.webp",
-    "FB_IMG_1774912582025.webp", "FB_IMG_1774912637458.webp", "orca-image--1258640799.jpeg.webp", "orca-image--1859499608.jpeg.webp",
-    "orca-image--196342583.jpeg.webp", "orca-image--2095311241.jpeg.webp", "orca-image-711100960.jpeg.webp",
-    "nightshade.webp"
-  ];
-
-  const shuffled = [...images];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-
-  grid.innerHTML = "";
-
-  const renderItem = (img, index, isHidden = false) => {
-    const item = document.createElement("div");
-    item.className = "divinity-portfolio-item";
-    if (isHidden) {
-      item.classList.add("is-hidden");
-      item.style.display = "none";
-    }
-    const imgUrl = `https://cultdivinity.com/portfolio/${img}`;
-    item.innerHTML = `<img src="${imgUrl}" alt="Krystalyn Deneve Artwork ${index}" loading="lazy" decoding="async">`;
-    item.addEventListener("click", () => {
-      openDivinityLightbox(imgUrl);
-    });
-    return item;
-  };
-
-  shuffled.forEach((img, idx) => {
-    const isHidden = idx >= 12;
-    const item = renderItem(img, idx + 1, isHidden);
-    grid.appendChild(item);
-  });
-
-  expandBtn.addEventListener("click", () => {
-    const hiddenItems = grid.querySelectorAll(".divinity-portfolio-item.is-hidden");
-    hiddenItems.forEach(item => {
-      item.classList.remove("is-hidden");
-      item.style.display = "block";
-    });
-    expandBtn.style.display = "none";
-    wrapper.classList.remove("is-collapsed");
-  });
+if (!data || !Array.isArray(data)) {
+try {
+const apiRes = await fetch("/api/announcements");
+if (apiRes.ok) {
+data = await apiRes.json();
 }
-
-function bindSonGallery() {
-  const grid = document.getElementById("sonPortGrid");
-  const wrapper = document.getElementById("sonPortWrapper");
-  const expandBtn = document.getElementById("sonPortExpandBtn");
-  if (!grid || !wrapper || !expandBtn) return;
-
-  const images = [
-    "images/son/463619189_18095114947463274_1773267247556644044_n.jpg",
-    "images/son/487314944_9647852071939455_2372815069298903342_n.jpg",
-    "images/son/494118773_9836956476362346_4656582353664272704_n.jpg",
-    "images/son/494162522_9859845727406754_5573057615568191752_n.jpg",
-    "images/son/498327952_10010656232325702_4115048481086730564_n.jpg",
-    "images/son/514318478_24120298870934868_1444515052201366951_n.jpg",
-    "images/son/514323324_24116425937988828_6520506200923482964_n.jpg",
-    "images/son/514482713_24120465954251493_7803949417622555633_n.jpg",
-    "images/son/515083529_24119378957693526_2416044119396794384_n.jpg",
-    "images/son/557628749_24902326526065428_5975727814885637327_n.jpg",
-    "images/son/566363742_25041064808858265_4854427230165897640_n.jpg",
-    "images/son/610975344_25729740873323985_7011612998820304873_n.jpg",
-    "images/son/648865794_26275632385401495_28440860511883168_n.jpg",
-    "images/son/668984037_26638569502441113_3766474232566768382_n.jpg",
-    "images/son/675515938_26732628699701859_6706512719488354866_n.jpg",
-    "images/son/682301339_26828962450068483_1914265669887023745_n.jpg",
-    "images/son/grant us eyes.jpeg"
-  ];
-
-  grid.innerHTML = "";
-
-  const renderItem = (img, index, isHidden = false) => {
-    const item = document.createElement("div");
-    item.className = "divinity-portfolio-item";
-    if (isHidden) {
-      item.classList.add("is-hidden");
-      item.style.display = "none";
-    }
-    const imgUrl = resolveUrl(img);
-    item.innerHTML = `<img src="${imgUrl}" alt="S.O.N Image ${index}" loading="lazy" decoding="async">`;
-    item.addEventListener("click", () => {
-      openDivinityLightbox(imgUrl);
-    });
-    return item;
-  };
-
-  images.forEach((img, idx) => {
-    const isHidden = idx >= 8;
-    const item = renderItem(img, idx + 1, isHidden);
-    grid.appendChild(item);
-  });
-
-  expandBtn.addEventListener("click", () => {
-    const hiddenItems = grid.querySelectorAll("#sonPortGrid .divinity-portfolio-item.is-hidden");
-    hiddenItems.forEach(item => {
-      item.classList.remove("is-hidden");
-      item.style.display = "block";
-    });
-    expandBtn.style.display = "none";
-    wrapper.classList.remove("is-collapsed");
-  });
+} catch (apiErr) {
+console.error("[announcements] API fallback also failed");
 }
-
-function bindPhilbrixGallery() {
-  const grid = document.getElementById("philbrixPortGrid");
-  const wrapper = document.getElementById("philbrixPortWrapper");
-  const expandBtn = document.getElementById("philbrixPortExpandBtn");
-  if (!grid || !wrapper || !expandBtn) return;
-
-  const images = [
-    "images/philbrix/476835669_1359215671904724_8576598953606769678_n.jpg",
-    "images/philbrix/482807336_1382493439576947_8217902807504495779_n.jpg",
-    "images/philbrix/485306766_1390389605453997_6585223568325336195_n.jpg",
-    "images/philbrix/485607046_1391223342037290_8115186038259580136_n.jpg",
-    "images/philbrix/485765900_1389591358867155_5581226393361912876_n.jpg",
-    "images/philbrix/640077397_18566038576061355_1837353207573859770_n.jpg",
-    "images/philbrix/658043423_18580002718061355_4633109479160700946_n.jpg",
-    "images/philbrix/709882773_18595140130061355_219960142183883069_n.jpg",
-    "images/philbrix/712196901_18596572588061355_6491067378167815969_n.jpg",
-    "images/philbrix/725767583_18600967723061355_5369994730697635112_n.jpg"
-  ];
-
-  grid.innerHTML = "";
-
-  const renderItem = (img, index, isHidden = false) => {
-    const item = document.createElement("div");
-    item.className = "divinity-portfolio-item";
-    if (isHidden) {
-      item.classList.add("is-hidden");
-      item.style.display = "none";
-    }
-    const imgUrl = resolveUrl(img);
-    item.innerHTML = `<img src="${imgUrl}" alt="Philbrix Image ${index}" loading="lazy" decoding="async">`;
-    item.addEventListener("click", () => {
-      openDivinityLightbox(imgUrl);
-    });
-    return item;
-  };
-
-  images.forEach((img, idx) => {
-    const isHidden = idx >= 8;
-    const item = renderItem(img, idx + 1, isHidden);
-    grid.appendChild(item);
-  });
-
-  expandBtn.addEventListener("click", () => {
-    const hiddenItems = grid.querySelectorAll("#philbrixPortGrid .divinity-portfolio-item.is-hidden");
-    hiddenItems.forEach(item => {
-      item.classList.remove("is-hidden");
-      item.style.display = "block";
-    });
-    expandBtn.style.display = "none";
-    wrapper.classList.remove("is-collapsed");
-  });
 }
-
-function openDivinityLightbox(url) {
-  let lightbox = document.getElementById("divinityLightbox");
-  if (!lightbox) {
-    lightbox = document.createElement("div");
-    lightbox.id = "divinityLightbox";
-    lightbox.className = "divinity-lightbox";
-    lightbox.innerHTML = `
-      <button class="divinity-lightbox-close" aria-label="Close image">&times;</button>
-      <div class="divinity-lightbox-content">
-        <img class="divinity-lightbox-img" src="" alt="Enlarged Art">
-      </div>
-    `;
-    document.body.appendChild(lightbox);
-
-    lightbox.addEventListener("click", () => {
-      lightbox.classList.remove("is-active");
-      document.body.classList.remove("lightbox-open");
-    });
-    lightbox.querySelector(".divinity-lightbox-content").addEventListener("click", (e) => {
-      e.stopPropagation();
-    });
-    lightbox.querySelector(".divinity-lightbox-close").addEventListener("click", (e) => {
-      e.stopPropagation();
-      lightbox.classList.remove("is-active");
-      document.body.classList.remove("lightbox-open");
-    });
-  }
-
-  const img = lightbox.querySelector(".divinity-lightbox-img");
-  img.src = url;
-  lightbox.classList.add("is-active");
-  document.body.classList.add("lightbox-open");
+if (!Array.isArray(data) || data.length === 0) {
+feed.innerHTML = `
+<div class="announcements-empty">
+<div class="announcements-empty-sigil">${sulfurSvg()}</div>
+<p>No announcements have been broadcast yet.</p>
+</div>
+`;
+return;
 }
-
-function bindStoreElements() {
-  viewRoot.querySelectorAll("[data-add]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const product = products.find((item) => item.id === button.dataset.add);
-      const select = viewRoot.querySelector(`[data-option-select="${product.id}"]`);
-      const option = product.options.find((item) => item.id === select.value);
-      addToCart(product, option);
-    });
-  });
-
-  const checkoutBtn = viewRoot.querySelector("#checkout");
-  if (checkoutBtn) checkoutBtn.addEventListener("click", checkout);
-  
-  renderCart();
+const visibleData = data.filter(function(item) { return !item.archived; });
+if (visibleData.length === 0) {
+feed.innerHTML = `
+<div class="announcements-empty">
+<div class="announcements-empty-sigil">${sulfurSvg()}</div>
+<p>No active announcements. Check back soon.</p>
+</div>
+`;
+return;
 }
-
-function bindHomeBoard() {
-  const stage = viewRoot.querySelector("#homePreview");
-  const links = viewRoot.querySelectorAll("[data-home-link]");
-  if (!stage || !links.length) return;
-
-  links.forEach((link) => {
-    link.addEventListener("mouseenter", () => updateHomePreview(stage, link));
-    link.addEventListener("focus", () => updateHomePreview(stage, link));
-  });
+feed.innerHTML = visibleData.map(item => {
+const date = item.timestamp ? new Date(item.timestamp).toLocaleDateString("en-US", {
+month: "long",
+day: "numeric",
+year: "numeric",
+hour: "2-digit",
+minute: "2-digit"
+}) : "";
+return `
+<article class="announcement-card">
+${isStaff ? `<span class="announcement-card-id">${escapeHTML(item.id)}</span>` : ""}
+<div class="announcement-card-header">
+<div>
+${item.title ? `<h3 class="announcement-card-title">${escapeHTML(item.title)}</h3>` : ""}
+<div class="announcement-card-meta">
+${item.author ? `By <strong>${escapeHTML(item.author)}</strong> &bull; ` : ""}
+<span>${date}</span>
+</div>
+</div>
+</div>
+${item.content ? `<div class="announcement-card-body">${escapeHTML(item.content)}</div>` : ""}
+${item.imageUrl ? `<div class="announcement-card-image"><img src="${escapeHTML(item.imageUrl)}" alt="" loading="lazy"></div>` : ""}
+${item.discordMessageLink ? `
+<a href="${escapeHTML(item.discordMessageLink)}" target="_blank" rel="noreferrer" class="announcement-card-discord-link">
+View on Discord
+</a>
+` : ""}
+</article>
+`;
+}).join("");
 }
-
-function updateHomePreview(stage, link) {
-  const image = link.dataset.previewImage;
-  const title = link.dataset.previewTitle;
-  const meta = link.dataset.previewMeta;
-  const img = stage.querySelector("#homePreviewImage");
-  const titleNode = stage.querySelector("#homePreviewTitle");
-  const metaNode = stage.querySelector("#homePreviewMeta");
-
-  stage.href = link.getAttribute("href");
-  stage.setAttribute("aria-label", title);
-  stage.classList.remove("is-swapping");
-  void stage.offsetWidth;
-  stage.classList.add("is-swapping");
-
-  if (img) img.src = image;
-  if (titleNode) titleNode.textContent = title;
-  if (metaNode) metaNode.textContent = meta;
-}
-
-function bindVideoBoard() {
-  const sanctums = viewRoot.querySelectorAll("[data-video-sanctum]");
-  
-  sanctums.forEach(sanctum => {
-    const idSuffix = sanctum.dataset.index || "";
-    const frame = sanctum.querySelector(`#activeVideoFrame${idSuffix}`);
-    const poster = sanctum.querySelector(`#activeVideoPoster${idSuffix}`);
-    const playButton = sanctum.querySelector(`#videoPlayButton${idSuffix}`);
-    const list = sanctum.querySelector(`#videoTabletList${idSuffix}`);
-    const status = sanctum.querySelector(`#videoFeedStatus${idSuffix}`);
-    const count = sanctum.querySelector(`#videoCount${idSuffix}`);
-    
-    if (!frame || !poster || !playButton || !list) return;
-
-    const selectVideo = (item, shouldPlay = false) => {
-      if (!item) return;
-
-      list.querySelectorAll("[data-video-id]").forEach((candidate) => {
-        const isActive = candidate === item;
-        candidate.classList.toggle("is-active", isActive);
-        candidate.setAttribute("aria-pressed", isActive ? "true" : "false");
-      });
-
-      const title = item.dataset.videoTitle;
-      const id = item.dataset.videoId;
-      const thumb = item.dataset.videoThumb || videoThumb(id);
-      const fallback = item.dataset.videoFallback || videoPosterFallback;
-
-      frame.hidden = !shouldPlay;
-      frame.title = title;
-      frame.src = shouldPlay ? youtubeEmbedUrl(id) : "";
-      poster.dataset.fallback = fallback;
-      poster.dataset.thumbnail = thumb;
-      poster.onerror = () => {
-        if (poster.src !== new URL(fallback, location.href).href) poster.src = fallback;
-      };
-      poster.src = thumb;
-      poster.classList.toggle("is-hidden", shouldPlay);
-      playButton.classList.toggle("is-hidden", shouldPlay);
-      playButton.dataset.videoId = id;
-    };
-
-    list.addEventListener("click", (event) => {
-      const item = event.target.closest("[data-video-id]");
-      if (!item) return;
-      selectVideo(item, false);
-    });
-
-    playButton.addEventListener("click", () => {
-      const active = list.querySelector(".video-item.is-active") || list.querySelector("[data-video-id]");
-      selectVideo(active, true);
-    });
-
-    if (status) status.textContent = "";
-    if (count) count.textContent = "";
-    
-    const initialItem = list.querySelector("[data-video-id]");
-    if (initialItem) selectVideo(initialItem, false);
-    warmVideoThumbnailCache(list);
-    
-    hydrateVideoFeed(sanctum, list, status, count, selectVideo);
-  });
-}
-
-async function hydrateVideoFeed(sanctum, list, status, count, selectVideo) {
-  const feedUrl = sanctum.dataset.feedUrl;
-  if (!feedUrl) return;
-
-  try {
-    const videos = await fetchYouTubeFeed(feedUrl);
-    if (!videos.length) throw new Error("Empty YouTube feed");
-
-    list.innerHTML = videos.map((item, index) => renderVideoItem(item, index)).join("");
-    bindImageFallbacks();
-    if (status) status.textContent = "Channel feed synced";
-    if (count) count.textContent = `${videos.length} videos`;
-    selectVideo(list.querySelector("[data-video-id]"), false);
-  } catch (error) {
-    if (status) status.textContent = "Using saved archive";
-  }
-}
-
-async function fetchYouTubeFeed(feedUrl) {
-  const feedSources = [feedUrl, youtubeFeedProxy(feedUrl)];
-  let lastError = null;
-
-  for (const source of feedSources) {
-    try {
-      const response = await fetch(source);
-      if (!response.ok) throw new Error(`Feed request failed: ${response.status}`);
-      return parseYouTubeFeed(await response.text());
-    } catch (error) {
-      lastError = error;
-    }
-  }
-
-  throw lastError || new Error("Unable to fetch YouTube feed");
-}
-
-function parseYouTubeFeed(xmlText) {
-  const doc = new DOMParser().parseFromString(xmlText, "application/xml");
-  return Array.from(doc.querySelectorAll("entry")).map((entry) => {
-    const id = entry.querySelector("videoId")?.textContent || "";
-    const title = entry.querySelector("title")?.textContent || "Legion Realm Video";
-    const published = entry.querySelector("published")?.textContent || "";
-
-    return normalizeVideoItem({
-      title,
-      youtubeId: id,
-      published,
-      url: youtubeWatchUrl(id),
-      thumbnail: videoThumb(id)
-    });
-  }).filter((item) => item.youtubeId);
-}
-
-const fallbackPreviews = {
-  "invocation": "https://cdnt-preview.dzcdn.net/api/1/1/b/0/2/0/b02089abe23764311ef92a2e084423f0.mp3?hdnea=exp=1781922913~acl=/api/1/1/b/0/2/0/b02089abe23764311ef92a2e084423f0.mp3*~data=user_id=0,application_id=42~hmac=6fbfed6b496bf3ad6c76b61300fd81bd162050c19a89350486045cb5b240b94d",
-  "thebastardson": "https://cdnt-preview.dzcdn.net/api/1/1/b/c/f/0/bcf8db49b253c11c5c61c38d36d27d47.mp3?hdnea=exp=1781922913~acl=/api/1/1/b/c/f/0/bcf8db49b253c11c5c61c38d36d27d47.mp3*~data=user_id=0,application_id=42~hmac=30920da5812746d4a97d07708d8825bc96bfb975177fb316a7f22f54acf1aec7",
-  "requiem": "https://cdnt-preview.dzcdn.net/api/1/1/6/5/a/0/65a9377384711ec7c853448ec973c7e8.mp3?hdnea=exp=1781922913~acl=/api/1/1/6/5/a/0/65a9377384711ec7c853448ec973c7e8.mp3*~data=user_id=0,application_id=42~hmac=0bd60fab58a395149883973500e0b549a56224f8f92345fe09e717c29e21c2d1",
-  "sulphur": "https://cdnt-preview.dzcdn.net/api/1/1/2/f/8/0/2f80ff73e0b545070b1c272e3cf81672.mp3?hdnea=exp=1781922913~acl=/api/1/1/2/f/8/0/2f80ff73e0b545070b1c272e3cf81672.mp3*~data=user_id=0,application_id=42~hmac=509fd8f0b191b569f44026604e6ad2dde126222ee691f61079976e75853c4f1f",
-  "thehangedman": "https://cdnt-preview.dzcdn.net/api/1/1/f/3/7/0/f3788a874671aeb5a8ccb4198e88b5c9.mp3?hdnea=exp=1781922913~acl=/api/1/1/f/3/7/0/f3788a874671aeb5a8ccb4198e88b5c9.mp3*~data=user_id=0,application_id=42~hmac=f1b5e47feff0775aee34dd7b721dbc68ae55a52cb15f12223e405b6ea74a2bd8",
-  "wherefearlives": "https://cdnt-preview.dzcdn.net/api/1/1/5/2/b/0/52b619c98b7f7a412744211fb887f1fa.mp3?hdnea=exp=1781922913~acl=/api/1/1/5/2/b/0/52b619c98b7f7a412744211fb887f1fa.mp3*~data=user_id=0,application_id=42~hmac=b44601db0bb2a1e817ddfb922cd411e0e895dfc3a3e9a1078b3ebede8d0cd612",
-  "undermyskin": "https://cdnt-preview.dzcdn.net/api/1/1/3/8/b/0/38b4b5bd68579194f34d330d0da8d557.mp3?hdnea=exp=1781922913~acl=/api/1/1/3/8/b/0/38b4b5bd68579194f34d330d0da8d557.mp3*~data=user_id=0,application_id=42~hmac=53985951ecfd0cf36eb96b1dd6c8eeb7fc70260b64c0a4e0351f9eb18003e12c",
-  "tenebrous": "https://cdnt-preview.dzcdn.net/api/1/1/8/3/1/0/831bd60045b50bb26297bb6f0e728a28.mp3?hdnea=exp=1781922913~acl=/api/1/1/8/3/1/0/831bd60045b50bb26297bb6f0e728a28.mp3*~data=user_id=0,application_id=42~hmac=7fa3b7e7215d6c81b59776c9b8ca1f7d80fb7cf3fcaa8639d7a5c7a669843dd5",
-  "absolution": "https://cdnt-preview.dzcdn.net/api/1/1/6/a/b/0/6abe71bc2f7a7f574c480170578fc737.mp3?hdnea=exp=1781922913~acl=/api/1/1/6/a/b/0/6abe71bc2f7a7f574c480170578fc737.mp3*~data=user_id=0,application_id=42~hmac=1d1e2e530a1a9a14777ea615b46c6f79de74014e564ef5783918608fc4716219",
-  "threeofswords": "https://cdnt-preview.dzcdn.net/api/1/1/4/0/9/0/409d239134ec19f34efeeada2b141b39.mp3?hdnea=exp=1781922913~acl=/api/1/1/4/0/9/0/409d239134ec19f34efeeada2b141b39.mp3*~data=user_id=0,application_id=42~hmac=002476c7f59cab3a9f77739d4943e73f9682442bc5dae9def77d8fb9f730c85f",
-  "firewalkwithme": "https://cdnt-preview.dzcdn.net/api/1/1/1/e/7/0/1e7bf38e87ab358173cf167835b2d378.mp3?hdnea=exp=1781922913~acl=/api/1/1/1/e/7/0/1e7bf38e87ab358173cf167835b2d378.mp3*~data=user_id=0,application_id=42~hmac=65f5dccb9ff84880094f54a5fb19e6261951417ede1ff5db213b6155d7fac975",
-  "therot": "https://cdnt-preview.dzcdn.net/api/1/1/0/f/8/0/0f85f7a8269a0683bce169448db25be9.mp3?hdnea=exp=1781922913~acl=/api/1/1/0/f/8/0/0f85f7a8269a0683bce169448db25be9.mp3*~data=user_id=0,application_id=42~hmac=9c91e67fda8b84179019ab0240dc4ecaca6fa6aa6209d5c7daf0a1cefd58c8ca",
-  "apocalyptic": "https://cdnt-preview.dzcdn.net/api/1/1/0/0/8/0/0081f127901122d13e7ea7547a348ca2.mp3?hdnea=exp=1781922913~acl=/api/1/1/0/0/8/0/0081f127901122d13e7ea7547a348ca2.mp3*~data=user_id=0,application_id=42~hmac=03dd08372c18b3fb8dc0f896c2caa69527472350173083313bad0a41df680a54",
-  "death": "https://cdnt-preview.dzcdn.net/api/1/1/1/9/a/0/19a507d6b1ab61e83f2bb96cc5e6746e.mp3?hdnea=exp=1781922913~acl=/api/1/1/1/9/a/0/19a507d6b1ab61e83f2bb96cc5e6746e.mp3*~data=user_id=0,application_id=42~hmac=43414210d2a67d7b4d7300b9413299f98d451739196dd334f5f1779fd05da94c",
-  "thywillbedone": "https://cdnt-preview.dzcdn.net/api/1/1/e/f/2/0/ef244ca996f6d1cf13320962969f0eb7.mp3?hdnea=exp=1781922913~acl=/api/1/1/e/f/2/0/ef244ca996f6d1cf13320962969f0eb7.mp3*~data=user_id=0,application_id=42~hmac=67c40e3df03da6639b16b9572449266d082998315be63678ee92a8f9eb0c829a",
-  
-  "aterriblefate": "https://cdnt-preview.dzcdn.net/api/1/1/0/5/0/0/0506b85032fc7c569a114d2a2583b21b.mp3?hdnea=exp=1781922913~acl=/api/1/1/0/5/0/0/0506b85032fc7c569a114d2a2583b21b.mp3*~data=user_id=0,application_id=42~hmac=8600000a83ef75f9d8846a2de2f2a489e370cb72048c3f6c86f69c2b16c8d3cc",
-  "grantuseyes": "https://cdnt-preview.dzcdn.net/api/1/1/8/b/2/0/8b2df462239a4eacd1605d8809fad317.mp3?hdnea=exp=1781922913~acl=/api/1/1/8/b/2/0/8b2df462239a4eacd1605d8809fad317.mp3*~data=user_id=0,application_id=42~hmac=321566ccfe7759527e5c457d1ae6e447ab608030541494ce73c0c21c30b25a3e",
-  "evil": "https://cdnt-preview.dzcdn.net/api/1/1/4/8/c/0/48c4a681cde2c153438871ca5a5057b0.mp3?hdnea=exp=1781922913~acl=/api/1/1/4/8/c/0/48c4a681cde2c153438871ca5a5057b0.mp3*~data=user_id=0,application_id=42~hmac=a72ee3787cb64dcb38ccbd16f3490e2c69bc2026654818164c50b9290f933d49",
-  "kingofdarkenergy": "https://cdnt-preview.dzcdn.net/api/1/1/3/7/a/0/37aa10265f299cc9686b589f9c8a52bb.mp3?hdnea=exp=1781922913~acl=/api/1/1/3/7/a/0/37aa10265f299cc9686b589f9c8a52bb.mp3*~data=user_id=0,application_id=42~hmac=ece95c66f36450e20eba7667ce8668a8354ddac451507b012cd67d8640a65307",
-  "breathe": "https://cdnt-preview.dzcdn.net/api/1/1/5/f/4/0/5f4727f1b59d5b1a8232b9358de99e17.mp3?hdnea=exp=1781922913~acl=/api/1/1/5/f/4/0/5f4727f1b59d5b1a8232b9358de99e17.mp3*~data=user_id=0,application_id=42~hmac=67dfd57bd38cd59a44be54c1a80d297ed94d54d5edd9ccd7deb1678a56353714",
-  "thedescent": "https://cdnt-preview.dzcdn.net/api/1/1/0/a/6/0/0a605ebf9db64473c18d05dd420f540b.mp3?hdnea=exp=1781922913~acl=/api/1/1/0/a/6/0/0a605ebf9db64473c18d05dd420f540b.mp3*~data=user_id=0,application_id=42~hmac=50b90061dc6c1626e5dba239a4c1052526f561bf64dee91e2313f6d033f69fa7",
-  "themouthofmadness": "https://cdnt-preview.dzcdn.net/api/1/1/5/0/e/0/50e5947c652e543e4e1b23461df7bcae.mp3?hdnea=exp=1781922913~acl=/api/1/1/5/0/e/0/50e5947c652e543e4e1b23461df7bcae.mp3*~data=user_id=0,application_id=42~hmac=06029ac0c3cbeb80606eaad8cf63df5846986e0e1c87918d90c3b174bddd692d",
-  "amen": "https://cdnt-preview.dzcdn.net/api/1/1/3/2/5/0/3252604dcdc9b327f52542e0f276799b.mp3?hdnea=exp=1781922913~acl=/api/1/1/3/2/5/0/3252604dcdc9b327f52542e0f276799b.mp3*~data=user_id=0,application_id=42~hmac=8a994bdad2ac6397342e232a05c4133008fbac46264b3da4c9898545cfb1c454",
-  "thebridge": "https://cdnt-preview.dzcdn.net/api/1/1/9/4/9/0/949167788cfb43a55b74b00fbd20158a.mp3?hdnea=exp=1781922913~acl=/api/1/1/9/4/9/0/949167788cfb43a55b74b00fbd20158a.mp3*~data=user_id=0,application_id=42~hmac=bc2c37770453095f0a44be9b6f410c5e38e54435da3c391d5e72220022124b7c",
-  "whatsthatnoise": "https://cdnt-preview.dzcdn.net/api/1/1/3/b/d/0/3bd37889e6ad9eaf122982db753dea94.mp3?hdnea=exp=1781922913~acl=/api/1/1/3/b/d/0/3bd37889e6ad9eaf122982db753dea94.mp3*~data=user_id=0,application_id=42~hmac=2972cd4c08231191bdf4f925fbf0a4995cc5ee9319be5ccb2ed8b645f79cc19f",
-  "theorderofthebluerose": "https://cdnt-preview.dzcdn.net/api/1/1/e/8/4/0/e84c3c709203a3f86e2c6200f3c6f089.mp3?hdnea=exp=1781922913~acl=/api/1/1/e/8/4/0/e84c3c709203a3f86e2c6200f3c6f089.mp3*~data=user_id=0,application_id=42~hmac=82ca9113d63cae1977cbc05c157c9410b3c8639c437599fd8c866463d640b060",
-  "feedthebeast": "https://cdnt-preview.dzcdn.net/api/1/1/3/7/3/0/373f4696b345228f528997a5423076c7.mp3?hdnea=exp=1781922913~acl=/api/1/1/3/7/3/0/373f4696b345228f528997a5423076c7.mp3*~data=user_id=0,application_id=42~hmac=7a52c1f291df61883e3c27258e5b99d1e344f12959a514a874961319ac75dc45",
-  "eyeforaneye": "https://cdnt-preview.dzcdn.net/api/1/1/4/4/5/0/4458275bafa5538acc1e9d455ace9f67.mp3?hdnea=exp=1781922913~acl=/api/1/1/4/4/5/0/4458275bafa5538acc1e9d455ace9f67.mp3*~data=user_id=0,application_id=42~hmac=909e2b8168feb622b97ce02ac0c5333d890f36879272ee44dda2f24d9b569358",
-  "theblessing": "https://cdnt-preview.dzcdn.net/api/1/1/d/e/8/0/de839fe2f40e2f706ce51891dc3b12b9.mp3?hdnea=exp=1781922913~acl=/api/1/1/d/e/8/0/de839fe2f40e2f706ce51891dc3b12b9.mp3*~data=user_id=0,application_id=42~hmac=6fb42be03aa54729f0d0cb7ba9c0c9ceb15e812944cebf52eccf009615ea9b43",
-  "thehive": "https://cdnt-preview.dzcdn.net/api/1/1/d/5/d/0/d5d2a507b8e2303e8f7f3b83a6d65b5d.mp3?hdnea=exp=1781922913~acl=/api/1/1/d/5/d/0/d5d2a507b8e2303e8f7f3b83a6d65b5d.mp3*~data=user_id=0,application_id=42~hmac=ff1477b53ad568461fe50901d0fb5a6d67be57d091e573fdc12cc79c345620d7"
-};
-
-let previewUrls = { ...fallbackPreviews };
-let previewFetcherPromise = null;
-let currentAudio = null;
-let currentPlayingLi = null;
-let globalVolume = 0.5;
-
-// Visualizer State & Variables
-const visualizerState = {
-  active: false,
-  reqId: null,
-  analyser: null,
-  source: null,
-  audioContext: null,
-  isSimulated: true
-};
-const visualizerHeights = new Float32Array(32);
-const visualizerPeaks = new Float32Array(32);
-const visualizerParticles = [];
-let visualizerIntensity = 0;
-
-function drawRoundedRect(ctx, x, y, width, height, radius) {
-  ctx.beginPath();
-  ctx.moveTo(x + radius, y);
-  ctx.lineTo(x + width - radius, y);
-  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-  ctx.lineTo(x + width, y + height);
-  ctx.lineTo(x, y + height);
-  ctx.lineTo(x, y + radius);
-  ctx.quadraticCurveTo(x, y, x + radius, y);
-  ctx.closePath();
-  ctx.fill();
-}
-
-function drawSulfurSigil(ctx, cx, cy, size, rotateRad, strokeStyle, fillStyle, lineWidth = 2) {
-  ctx.save();
-  ctx.translate(cx, cy);
-  if (rotateRad) {
-    ctx.rotate(rotateRad);
-  }
-  
-  const scale = size / 116;
-  
-  ctx.beginPath();
-  ctx.strokeStyle = strokeStyle || "#ff2a2a";
-  ctx.lineWidth = lineWidth;
-  ctx.lineCap = "round";
-  ctx.lineJoin = "round";
-  
-  // 1. Draw triangle
-  ctx.moveTo(0 * scale, -58 * scale);
-  ctx.lineTo(48 * scale, 24 * scale);
-  ctx.lineTo(-48 * scale, 24 * scale);
-  ctx.closePath();
-  if (fillStyle) {
-    ctx.fillStyle = fillStyle;
-    ctx.fill();
-  }
-  ctx.stroke();
-  
-  // 2. Draw vertical line & horizontal cross bar
-  ctx.beginPath();
-  ctx.moveTo(0 * scale, 22 * scale);
-  ctx.lineTo(0 * scale, 58 * scale);
-  ctx.moveTo(-23 * scale, 41 * scale);
-  ctx.lineTo(23 * scale, 41 * scale);
-  ctx.stroke();
-  
-  ctx.restore();
-}
-
-function startVisualizerLoop() {
-  if (visualizerState.active) return;
-  visualizerState.active = true;
-
-  function drawFrame() {
-    if (!visualizerState.active) return;
-    visualizerState.reqId = requestAnimationFrame(drawFrame);
-
-    const canvas = document.getElementById("playerVisualizer");
-    if (!canvas) {
-      stopVisualizerLoop();
-      return;
-    }
-    const ctx = canvas.getContext("2d");
-    const width = canvas.width;
-    const height = canvas.height;
-
-    ctx.clearRect(0, 0, width, height);
-
-    const barCount = 14;
-    const isPlaying = !!(currentAudio && !currentAudio.paused);
-    const time = Date.now() * 0.004;
-
-    // 1. Calculate and update heights (with dynamic frequency-weighted sensitivity to prevent bass-maxing)
-    // Organized symmetrically: Center is Bass (low frequency), Edges are Treble (high frequency)
-    for (let i = 0; i < barCount; i++) {
-      let target = 0;
-      const dist = Math.abs(i - (barCount - 1) / 2); // Distance from center: 0 to 7.5
-      const ratio = dist / ((barCount - 1) / 2); // 0 in center, 1 at outer edges
-      
-      // Dynamic sensitivity curve: Bass (center) is scaled down to 0.62x, Treble (edges) boosted up to 1.7x
-      const freqBooster = 0.62 + ratio * 1.08;
-      
-      if (isPlaying) {
-        if (visualizerState.analyser && !visualizerState.isSimulated) {
-          const rawData = new Uint8Array(visualizerState.analyser.frequencyBinCount);
-          visualizerState.analyser.getByteFrequencyData(rawData);
-          
-          // Logarithmic bin mapping (map 16 bars to 256 frequency bins)
-          // Map edges to active treble ranges (~8kHz) instead of dead ranges (>15kHz)
-          const maxBin = Math.floor(rawData.length * 0.38);
-          const minBin = 1;
-          const binIndex = Math.min(
-            rawData.length - 1,
-            Math.floor(Math.pow(ratio, 1.6) * (maxBin - minBin) + minBin)
-          );
-          target = (rawData[binIndex] || 0) * freqBooster;
-          target = Math.min(255, target);
-        } else {
-          // Simulated music waves (seeded organic variations for uniqueness per track, mapped symmetrically)
-          let songSeed = 0;
-          if (currentPlayingLi) {
-            const titleNode = currentPlayingLi.querySelector(".track-title strong");
-            if (titleNode) {
-              const title = titleNode.textContent;
-              for (let j = 0; j < title.length; j++) {
-                songSeed += title.charCodeAt(j);
-              }
-            }
-          }
-          const speed = 1.0 + (songSeed % 4) * 0.15;
-          const phase = time * speed;
-          
-          if (dist <= 2) {
-            // Bass pulse in the center (4 bars)
-            const bassPulse = Math.max(0, Math.sin(phase * 3.5) + Math.sin(phase * 0.7));
-            target = (bassPulse * 0.45 + Math.random() * 0.2) * 150 + 30;
-          } else if (dist <= 5) {
-            // Midrange in the middle-outer bands (6 bars)
-            const midWave = Math.sin(phase * 1.8 + dist * 0.5) * 0.4 + 0.6;
-            target = (midWave * 0.6 + Math.random() * 0.2) * 130 + 30;
-          } else {
-            // Treble flicker on the outer edges (6 bars)
-            const highFlicker = Math.sin(phase * 5.0 + dist * 0.8) * 0.3 + 0.5;
-            target = (highFlicker * 0.4 + Math.random() * 0.3) * 90 + 20;
-          }
-          const envelope = Math.sin((i / barCount) * Math.PI) * 0.35 + 0.65; // Gentler dome envelope so edges remain active
-          target *= envelope * freqBooster;
-          target = Math.min(255, target);
-        }
-
-        // Symmetrical organic variation so adjacent columns bounce to different heights
-        const columnVar = 0.85 + Math.sin(dist * 2.1) * 0.15;
-        target *= columnVar;
-        target = Math.min(255, target);
-      } else {
-        // Ambient idle ripple
-        const idleWave = Math.sin(time * 0.8 + i * 0.4) * 0.5 + 0.5;
-        target = idleWave * 8;
-      }
-
-      // Smooth snappy interpolation
-      visualizerHeights[i] += (target - visualizerHeights[i]) * (isPlaying ? 0.28 : 0.1);
-    }
-
-    // Compute overall intensity (0-1) from average bar heights for particle system scaling
-    let avgHeight = 0;
-    for (let i = 0; i < barCount; i++) {
-      avgHeight += visualizerHeights[i] / 255;
-    }
-    avgHeight /= barCount;
-    // Smooth the intensity with faster attack and slower release for responsive feel
-    const intensityTarget = Math.min(1, avgHeight * 1.2);
-    const intensitySmooth = intensityTarget > visualizerIntensity ? 0.18 : 0.06;
-    visualizerIntensity += (intensityTarget - visualizerIntensity) * intensitySmooth;
-
-    // 2. Draw horizontal row of reacting sulfur sigils
-    // Anchored and mathematically constrained to never exceed canvas boundaries (no cutoff/hangoff)
-    const spacing = width / barCount;
-    for (let i = 0; i < barCount; i++) {
-      const val = visualizerHeights[i];
-      const size = 13 + (val / 255) * 11; // Size ranges from 13px (idle) to 24px (max bounce)
-      const topMargin = 12;   // Increased to 12px to guarantee no clipping even with shadow blur
-      const bottomMargin = 10; // Baseline floor margin
-      
-      // Calculate constrained Y position:
-      const cyIdle = height - size / 2 - bottomMargin;
-      const cyMax = size / 2 + topMargin;
-      const cy = cyIdle - (val / 255) * (cyIdle - cyMax);
-      
-      const cx = i * spacing + spacing / 2;
-      const glow = isPlaying ? (val / 255) * 15 + 2 : 2;
-      const color = isPlaying 
-        ? `rgba(255, 42, 42, ${0.35 + (val / 255) * 0.65})` 
-        : "rgba(216, 209, 185, 0.22)";
-      const lWidth = isPlaying ? 1.4 + (val / 255) * 0.8 : 1.8;
-
-      // Draw a subtle high-tech glowing vertical anchor line (laser stem) under the sigil
-      if (isPlaying && val > 5) {
-        ctx.save();
-        ctx.beginPath();
-        ctx.strokeStyle = `rgba(255, 42, 42, ${0.08 + (val / 255) * 0.12})`;
-        ctx.lineWidth = 1.0;
-        ctx.moveTo(cx, height - bottomMargin);
-        ctx.lineTo(cx, cy + size / 2 - 2);
-        ctx.stroke();
-        ctx.restore();
-      }
-
-      // Volumetric high-tech gradient fill inside the sigil triangle
-      let fillGlow = null;
-      if (isPlaying && val > 15) {
-        fillGlow = ctx.createLinearGradient(cx, cy - size / 2, cx, cy + size / 2);
-        fillGlow.addColorStop(0, `rgba(255, 42, 42, ${0.18 * (val / 255)})`);
-        fillGlow.addColorStop(1, "rgba(255, 42, 42, 0)");
-      }
-
-      // High-tech vertical reflection at the bottom
-      if (isPlaying && val > 20) {
-        ctx.save();
-        ctx.globalAlpha = 0.15 * (val / 255);
-        ctx.translate(cx, height - bottomMargin + 4);
-        ctx.scale(1, -0.6); // Invert vertically and squish
-        ctx.translate(-cx, -cy);
-        drawSulfurSigil(ctx, cx, cy, size, 0, color, null, 1.2);
-        ctx.restore();
-      }
-
-      ctx.save();
-      ctx.shadowBlur = glow;
-      ctx.shadowColor = "#ff2a2a";
-      drawSulfurSigil(ctx, cx, cy, size, 0, color, fillGlow, lWidth);
-      ctx.restore();
-
-      // Spawn tiny sulfur sigil embers/sparks from the top of bouncing sigils
-      // Particle count and properties now scale with overall music intensity
-      const spawnThreshold = 0.04 + visualizerIntensity * 0.40;
-      const maxParticles = Math.round(8 + visualizerIntensity * 55);
-      if (isPlaying && val > 50 + (1 - visualizerIntensity) * 40 && Math.random() < spawnThreshold && visualizerParticles.length < maxParticles) {
-        const intensityBoost = visualizerIntensity * 1.6;
-        visualizerParticles.push({
-          x: cx,
-          y: cy - size / 2,
-          vx: (Math.random() - 0.5) * (0.6 + intensityBoost * 1.0),
-          vy: -(Math.random() * 1.2 + 0.3 + intensityBoost * 1.8),
-          size: 4 + Math.random() * (6 + intensityBoost * 8),
-          color: Math.random() < 0.18 + visualizerIntensity * 0.22 ? "#ffaa00" : "#ff2a2a",
-          alpha: 1.0,
-          decay: 0.025 + Math.random() * 0.020 - visualizerIntensity * 0.015,
-          rotation: Math.random() * Math.PI * 2,
-          rotSpeed: (Math.random() - 0.5) * (0.04 + intensityBoost * 0.08)
-        });
-      }
-    }
-
-    // 3. Update and draw particles (embers) as tiny rotating sulfur sigils
-    // When music is not playing, rapidly decay all existing particles
-    if (visualizerParticles.length > 0) {
-      if (!isPlaying) {
-        for (let pIdx = visualizerParticles.length - 1; pIdx >= 0; pIdx--) {
-          visualizerParticles[pIdx].decay *= 3.5;
-        }
-      }
-      for (let pIdx = visualizerParticles.length - 1; pIdx >= 0; pIdx--) {
-        const p = visualizerParticles[pIdx];
-        p.x += p.vx;
-        p.y += p.vy;
-        p.alpha -= p.decay;
-        p.rotation += p.rotSpeed;
-
-        if (p.alpha <= 0 || p.y < -30) {
-          visualizerParticles.splice(pIdx, 1);
-          continue;
-        }
-
-        ctx.save();
-        // Fade out embers naturally as they approach the top edge (fade-to-smoke boundary of 20px)
-        const boundaryFade = Math.max(0, Math.min(1, p.y / 20));
-        ctx.globalAlpha = p.alpha * boundaryFade;
-        ctx.shadowBlur = 4;
-        ctx.shadowColor = p.color;
-        
-        // Draw the ember sigil outline
-        drawSulfurSigil(ctx, p.x, p.y, p.size, p.rotation, p.color, null, 1.2);
-        
-        // Draw tiny luminous core
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, 1.0, 0, Math.PI * 2);
-        ctx.fillStyle = "#ffffff";
-        ctx.shadowBlur = 5;
-        ctx.shadowColor = "#ffffff";
-        ctx.fill();
-        
-        ctx.restore();
-      }
-    }
-  }
-
-  visualizerState.reqId = requestAnimationFrame(drawFrame);
-}
-
-function stopVisualizerLoop() {
-  visualizerState.active = false;
-  if (visualizerState.reqId) {
-    cancelAnimationFrame(visualizerState.reqId);
-    visualizerState.reqId = null;
-  }
-}
-
-function cleanTitle(title) {
-  const base = title.split("(")[0].split("feat.")[0].trim();
-  return base.toLowerCase().replace(/[^a-z0-9]/g, "");
-}
-
-function fetchDeezerPreviews() {
-  if (previewFetcherPromise) return previewFetcherPromise;
-  
-  previewFetcherPromise = new Promise((resolve) => {
-    const callbackName = "deezer_callback_" + Date.now();
-    window[callbackName] = function(response) {
-      if (response && response.data) {
-        response.data.forEach(track => {
-          const clean = cleanTitle(track.title);
-          if (track.preview) {
-            previewUrls[clean] = track.preview;
-          }
-        });
-      }
-      delete window[callbackName];
-      resolve();
-    };
-    
-    const script = document.createElement("script");
-    script.src = `https://api.deezer.com/search?q=artist:"Somethin Outta Nothin"&limit=100&output=jsonp&callback=${callbackName}`;
-    script.onerror = () => {
-      delete window[callbackName];
-      resolve();
-    };
-    document.body.appendChild(script);
-  });
-  
-  return previewFetcherPromise;
-}
-
-function playPreview(title, li) {
-  const clean = cleanTitle(title);
-  const url = previewUrls[clean];
-  
-  if (!url) {
-    console.warn("No preview URL found for track:", title);
-    return;
-  }
-  
-  if (currentAudio) {
-    currentAudio.pause();
-    if (currentPlayingLi) {
-      currentPlayingLi.classList.remove("is-playing");
-    }
-    
-    if (currentAudio.src === url) {
-      currentAudio = null;
-      currentPlayingLi = null;
-      updatePlayerBarState();
-      return;
-    }
-  }
-
-  const playAudioWithVisualizer = (useCORS) => {
-    const audio = new Audio();
-    if (useCORS) {
-      audio.crossOrigin = "anonymous";
-    }
-    audio.src = url;
-    audio.volume = globalVolume;
-
-    audio.addEventListener("ended", () => {
-      li.classList.remove("is-playing");
-      if (currentAudio === audio) {
-        currentAudio = null;
-        currentPlayingLi = null;
-      }
-      updatePlayerBarState();
-    });
-
-    audio.addEventListener("error", () => {
-      if (useCORS) {
-        console.warn("CORS audio play blocked, retrying without CORS");
-        li.classList.remove("is-playing");
-        playAudioWithVisualizer(false);
-      } else {
-        li.classList.remove("is-playing");
-        if (currentAudio === audio) {
-          currentAudio = null;
-          currentPlayingLi = null;
-        }
-        updatePlayerBarState();
-      }
-    });
-
-    audio.play().then(() => {
-      updatePlayerBarState();
-      
-      if (useCORS) {
-        try {
-          if (!visualizerState.audioContext) {
-            visualizerState.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-          }
-          if (visualizerState.audioContext.state === "suspended") {
-            visualizerState.audioContext.resume();
-          }
-          
-          const source = visualizerState.audioContext.createMediaElementSource(audio);
-          const analyser = visualizerState.audioContext.createAnalyser();
-          analyser.fftSize = 512;
-          source.connect(analyser);
-          analyser.connect(visualizerState.audioContext.destination);
-          
-          visualizerState.analyser = analyser;
-          visualizerState.isSimulated = false;
-        } catch (e) {
-          console.warn("Web Audio API binding failed, using simulated visualizer:", e);
-          visualizerState.analyser = null;
-          visualizerState.isSimulated = true;
-        }
-      } else {
-        visualizerState.analyser = null;
-        visualizerState.isSimulated = true;
-      }
-      
-      startVisualizerLoop();
-    }).catch(err => {
-      console.error("Audio playback error:", err);
-      if (useCORS) {
-        console.warn("Playback error on CORS attempt, retrying without CORS");
-        li.classList.remove("is-playing");
-        playAudioWithVisualizer(false);
-      } else {
-        updatePlayerBarState();
-      }
-    });
-
-    currentAudio = audio;
-    currentPlayingLi = li;
-    li.classList.add("is-playing");
-  };
-
-  playAudioWithVisualizer(true);
-}
-
-function adjustTrackDisplayFontSize(element) {
-  if (!element) return;
-  const baseFontSizeRem = 1.5;
-  const minFontSizeRem = 0.6;
-  
-  element.style.setProperty('font-size', `${baseFontSizeRem}rem`, 'important');
-  
-  const clientWidth = element.clientWidth;
-  const scrollWidth = element.scrollWidth;
-  
-  if (clientWidth > 0 && scrollWidth > clientWidth) {
-    const ratio = clientWidth / scrollWidth;
-    const newSize = Math.max(minFontSizeRem, baseFontSizeRem * ratio * 0.95);
-    element.style.setProperty('font-size', `${newSize}rem`, 'important');
-  }
-}
-
-// Register a ResizeObserver to dynamic-size the track name on layout/container changes
-if (typeof window !== "undefined" && !window.__TRACK_DISPLAY_OBSERVER) {
-  window.__TRACK_DISPLAY_OBSERVER = new ResizeObserver((entries) => {
-    window.requestAnimationFrame(() => {
-      for (let entry of entries) {
-        adjustTrackDisplayFontSize(entry.target);
-      }
-    });
-  });
-}
-
-function updatePlayerBarState() {
-  const consoleNode = viewRoot.querySelector("[data-album-console]");
-  if (!consoleNode) return;
-  const playerShell = consoleNode.querySelector("#playerShell");
-
-  const playIcon = consoleNode.querySelector("#playIcon");
-  const pauseIcon = consoleNode.querySelector("#pauseIcon");
-  const trackDisplay = consoleNode.querySelector("#playerTrackDisplay");
-  const playPauseBtn = consoleNode.querySelector("#playerPlayPauseBtn");
-  
-  const isPlaying = !!(currentAudio && !currentAudio.paused);
-  
-  if (playerShell) {
-    playerShell.classList.toggle("is-playing", isPlaying);
-  }
-  if (playPauseBtn) {
-    playPauseBtn.classList.toggle("is-playing", isPlaying);
-  }
-  if (playIcon && pauseIcon) {
-    playIcon.style.display = isPlaying ? "none" : "block";
-    pauseIcon.style.display = isPlaying ? "block" : "none";
-  }
-
-  if (trackDisplay) {
-    if (isPlaying && currentPlayingLi) {
-      const titleNode = currentPlayingLi.querySelector(".track-title strong");
-      if (titleNode) {
-        trackDisplay.textContent = titleNode.textContent;
-        trackDisplay.classList.add("is-playing");
-      }
-    } else {
-      trackDisplay.textContent = "SELECT A TRACK";
-      trackDisplay.classList.remove("is-playing");
-    }
-    // Dynamic resize if too long
-    adjustTrackDisplayFontSize(trackDisplay);
-  }
-}
-
-function togglePlayPause() {
-  if (currentAudio) {
-    if (currentPlayingLi) {
-      const trackTitleNode = currentPlayingLi.querySelector(".track-title strong");
-      if (trackTitleNode) {
-        playPreview(trackTitleNode.textContent, currentPlayingLi);
-      }
-    } else {
-      currentAudio.pause();
-      currentAudio = null;
-      updatePlayerBarState();
-    }
-  } else {
-    const consoleNode = viewRoot.querySelector("[data-album-console]");
-    if (consoleNode) {
-      const firstLi = consoleNode.querySelector("#albumTrackList li");
-      if (firstLi) {
-        const trackTitleNode = firstLi.querySelector(".track-title strong");
-        if (trackTitleNode) {
-          playPreview(trackTitleNode.textContent, firstLi);
-        }
-      }
-    }
-  }
-}
-
-function bindAlbumConsole() {
-  const consoleNode = viewRoot.querySelector("[data-album-console]");
-  if (!consoleNode) return;
-
-  // Start pre-fetching previews dynamically in background
-  fetchDeezerPreviews();
-
-  const cards = consoleNode.querySelectorAll("[data-album-id]");
-  const albums = musicAlbums();
-  const background = consoleNode.querySelector("#albumHeroBg");
-  const image = consoleNode.querySelector("#albumHeroImage");
-  const title = consoleNode.querySelector("#albumHeroTitle");
-  const accent = consoleNode.querySelector("#albumHeroAccent");
-  const factGrid = consoleNode.querySelector("#albumFactGrid");
-  const trackCount = consoleNode.querySelector("#albumTrackCount");
-  const trackList = consoleNode.querySelector("#albumTrackList");
-  const spotifyLink = consoleNode.querySelector("#albumSpotifyLink");
-
-  // Bind custom player controls
-  const playPauseBtn = consoleNode.querySelector("#playerPlayPauseBtn");
-  const volumeSlider = consoleNode.querySelector("#playerVolumeSlider");
-  const trackDisplay = consoleNode.querySelector("#playerTrackDisplay");
-  const volumeContainer = consoleNode.querySelector("#playerVolumeContainer");
-  const volumeToggleBtn = consoleNode.querySelector("#volumeToggleBtn");
-
-  if (trackDisplay && window.__TRACK_DISPLAY_OBSERVER) {
-    window.__TRACK_DISPLAY_OBSERVER.observe(trackDisplay);
-    adjustTrackDisplayFontSize(trackDisplay);
-  }
-
-  if (playPauseBtn) {
-    playPauseBtn.addEventListener("click", () => {
-      togglePlayPause();
-    });
-  }
-
-  if (volumeToggleBtn && volumeContainer) {
-    volumeToggleBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      volumeContainer.classList.toggle("is-expanded");
-    });
-  }
-
-  if (volumeContainer) {
-    volumeContainer.addEventListener("click", (e) => {
-      e.stopPropagation();
-    });
-  }
-
-  if (volumeSlider) {
-    volumeSlider.value = globalVolume;
-    volumeSlider.addEventListener("input", (e) => {
-      globalVolume = parseFloat(e.target.value);
-      if (currentAudio) {
-        currentAudio.volume = globalVolume;
-      }
-    });
-  }
-
-  // Document-level collapse handler (only bound once)
-  if (typeof window !== "undefined" && !window.__VOLUME_COLLAPSE_BOUND) {
-    window.__VOLUME_COLLAPSE_BOUND = true;
-    document.addEventListener("click", () => {
-      const container = document.querySelector("#playerVolumeContainer");
-      if (container) {
-        container.classList.remove("is-expanded");
-      }
-    });
-  }
-
-  // Play preview when clicking on a track card
-  const setupTrackClicks = () => {
-    if (trackList) {
-      // Remove any existing click handlers by replacing innerHTML or cloning?
-      // Since innerHTML is re-rendered on album swap, we can just bind to the container.
-      const newTrackList = trackList.cloneNode(true);
-      trackList.parentNode.replaceChild(newTrackList, trackList);
-      
-      newTrackList.addEventListener("click", (e) => {
-        const li = e.target.closest("li");
-        if (!li) return;
-        
-        const trackTitleNode = li.querySelector(".track-title strong");
-        if (trackTitleNode) {
-          playPreview(trackTitleNode.textContent, li);
-        }
-      });
-    }
-  };
-
-  setupTrackClicks();
-  startVisualizerLoop();
-
-  cards.forEach((card) => {
-    card.addEventListener("click", () => {
-      // Stop any playing preview when switching albums
-      if (currentAudio) {
-        currentAudio.pause();
-        currentAudio = null;
-      }
-      if (currentPlayingLi) {
-        currentPlayingLi.classList.remove("is-playing");
-        currentPlayingLi = null;
-      }
-      updatePlayerBarState();
-
-      const album = albums.find((item) => item.id === card.dataset.albumId);
-      if (!album) return;
-
-      cards.forEach((candidate) => {
-        candidate.classList.toggle("is-active", candidate === card);
-        candidate.setAttribute("aria-pressed", candidate === card ? "true" : "false");
-      });
-
-      consoleNode.classList.remove("is-swapping");
-      void consoleNode.offsetWidth;
-      consoleNode.classList.add("is-swapping");
-
-      if (image) {
-        image.src = album.image;
-        image.alt = album.title;
-      }
-      if (background) background.src = album.image;
-      if (title) title.textContent = album.title;
-      if (accent) accent.textContent = album.accent;
-      if (factGrid) factGrid.innerHTML = renderAlbumFacts(album);
-      if (trackCount) trackCount.textContent = `${album.trackCount} tracks / ${album.runtime}`;
-      if (trackList) {
-        const activeTrackList = consoleNode.querySelector("#albumTrackList");
-        activeTrackList.innerHTML = renderTrackList(album);
-        setupTrackClicks();
-      }
-      if (spotifyLink) {
-        spotifyLink.href = album.href;
-      }
-    });
-  });
-}
-
-function addToCart(product, option) {
-  const key = `${product.id}:${option.id}`;
-  const current = cart.get(key) || { product, option, quantity: 0 };
-  cart.set(key, { product, option, quantity: current.quantity + 1 });
-  saveCart();
-  renderCart();
-}
-
-function removeFromCart(key) {
-  cart.delete(key);
-  saveCart();
-  renderCart();
-}
-
-function renderCart() {
-  const cartItems = viewRoot.querySelector("#cartItems");
-  const cartTotal = viewRoot.querySelector("#cartTotal");
-  const checkoutButton = viewRoot.querySelector("#checkout");
-  if (!cartItems || !cartTotal || !checkoutButton) return;
-
-  const items = [...cart.entries()];
-
-  if (!items.length) {
-    cartItems.innerHTML = `<p class="empty">No items selected.</p>`;
-    cartTotal.textContent = money.format(0);
-    checkoutButton.disabled = true;
-    return;
-  }
-
-  checkoutButton.disabled = false;
-  cartItems.innerHTML = items
-    .map(
-      ([key, { product, option, quantity }]) => `
-        <div class="cart-row">
-          <div>
-            <span>${product.title}</span>
-            <small>${option.name} x ${quantity}</small>
-          </div>
-          <div class="cart-controls" aria-label="Adjust ${product.title}">
-            <button class="cart-adjust" type="button" data-adjust="${key}" data-delta="-1" aria-label="Decrease ${product.title}">-</button>
-            <button class="cart-adjust" type="button" data-adjust="${key}" data-delta="1" aria-label="Increase ${product.title}">+</button>
-          </div>
-          <button class="cart-remove" type="button" data-remove="${key}" aria-label="Remove ${product.title}">Remove</button>
-        </div>
-      `
-    )
-    .join("");
-
-  cartItems.querySelectorAll("[data-remove]").forEach((button) => {
-    button.addEventListener("click", () => removeFromCart(button.dataset.remove));
-  });
-
-  cartItems.querySelectorAll("[data-adjust]").forEach((button) => {
-    button.addEventListener("click", () =>
-      adjustCart(button.dataset.adjust, Number(button.dataset.delta))
-    );
-  });
-
-  const total = items.reduce(
-    (sum, [, item]) => sum + item.product.price * item.quantity,
-    0
-  );
-  cartTotal.textContent = money.format(total);
-}
-
-function adjustCart(key, delta) {
-  const current = cart.get(key);
-  if (!current) return;
-
-  const quantity = current.quantity + delta;
-  if (quantity <= 0) {
-    cart.delete(key);
-  } else {
-    cart.set(key, { ...current, quantity });
-  }
-
-  saveCart();
-  renderCart();
-}
-
-function getRootDomain(hostname) {
-  if (!hostname || hostname === "localhost" || hostname === "127.0.0.1") return hostname;
-  const parts = hostname.split(".");
-  if (parts.length <= 2) return hostname;
-  return parts.slice(-2).join(".");
-}
-
-function isSameSite(url1, url2) {
-  try {
-    const host1 = new URL(url1, window.location.origin).hostname;
-    const host2 = new URL(url2, window.location.origin).hostname;
-    return getRootDomain(host1) === getRootDomain(host2);
-  } catch {
-    return false;
-  }
-}
-
-function checkout() {
-  const items = [...cart.values()];
-  if (!items.length) return;
-  const status = viewRoot.querySelector("#cartStatus");
-  const checkoutButton = viewRoot.querySelector("#checkout");
-
-  if (checkoutButton) {
-    checkoutButton.disabled = true;
-  }
-
-  if (items.length === 1) {
-    if (status) {
-      status.textContent = "Redirecting to checkout...";
-    }
-    const { option, quantity } = items[0];
-    submitCartItem(option.id, quantity, "_self");
-    cart.clear();
-    saveCart();
-    renderCart();
-    return;
-  }
-
-  // Detect Same-Site vs Cross-Site for cookie context
-  const sameSite = isSameSite(window.location.href, checkoutConfig.cartUrl);
-
-  if (!sameSite) {
-    if (status) {
-      status.style.minHeight = "auto";
-      status.innerHTML = `
-        <div class="cart-warning">
-          <p><strong>Multi-item checkout is restricted by browser security on this domain.</strong></p>
-          <p>Because the current site is running cross-site to your Big Cartel store, browser security blocks cart session cookies. In production, this will work seamlessly when your custom subdomain (e.g., <code>shop.yourdomain.com</code>) is configured.</p>
-          <p>For now, you can buy single items, or add these items manually on the store:</p>
-          <ul class="fallback-links">
-            ${items.map(({ product }) => `
-              <li><a href="${product.url}" target="_blank" rel="noreferrer">${escapeHTML(product.title)}</a></li>
-            `).join("")}
-          </ul>
-        </div>
-      `;
-    }
-    if (checkoutButton) {
-      checkoutButton.disabled = false;
-    }
-    return;
-  }
-
-  // Same-Site multi-item cart handoff (Production)
-  const targetName = "bigcartel_checkout";
-  if (status) {
-    status.textContent = `Preparing checkout (0/${items.length})...`;
-  }
-
-  // Open a blank window under user action context to prevent popup blockers.
-  const checkoutWindow = window.open("about:blank", targetName);
-
-  items.forEach(({ option, quantity, product }, index) => {
-    window.setTimeout(() => {
-      if (status) {
-        status.textContent = `Adding ${product.title} (${index + 1}/${items.length})...`;
-      }
-      submitCartItem(option.id, quantity, targetName);
-    }, index * 2000);
-  });
-
-  window.setTimeout(() => {
-    if (status) {
-      status.textContent = "Redirecting to checkout...";
-    }
-    // Final redirect to the cart URL to view all items and proceed to checkout
-    if (checkoutWindow) {
-      checkoutWindow.location.href = checkoutConfig.cartUrl;
-    }
-    if (status) {
-      status.textContent = "Checkout prepared in new window!";
-    }
-    if (checkoutButton) {
-      checkoutButton.disabled = false;
-    }
-    cart.clear();
-    saveCart();
-    renderCart();
-  }, items.length * 2000 + 500);
-}
-
-function submitCartItem(optionId, quantity, targetName) {
-  const form = document.createElement("form");
-  form.method = "post";
-  form.action = checkoutConfig.cartUrl;
-  form.target = targetName;
-
-  const idInput = document.createElement("input");
-  idInput.type = "hidden";
-  idInput.name = "cart[add][id]";
-  idInput.value = optionId;
-  form.appendChild(idInput);
-
-  const quantityInput = document.createElement("input");
-  quantityInput.type = "hidden";
-  quantityInput.name = "cart[add][quantity]";
-  quantityInput.value = String(quantity);
-  form.appendChild(quantityInput);
-
-  document.body.appendChild(form);
-  form.submit();
-  form.remove();
-}
-
-function openBigCartelCart(targetName) {
-  const form = document.createElement("form");
-  form.method = "get";
-  form.action = checkoutConfig.cartUrl;
-  form.target = targetName;
-
-  document.body.appendChild(form);
-  form.submit();
-  form.remove();
-}
-
-function initPointerTracking() {
-  const overlay = document.createElement("div");
-  overlay.className = "ambient-pointer-overlay";
-  document.body.appendChild(overlay);
-
-  let mouseX = window.innerWidth / 2;
-  let mouseY = window.innerHeight / 2;
-  let ticking = false;
-
-  document.addEventListener("mousemove", (event) => {
-    mouseX = event.clientX;
-    mouseY = event.clientY;
-
-    if (!ticking) {
-      window.requestAnimationFrame(() => {
-        overlay.style.transform = `translate3d(${mouseX}px, ${mouseY}px, 0)`;
-        ticking = false;
-      });
-      ticking = true;
-    }
-  });
-}
-
-function refreshProductGrid() {
-  const grid = viewRoot.querySelector(".product-grid");
-  if (grid) {
-    grid.innerHTML = products.map((product, index) => renderProduct(product, index)).join("");
-    bindStoreElements();
-  }
-}
-
-function loadBigCartelProductsJSONP() {
-  return new Promise((resolve, reject) => {
-    const callbackName = "cb_" + Math.random().toString(36).substring(2, 9);
-    const script = document.createElement("script");
-    script.id = callbackName;
-    script.src = `https://legionrealm.bigcartel.com/products.js?callback=${callbackName}`;
-    
-    const timeout = setTimeout(() => {
-      cleanup();
-      reject(new Error("JSONP request timed out"));
-    }, 6000);
-
-    function cleanup() {
-      clearTimeout(timeout);
-      delete window[callbackName];
-      const el = document.getElementById(callbackName);
-      if (el) el.remove();
-    }
-
-    window[callbackName] = function(data) {
-      cleanup();
-      if (data && Array.isArray(data)) {
-        resolve(data);
-      } else {
-        reject(new Error("Invalid JSONP response format"));
-      }
-    };
-
-    script.onerror = () => {
-      cleanup();
-      reject(new Error("JSONP script load failed"));
-    };
-
-    document.body.appendChild(script);
-  });
-}
-
-async function loadBigCartelProductsProxy(proxyUrl) {
-  const targetUrl = "https://legionrealm.bigcartel.com/products.js";
-  const url = proxyUrl.includes("quest=") 
-    ? proxyUrl + encodeURIComponent(targetUrl)
-    : proxyUrl + targetUrl;
-  
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Fetch failed with status ${res.status}`);
-  
-  const text = await res.text();
-  try {
-    const parsed = JSON.parse(text);
-    if (Array.isArray(parsed)) return parsed;
-    if (parsed.contents) {
-      const contentsParsed = JSON.parse(parsed.contents);
-      if (Array.isArray(contentsParsed)) return contentsParsed;
-    }
-  } catch (e) {
-    throw new Error("Failed to parse proxy response as JSON");
-  }
-  throw new Error("Response is not a valid JSON array");
-}
-
-function processProductsData(data) {
-  if (!Array.isArray(data)) {
-    throw new Error("Products data is not an array");
-  }
-  // Clear hardcoded fallback products
-  products.length = 0; 
-  
-  // Populate with actual Big Cartel products
-  data.forEach(item => {
-    products.push({
-      id: String(item.id),
-      title: item.name,
-      price: item.price,
-      url: "https://legionrealm.bigcartel.com" + item.url,
-      image: item.images.length > 0 ? item.images[0].url : "",
-      note: (item.description || "").replace(/(<([^>]+)>)/gi, "").substring(0, 80).trim(),
-      options: item.options.map(o => ({
-        id: String(o.id),
-        name: o.name,
-        soldOut: o.sold_out
-      }))
-    });
-  });
-}
-
-async function loadBigCartelProducts() {
-  let data = null;
-
-  // 1. Try JSONP (Direct, bypasses CORS, highly reliable in browsers)
-  try {
-    console.log("Attempting to load products via JSONP...");
-    data = await loadBigCartelProductsJSONP();
-    console.log("Successfully loaded products via JSONP.");
-  } catch (jsonpErr) {
-    console.warn("JSONP failed, trying CORS proxies...", jsonpErr);
-    
-    // 2. Try CORS proxies sequentially
-    const proxies = [
-      "https://api.codetabs.com/v1/proxy?quest=",
-      "https://corsproxy.io/?",
-      "https://api.allorigins.win/raw?url="
-    ];
-
-    for (const proxy of proxies) {
-      try {
-        console.log(`Attempting to load products via proxy: ${proxy}...`);
-        data = await loadBigCartelProductsProxy(proxy);
-        console.log(`Successfully loaded products via proxy: ${proxy}`);
-        break; // Stop at the first successful proxy
-      } catch (proxyErr) {
-        console.warn(`Proxy failed: ${proxy}`, proxyErr);
-      }
-    }
-  }
-
-  // 3. Process data if loaded successfully
-  if (data) {
-    try {
-      processProductsData(data);
-      refreshProductGrid();
-    } catch (processErr) {
-      console.error("Failed to process loaded product data:", processErr);
-    }
-  } else {
-    console.warn("All dynamic product fetch attempts failed. Keeping fallback products.");
-  }
-}
-
-// Application entry point is initApp on DOMContentLoaded.
-
-function escapeHTML(str) {
-  if (!str) return "";
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
-async function fetchGeocode(url) {
-  const proxies = [
-    "https://corsproxy.io/?url=",
-    "https://api.codetabs.com/v1/proxy?quest=",
-    "https://api.allorigins.win/raw?url="
-  ];
-  
-  for (const proxy of proxies) {
-    try {
-      const res = await fetch(proxy + encodeURIComponent(url));
-      if (res.ok) {
-        const text = await res.text();
-        try {
-          const parsed = JSON.parse(text);
-          if (parsed.contents) {
-            return JSON.parse(parsed.contents);
-          }
-          return parsed;
-        } catch (e) {
-          // Parse failed, try next proxy
-        }
-      }
-    } catch (err) {
-      console.warn("Geocoding proxy failed", err);
-    }
-  }
-  throw new Error("Geocoding service unavailable.");
-}
-
-async function geocodeZipcode(zipcode) {
-  const url = `https://nominatim.openstreetmap.org/search?postalcode=${encodeURIComponent(zipcode)}&country=us&format=json&limit=1&addressdetails=1`;
-  const data = await fetchGeocode(url);
-  if (!data || !data.length) throw new Error("Zipcode not found in the United States");
-  
-  const addr = data[0].address || {};
-  const city = addr.city || addr.town || addr.village || addr.suburb || addr.hamlet || addr.county || "Local";
-  const state = addr.state || "";
-  
-  return {
-    city: city,
-    state: state,
-    displayName: `${city}, ${state}`,
-    lat: parseFloat(data[0].lat),
-    lon: parseFloat(data[0].lon)
-  };
-}
-
-async function reverseGeocode(lat, lon) {
-  const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1`;
-  const data = await fetchGeocode(url);
-  if (!data || !data.address) throw new Error("Location details not found");
-  
-  const addr = data.address || {};
-  const countryCode = (addr.country_code || "").toLowerCase();
-  if (countryCode !== "us") {
-    throw new Error("Device location is outside the United States. Search is restricted to the US.");
-  }
-  
-  const city = addr.city || addr.town || addr.village || addr.suburb || addr.hamlet || addr.county || "Local";
-  const state = addr.state || "";
-  
-  return {
-    city: city,
-    state: state,
-    displayName: `${city}, ${state}`,
-    lat: parseFloat(lat),
-    lon: parseFloat(lon)
-  };
-}
-
-function findJsonLdEvents(data) {
-  let events = [];
-  if (typeof data === "object" && data !== null) {
-    if (Array.isArray(data)) {
-      data.forEach(item => {
-        events = events.concat(findJsonLdEvents(item));
-      });
-    } else {
-      const type = data["@type"];
-      const isEvent = typeof type === "string" && type.toLowerCase().includes("event");
-      if (isEvent) {
-        events.push(data);
-      }
-      for (const key in data) {
-        if (typeof data[key] === "object") {
-          events = events.concat(findJsonLdEvents(data[key]));
-        }
-      }
-    }
-  }
-  return events;
-}
-
-async function fetchEventbriteEvents(locationSlug) {
-  const targetUrl = `https://www.eventbrite.com/d/${locationSlug}/music--events/`;
-  
-  const proxies = [
-    "https://corsproxy.io/?url=",
-    "https://api.codetabs.com/v1/proxy?quest=",
-    "https://api.allorigins.win/raw?url="
-  ];
-  
-  let htmlText = "";
-  let success = false;
-  
-  for (const proxy of proxies) {
-    try {
-      const url = proxy + encodeURIComponent(targetUrl);
-      const res = await fetch(url);
-      if (res.ok) {
-        htmlText = await res.text();
-        success = true;
-        break;
-      }
-    } catch (proxyErr) {
-      console.warn(`Proxy failed: ${proxy}`, proxyErr);
-    }
-  }
-  
-  if (!success) {
-    throw new Error("Failed to contact Eventbrite directly or via proxies.");
-  }
-  
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(htmlText, "text/html");
-  const scripts = doc.querySelectorAll('script[type="application/ld+json"]');
-  
-  let rawEvents = [];
-  scripts.forEach(script => {
-    try {
-      const data = JSON.parse(script.textContent.trim());
-      const found = findJsonLdEvents(data);
-      rawEvents = rawEvents.concat(found);
-    } catch (e) {
-      console.warn("Failed to parse JSON-LD script tag", e);
-    }
-  });
-  
-  const seenUrls = new Set();
-  const events = [];
-  rawEvents.forEach(ev => {
-    const title = ev.name;
-    const url = ev.url;
-    if (!title || !url || seenUrls.has(url)) return;
-    seenUrls.add(url);
-    events.push(ev);
-  });
-  
-  return events;
-}
-
-function renderPromote(view) {
-  return `
-    <div class="promote-page-redesign">
-
-      <!-- Portal Gate Overlay -->
-      <div id="promotePortalGate" class="portal-gate-overlay">
-        <div class="portal-content-box">
-          <h2 class="portal-header-main">Underground Promotion Directives</h2>
-          
-          <!-- Relentless Callout Box -->
-          <div class="portal-relentless-callout">
-            <p class="relentless-text">
-              This is a relentless promotional effort. We ask that you take this guide seriously so we can expand our community and build things to new heights. Show how dedicated you are by agreeing to and living by the examples set forth.
-            </p>
-          </div>
-          
-          <div class="portal-grid">
-            <div class="portal-card-left">
-              <p class="promo-intro-para">
-                Be part of the community in a positive way: show up with a bright attitude to set an example for others, come with your best mindset about things and go with the vibe. Do not join in on hateful conversations, and instead focus on building and that next level of expansion while ignoring everything else.
-              </p>
-              <p class="promo-intro-para">
-                It is about making meaningful connections, making new friends, supporting the art we love, and having a good time above all else. Do it for the love of the music and culture, not for reputation or valor.
-              </p>
-              <p class="promo-intro-para">
-                Always share stuff you actually like and focus your energy on stuff that best reflects you as an individual, but have mutual respect for others in the underground and their arts even if it is not your taste. Do not engage or partake in community based drama, and give newcomers the best experience possible.
-              </p>
-            </div>
-            
-            <div class="portal-values-box">
-              <h3 class="box-title">Core Values</h3>
-              <ul class="values-list">
-                <li><svg class="values-sigil" viewBox="0 0 120 140" aria-hidden="true"><path d="M60 12 L108 94 H12 Z"></path><path d="M60 92 V128 M37 111 H83"></path></svg><span>Telling the truth to ourselves & others.</span></li>
-                <li><svg class="values-sigil" viewBox="0 0 120 140" aria-hidden="true"><path d="M60 12 L108 94 H12 Z"></path><path d="M60 92 V128 M37 111 H83"></path></svg><span>Treating others with compassion.</span></li>
-                <li><svg class="values-sigil" viewBox="0 0 120 140" aria-hidden="true"><path d="M60 12 L108 94 H12 Z"></path><path d="M60 92 V128 M37 111 H83"></path></svg><span>Working hard.</span></li>
-                <li><svg class="values-sigil" viewBox="0 0 120 140" aria-hidden="true"><path d="M60 12 L108 94 H12 Z"></path><path d="M60 92 V128 M37 111 H83"></path></svg><span>Being respectful.</span></li>
-                <li><svg class="values-sigil" viewBox="0 0 120 140" aria-hidden="true"><path d="M60 12 L108 94 H12 Z"></path><path d="M60 92 V128 M37 111 H83"></path></svg><span>Celebrating diversity.</span></li>
-                <li><svg class="values-sigil" viewBox="0 0 120 140" aria-hidden="true"><path d="M60 12 L108 94 H12 Z"></path><path d="M60 92 V128 M37 111 H83"></path></svg><span>Leaving things better than when we arrived.</span></li>
-                <li><svg class="values-sigil" viewBox="0 0 120 140" aria-hidden="true"><path d="M60 12 L108 94 H12 Z"></path><path d="M60 92 V128 M37 111 H83"></path></svg><span>Forgiveness.</span></li>
-                <li><svg class="values-sigil" viewBox="0 0 120 140" aria-hidden="true"><path d="M60 12 L108 94 H12 Z"></path><path d="M60 92 V128 M37 111 H83"></path></svg><span>Humility.</span></li>
-              </ul>
-            </div>
-          </div>
-
-          <!-- Sulfur Sigil Action Button -->
-          <div class="sulfur-sigil-btn-container" id="promoteAgreeBtnContainer" style="cursor: pointer;">
-            <svg id="promoteAgreeSigil" class="sulfur-sigil-btn sulfur-sigil" viewBox="0 0 120 140" xmlns="http://www.w3.org/2000/svg" aria-label="Accept Directives">
-              <path d="M60 12 L108 94 H12 Z"></path>
-              <path d="M60 92 V128 M37 111 H83"></path>
-            </svg>
-            <div class="portal-agree-label">AGREE</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- All active promotion contents wrapped in a toggled container -->
-      <div id="promoteInteractiveSections" class="promote-interactive-sections" style="display: none;">
-        
-        <!-- Premium Campaign Choice Switching Cards -->
-        <div class="campaign-choice-container">
-          <div class="campaign-choice-card" id="choiceCardSocial">
-            <div class="choice-card-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="choice-svg"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
-            </div>
-            <h3 class="choice-card-title">Social Media Campaign</h3>
-            <p class="choice-card-subtitle">Social media expansion & sharing guidelines</p>
-          </div>
-          
-          <div class="campaign-choice-card" id="choiceCardPhysical">
-            <div class="choice-card-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="choice-svg"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
-            </div>
-            <h3 class="choice-card-title">Physical Campaign</h3>
-            <p class="choice-card-subtitle">Outreach canvassing & local street guide</p>
-          </div>
-
-          <div class="campaign-choice-card" id="choiceCardScanner">
-            <div class="choice-card-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="choice-svg"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-            </div>
-            <h3 class="choice-card-title">Promo Search</h3>
-            <p class="choice-card-subtitle">Scan local live music venues & shops</p>
-          </div>
-
-          <div class="campaign-choice-card" id="choiceCardCustom">
-            <div class="choice-card-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="choice-svg">
-                <rect x="3" y="3" width="7" height="7"></rect>
-                <rect x="14" y="3" width="7" height="7"></rect>
-                <rect x="14" y="14" width="7" height="7"></rect>
-                <rect x="3" y="14" width="7" height="7"></rect>
-              </svg>
-            </div>
-            <h3 class="choice-card-title">Custom Media Tools</h3>
-            <p class="choice-card-subtitle">Promotional flyer builder & composition workspace</p>
-          </div>
-
-          <div class="campaign-choice-card" id="choiceCardGlobe">
-            <div class="choice-card-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="choice-svg"><circle cx="12" cy="12" r="10"></circle><ellipse cx="12" cy="12" rx="10" ry="4"></ellipse><line x1="2" y1="12" x2="22" y2="12"></line></svg>
-            </div>
-            <h3 class="choice-card-title">Activity Globe</h3>
-            <p class="choice-card-subtitle">3D globe of community reach & network activity</p>
-          </div>
-
-          <div class="campaign-choice-card" id="choiceCardTraffic">
-            <div class="choice-card-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="choice-svg">
-                <line x1="18" y1="20" x2="18" y2="10"></line>
-                <line x1="12" y1="20" x2="12" y2="4"></line>
-                <line x1="6" y1="20" x2="6" y2="14"></line>
-              </svg>
-            </div>
-            <h3 class="choice-card-title">Real Time Tracker</h3>
-            <p class="choice-card-subtitle">Live sessions & active traffic monitor</p>
-          </div>
-        </div>
-
-        <!-- SECTION 1: SOCIAL MEDIA PROMOTION WRAPPER -->
-        <div id="sectionSocial" class="campaign-section-content" style="display: none;">
-
-          <!-- Tiny Social Channel Cards (Corresponding pictures for all 5 home page things) -->
-          <div class="tiny-channels-container">
-            <span class="tiny-channels-label">Target Channels</span>
-            <div class="tiny-channels-grid">
-              <!-- Somethin Outta Nothin (S.O.N) -->
-              <a href="son.html" class="tiny-channel-card">
-                <img src="images/son/610975344_25729740873323985_7011612998820304873_n.jpg" alt="Somethin Outta Nothin">
-                <div class="tiny-channel-content">
-                  <span class="tiny-channel-social">Section</span>
-                  <strong class="tiny-channel-name">S.O.N</strong>
-                </div>
-              </a>
-
-              <!-- Do It For The Underground -->
-              <a href="underground.html" class="tiny-channel-card">
-                <img src="images/underground/doitfortheunderground.jpg" alt="Do It For The Underground">
-                <div class="tiny-channel-content">
-                  <span class="tiny-channel-social">Section</span>
-                  <strong class="tiny-channel-name">Underground</strong>
-                </div>
-              </a>
-
-              <!-- Cult Divinity -->
-              <a href="divinity.html" class="tiny-channel-card">
-                <img src="images/divinity/divinity.png" alt="Cult Divinity">
-                <div class="tiny-channel-content">
-                  <span class="tiny-channel-social">Section</span>
-                  <strong class="tiny-channel-name">Cult Divinity</strong>
-                </div>
-              </a>
-
-              <!-- Philbrix Studio -->
-              <a href="studio.html" class="tiny-channel-card">
-                <img src="images/philbrix/philbrix-studio.png" alt="Philbrix Studio">
-                <div class="tiny-channel-content">
-                  <span class="tiny-channel-social">Section</span>
-                  <strong class="tiny-channel-name">Philbrix</strong>
-                </div>
-              </a>
-
-              <!-- Night Owl Prints & Keagan Grimm -->
-              <a href="nightowlprints.html" class="tiny-channel-card">
-                <img src="images/nightowlprints/nightowlprints.png" alt="Night Owl Prints">
-                <div class="tiny-channel-content">
-                  <span class="tiny-channel-social">Section</span>
-                  <strong class="tiny-channel-name">Night Owl</strong>
-                </div>
-              </a>
-            </div>
-          </div>
-          <section class="promote-dashboard-section section-system" style="margin-top: 16px;">
-          <h2 class="promo-header-main" style="border-bottom: 1px solid var(--color-line); padding-bottom: 8px; margin-bottom: 16px;">Social Media Promotion Campaign</h2>
-          <div class="dashboard-grid">
-            <!-- Left Column: Daily Checklist -->
-            <div class="dashboard-panel checklist-panel">
-              <h3 class="panel-title">Social Media Daily Checklist</h3>
-              <div class="checklist-container">
-                <label class="checklist-item digital-chk">
-                  <input type="checkbox" data-idx="0">
-                  <span class="custom-checkbox"></span>
-                  <span class="checklist-text">Everyday you should be adding a handful of people on your Facebook.</span>
-                </label>
-                <label class="checklist-item digital-chk">
-                  <input type="checkbox" data-idx="1">
-                  <span class="custom-checkbox"></span>
-                  <span class="checklist-text">Everyday you should be following a handful of people on your Instagram.</span>
-                </label>
-                <label class="checklist-item digital-chk">
-                  <input type="checkbox" data-idx="2">
-                  <span class="custom-checkbox"></span>
-                  <span class="checklist-text">Everyday you should be commenting on posts your favorite artists do.</span>
-                </label>
-                <label class="checklist-item digital-chk">
-                  <input type="checkbox" data-idx="3">
-                  <span class="custom-checkbox"></span>
-                  <span class="checklist-text">Everyday you should be sharing your favorite artists’ posts to your story.</span>
-                </label>
-                <label class="checklist-item digital-chk">
-                  <input type="checkbox" data-idx="4">
-                  <span class="custom-checkbox"></span>
-                  <span class="checklist-text">Everyday you should do at least 1 high quality share on your social media.</span>
-                </label>
-                <label class="checklist-item digital-chk">
-                  <input type="checkbox" data-idx="5">
-                  <span class="custom-checkbox"></span>
-                  <span class="checklist-text">Everyday you should do at least 1 unrelated to another artist post that best reflects you.</span>
-                </label>
-                <label class="checklist-item digital-chk">
-                  <input type="checkbox" data-idx="6">
-                  <span class="custom-checkbox"></span>
-                  <span class="checklist-text">Everyday you should react to all photos of people you have added and their underground content as they post them. Do this passively as you scroll.</span>
-                </label>
-              </div>
-            </div>
-            
-            <!-- Right Column: Interactive Tabs for Campaign Protocols -->
-            <div class="dashboard-panel instructions-panel">
-              <h3 class="panel-title">Social Media Campaign Protocols</h3>
-              <div class="tabs-container">
-                <div class="tab-buttons">
-                  <button class="tab-btn active" data-tab="network">SOCIAL MEDIA: NETWORK</button>
-                  <button class="tab-btn" data-tab="sharing">SOCIAL MEDIA: SHARING</button>
-                </div>
-                
-                <div class="tab-content active" id="tab-network">
-                  <h4 class="tab-section-title">NETWORK EXPANSION</h4>
-                  <ul class="bullet-list">
-                    <li>Constantly add normal people like fans onto your social media that are in the community, who react, share, comment on posts, and support the underground just like you do.</li>
-                    <li>It is in the artist’s best interest that you are getting new fans into the community, so you should be seeking creative ways to add people that like similar types of things but may not know about the stuff you are sharing. You can cross into communities that do not inherently know the specific niche of horrorcore underground.</li>
-                    <li>Add people on Facebook or follow people on Instagram that react with content that is like the content you wish to promote, then make high quality posts to get engagement and invite those people to your favorite artists once you are friends with them.</li>
-                    <li>Avoid spamming advertisements in DMs. If someone asks why you added them, simply explain that you're a fellow underground music fan looking to connect with like-minded people to share and discover new content together.</li>
-                    <li>It's more effective to support multiple music artists at once. You keep your page fresh by rotating in different types of content to see. By actively growing your friends list at the same time, you can rotate which artists you are sending invites to their pages every time you've added 100 different people.</li>
-                  </ul>
-                </div>
-                
-                <div class="tab-content" id="tab-sharing">
-                  <h4 class="tab-section-title">HIGH-QUALITY SHARING</h4>
-                  <ul class="bullet-list">
-                    <li>Do high quality posts when sharing promotional content: do not put links in the main body of the post, always put links in comments, make sure the graphics are official artist graphics or that you have taken the time to make it look really visually clean, do not stretch pixels, make sure everything is the correct resolution, do not use clearly AI generated text to represent content, and care a lot about the visual presentation of everything.</li>
-                    <li>Do not overshare a single piece of content into a bunch of groups. Do 1 group at most, and if you do not ever get engagements when you share posts into certain groups, stop sharing them into those groups.</li>
-                    <li>React, comment, and share onto your story content from your favorite horrorcore artists every time they make a post when you see it.</li>
-                    <li>React to every post of others sharing underground content.</li>
-                    <li>Create playlists you share with your friends or your subcommunities.</li>
-                    <li>Constantly stream your beloved music artists passively on your devices even if the device is AFK.</li>
-                    <li>Add to metadata available on various sources, fill out wikis with their information, and transcribe missing lyrics accurately onto lyric websites.</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-        </div>
-
-        <!-- SECTION 2: PHYSICAL PROMOTION WRAPPER -->
-        <div id="sectionPhysical" class="campaign-section-content" style="display: none;">
-          <section class="promote-dashboard-section section-system" style="margin-top: 16px;">
-          <h2 class="promo-header-main" style="border-bottom: 1px solid var(--color-line); padding-bottom: 8px; margin-bottom: 16px;">Physical Promotion Campaign</h2>
-          <div class="dashboard-grid">
-            <!-- Left Column: Physical Checklist -->
-            <div class="dashboard-panel checklist-panel">
-              <h3 class="panel-title">Physical Checklist</h3>
-              <div class="checklist-container">
-                <label class="checklist-item physical-chk">
-                  <input type="checkbox" data-idx="0">
-                  <span class="custom-checkbox"></span>
-                  <span class="checklist-text">Keep promo flyers/stickers in your car or bag so they are ready to go while traveling.</span>
-                </label>
-                <label class="checklist-item physical-chk">
-                  <input type="checkbox" data-idx="1">
-                  <span class="custom-checkbox"></span>
-                  <span class="checklist-text">Find upcoming local music events or concerts to hand out promotional items safely.</span>
-                </label>
-                <label class="checklist-item physical-chk">
-                  <input type="checkbox" data-idx="2">
-                  <span class="custom-checkbox"></span>
-                  <span class="checklist-text">Identify local businesses, record stores, or hotspots with community display boards.</span>
-                </label>
-                <label class="checklist-item physical-chk">
-                  <input type="checkbox" data-idx="3">
-                  <span class="custom-checkbox"></span>
-                  <span class="checklist-text">Approach venue staff or business owners kindly and professionally for promo permission.</span>
-                </label>
-                <label class="checklist-item physical-chk">
-                  <input type="checkbox" data-idx="4">
-                  <span class="custom-checkbox"></span>
-                  <span class="checklist-text">Utilize free printing services at your local library, college, or community space.</span>
-                </label>
-              </div>
-            </div>
-
-            <!-- Right Column: Physical Protocols Bullet List -->
-            <div class="dashboard-panel instructions-panel">
-              <h3 class="panel-title">Physical Campaign Protocols</h3>
-              <div class="tabs-container">
-                <div class="tab-content active" style="display: block;">
-                  <h4 class="tab-section-title">PHYSICAL PROMOTION</h4>
-                  <ul class="bullet-list">
-                    <li>Promote in your local communities or music concerts you attend by handing out flyers or posting flyers where allowed.</li>
-                    <li>Never break the law, and respect everyone and their belongings in public.</li>
-                    <li>Hand out flyers outside music events. Reaching people as they are leaving the show is more likely to be remembered because they are more likely to keep the flyer.</li>
-                    <li>Hang flyers only where they are allowed to be displayed.</li>
-                    <li>Ask local businesses to hang flyers where appropriate.</li>
-                    <li>Attend festivals and aesthetically related events to hand out promotional material. Investigate all local events throughout the year and consider whether there may be a good chance that an event-goer will check out what you are promoting.</li>
-                    <li>Create various types of flyers and promotional materials in different sizes, and try different tactics.</li>
-                    <li>Be safe in your interactions with strangers, and bring friends when you go to large events.</li>
-                    <li>Be professional and kind when you approach people. Tell them about the content you are promoting and offer them a flyer.</li>
-                    <li>Be creative, have fun, and be safe.</li>
-                    <li>Offer promotion material to anyone making a delivery to your home.</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-      </div>
-
-        <!-- SECTION 3: PROMO SEARCH -->
-        <div id="sectionScanner" class="campaign-section-content" style="display: none;">
-          <section class="promote-locator section-system" style="margin-top: 0;">
-            <h2 class="promo-header-main" style="font-size: 1.4rem; margin-bottom: 10px;">Promo Search</h2>
-            <p class="promote-subtitle">Scan for local music events or search our curated database of local shops to promote at, including:</p>
-            <ul class="promote-categories-list" style="display: flex; flex-wrap: wrap; gap: 8px 20px; margin: 14px 0 22px 0; padding: 0; list-style: none; font-family: var(--font-display); font-size: 0.8rem; color: var(--color-ember); letter-spacing: 1.5px; text-transform: uppercase;">
-              <li style="display: flex; align-items: center; gap: 8px;"><svg width="6" height="6" viewBox="0 0 100 100" style="fill: var(--color-blood);"><circle cx="50" cy="50" r="50"/></svg>Music CD Stores</li>
-              <li style="display: flex; align-items: center; gap: 8px;"><svg width="6" height="6" viewBox="0 0 100 100" style="fill: var(--color-blood);"><circle cx="50" cy="50" r="50"/></svg>Horror Stores</li>
-              <li style="display: flex; align-items: center; gap: 8px;"><svg width="6" height="6" viewBox="0 0 100 100" style="fill: var(--color-blood);"><circle cx="50" cy="50" r="50"/></svg>Metaphysical Stores</li>
-              <li style="display: flex; align-items: center; gap: 8px;"><svg width="6" height="6" viewBox="0 0 100 100" style="fill: var(--color-blood);"><circle cx="50" cy="50" r="50"/></svg>Hot Topic</li>
-              <li style="display: flex; align-items: center; gap: 8px;"><svg width="6" height="6" viewBox="0 0 100 100" style="fill: var(--color-blood);"><circle cx="50" cy="50" r="50"/></svg>Spencer's</li>
-            </ul>
-            
-            <div class="scanner-console-panel">
-              <!-- Search Mode Toggle -->
-              <div class="search-toggle-container">
-                <button class="toggle-btn active" id="toggleSearchEvents" data-mode="events">LIVE EVENTS</button>
-                <button class="toggle-btn" id="toggleSearchStores" data-mode="stores">STORE SEARCH</button>
-              </div>
-
-              <div class="scanner-bar" style="margin-top: 14px;">
-                <div class="input-group">
-                  <input type="text" id="promoteLocInput" inputmode="numeric" pattern="[0-9]*" maxlength="5" placeholder="ZIPCODE (e.g. 44101)" aria-label="5-digit US Zipcode">
-                </div>
-                
-                <div class="select-group">
-                  <select id="promoteRadiusSelect" aria-label="Search Radius">
-                    <option value="40234">25 MILES</option>
-                    <option value="80467">50 MILES</option>
-                    <option value="160934">100 MILES</option>
-                  </select>
-                </div>
-                
-                <button class="button button-primary" id="promoteSearchBtn">RUN SCANNER</button>
-                <button class="button button-secondary" id="promoteGeoBtn">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="geo-icon"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-                  GPS LOCATE
-                </button>
-              </div>
-              
-              <div class="terminal-console-screen" id="promoteStatus" aria-live="polite">
-                SYSTEM READY. SELECT SEARCH MODE, THEN SCAN.
-              </div>
-            </div>
-
-            <div class="event-results-grid-redesign" id="promoteResults">
-              <!-- Search results will populate here -->
-            </div>
-          </section>
-        </div>
-
-        <!-- SECTION 4: CUSTOM MEDIA TOOLS WRAPPER -->
-        <div id="sectionCustom" class="campaign-section-content" style="display: none;">
-          <section class="promote-dashboard-section section-system" style="margin-top: 16px;">
-            <h2 class="promo-header-main" style="border-bottom: 1px solid var(--color-line); padding-bottom: 8px; margin-bottom: 16px;">Custom Media Tools</h2>
-            <p class="promote-subtitle" style="margin-bottom: 24px;">Deploy custom tools to generate promotional material for the underground.</p>
-
-            <!-- Flyer Builder Tool View -->
-            <div id="toolContainer-flyer-builder" class="custom-tool-view">
-              <div class="composer-shell" style="margin-top: 20px;">
-                <aside class="control-panel" aria-label="Flyer controls">
-                  <div class="panel-block">
-                    <h3>Canvas</h3>
-                    <p class="note-copy no-top">Default is US Letter at 300 DPI: 8.5 x 11 in, 2550 x 3300 px.</p>
-                    <div class="control-row">
-                      <label for="formatSelect">Size</label>
-                      <select id="formatSelect"></select>
-                    </div>
-                    <div class="toggle-row one-row">
-                      <label><input id="autoCanvasFromImageToggle" type="checkbox" checked> Auto Size To Biggest Image</label>
-                    </div>
-                    <div id="customSizeRow" class="panel-inline-grid panel-hidden">
-                      <div class="control-row">
-                        <label for="customWidth">Width</label>
-                        <input id="customWidth" type="number" min="64" value="2550">
-                      </div>
-                      <div class="control-row">
-                        <label for="customHeight">Height</label>
-                        <input id="customHeight" type="number" min="64" value="3300">
-                      </div>
-                      <button class="protocol-button slim full-span" id="applyCustomSizeBtn" type="button">APPLY CUSTOM SIZE</button>
-                    </div>
-                    <div class="control-row swatch-row">
-                      <label for="canvasColor">Background</label>
-                      <input id="canvasColor" type="color" value="#000000">
-                    </div>
-                  </div>
-
-                  <div class="panel-block">
-                    <h3>Add Layers</h3>
-                    <input id="imageInput" class="hidden-input" type="file" accept="image/*" multiple>
-                    <div class="button-stack">
-                      <button class="ghost-button slim full-button" id="addImageBtn" type="button">ADD IMAGE LAYER</button>
-                      <button class="ghost-button slim full-button" id="addTextBtn" type="button">ADD TEXT LAYER</button>
-                      <button class="ghost-button slim full-button" id="addQrBtn" type="button">ADD QR CODE LAYER</button>
-                    </div>
-                  </div>
-
-                  <div class="panel-block">
-                    <h3>Guides</h3>
-                    <div class="toggle-row one-row">
-                      <label><input id="snapGuidesToggle" type="checkbox" checked> Snap To Active Guides</label>
-                    </div>
-                    <div class="two-column-controls">
-                      <div class="control-row">
-                        <label for="guideOrientation">Type</label>
-                        <select id="guideOrientation">
-                          <option value="vertical">Vertical</option>
-                          <option value="horizontal">Horizontal</option>
-                        </select>
-                      </div>
-                      <div class="control-row">
-                        <label for="guideUnit">Unit</label>
-                        <select id="guideUnit">
-                          <option value="percent">Percent</option>
-                          <option value="px">Pixels</option>
-                        </select>
-                      </div>
-                    </div>
-                    <div class="control-row">
-                      <label for="guidePosition">Position</label>
-                      <input id="guidePosition" type="number" min="0" value="50">
-                    </div>
-                    <div class="button-row top-gap">
-                      <button class="ghost-button slim" id="centerGuideBtn" type="button">CENTER VALUE</button>
-                      <button class="protocol-button slim" id="addGuideBtn" type="button">ADD GUIDE</button>
-                    </div>
-                    <div id="guideList" class="guide-list" aria-live="polite"></div>
-                  </div>
-
-                  <div class="panel-block">
-                    <h3>Presets</h3>
-                    <p class="note-copy no-top">Save one project file with images, imported fonts, guides, canvas settings, and layers.</p>
-                    <input id="presetInput" class="hidden-input" type="file" accept=".ptpreset,application/zip">
-                    <div class="button-row top-gap">
-                      <button class="ghost-button slim" id="presetLoadBtn" type="button">LOAD PRESET</button>
-                      <button class="protocol-button slim" id="presetSaveBtn" type="button">SAVE PRESET</button>
-                    </div>
-                  </div>
-                </aside>
-
-                <div class="mobile-canvas-toolbar panel-block" aria-label="Mobile layer controls">
-                  <div id="mobileLayerPicker" class="mobile-layer-picker" style="display: flex; overflow-x: auto; gap: 8px; padding-bottom: 10px; margin-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); scrollbar-width: none;">
-                    <!-- Dynamic Buttons -->
-                  </div>
-                  <div class="button-row" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
-                    <button class="ghost-button mini-button" id="mobileCenterHBtn" type="button">CTR H</button>
-                    <button class="ghost-button mini-button" id="mobileCenterVBtn" type="button">CTR V</button>
-                    <button class="ghost-button mini-button" id="mobileLockBtn" type="button">LOCK</button>
-                  </div>
-                </div>
-
-                <div class="stage-panel">
-                  <div class="canvas-frame">
-                    <canvas id="flyerCanvas" width="2550" height="3300" aria-label="Flyer preview canvas"></canvas>
-                  </div>
-                  <div id="canvasContextMenu" class="canvas-context-menu" role="menu" aria-hidden="true">
-                    <button type="button" data-action="center-horizontal">Center Horizontal</button>
-                    <button type="button" data-action="center-vertical">Center Vertical</button>
-                    <button type="button" data-action="center-both">Center Both</button>
-                    <button type="button" data-action="duplicate">Duplicate Layer</button>
-                    <button type="button" data-action="delete">Delete Layer</button>
-                    <button type="button" data-action="front">Bring To Front</button>
-                    <button type="button" data-action="back">Send To Back</button>
-                  </div>
-                </div>
-
-                <aside class="stack-panel" aria-label="Layer stack and output controls">
-                  <div class="panel-block">
-                    <h3>Layers</h3>
-                    <p class="note-copy no-top">Drag layers to reorder. Top of this list prints on top.</p>
-                    <p class="note-copy" style="margin-top: 6px; color: var(--color-ember); line-height: 1.3;">💡 Tip: Right-click any active layer on the canvas to open the context menu.</p>
-                    <div id="layerList" class="layer-list" aria-live="polite"></div>
-                    <div class="button-row top-gap">
-                      <button class="ghost-button slim" id="duplicateLayerBtn" type="button">DUPLICATE</button>
-                      <button class="ghost-button slim" id="deleteLayerBtn" type="button">DELETE</button>
-                    </div>
-                    <div class="button-row top-gap">
-                      <button class="protocol-button slim" id="openOutputBtn" type="button">PRINT / EXPORT</button>
-                    </div>
-                    <p id="statusLine" class="status-line">READY</p>
-                  </div>
-
-                  <div class="panel-block" id="layerSettingsPanel">
-                    <h3>Layer Settings</h3>
-                    <p id="selectedLayerLabel" class="status-line left-status">NO LAYER SELECTED</p>
-                    <div class="slider-row">
-                      <label for="layerOpacity">Opacity</label>
-                      <input id="layerOpacity" type="range" min="0" max="100" value="100">
-                      <output id="layerOpacityValue">100</output>
-                    </div>
-                    <div class="two-column-controls">
-                      <div class="slider-row">
-                        <label for="layerX">X</label>
-                        <input id="layerX" type="range" min="0" max="1080" value="540">
-                        <output id="layerXValue">540</output>
-                      </div>
-                      <div class="slider-row">
-                        <label for="layerY">Y</label>
-                        <input id="layerY" type="range" min="0" max="1080" value="540">
-                        <output id="layerYValue">540</output>
-                      </div>
-                    </div>
-                    <div class="slider-row" id="layerScaleRow">
-                      <label for="layerScale">Scale</label>
-                      <input id="layerScale" type="range" min="10" max="250" value="100">
-                      <output id="layerScaleValue">100</output>
-                    </div>
-                    <div class="slider-row">
-                      <label for="layerHue">Hue Shift</label>
-                      <input id="layerHue" type="range" min="-180" max="180" value="0">
-                      <output id="layerHueValue">0</output>
-                    </div>
-                    <div class="slider-row">
-                      <label for="layerSaturation">Saturation</label>
-                      <input id="layerSaturation" type="range" min="0" max="250" value="100">
-                      <output id="layerSaturationValue">100</output>
-                    </div>
-                    <div class="slider-row">
-                      <label for="layerBlur">Blur</label>
-                      <input id="layerBlur" type="range" min="0" max="40" value="0">
-                      <output id="layerBlurValue">0</output>
-                    </div>
-                  </div>
-
-                  <div class="panel-block" id="textPanel">
-                    <h3>Text</h3>
-                    <label class="stacked-label" for="textContent">Message</label>
-                    <textarea id="textContent" rows="3" spellcheck="false"></textarea>
-                    <div class="two-column-controls">
-                      <div class="control-row">
-                        <label for="fontSelect">Font</label>
-                        <select id="fontSelect">
-                          <optgroup label="Display">
-                            <option value="Orbitron">Orbitron</option>
-                            <option value="Anton">Anton</option>
-                            <option value="Archivo Black">Archivo Black</option>
-                            <option value="Audiowide">Audiowide</option>
-                            <option value="Bangers">Bangers</option>
-                            <option value="Bebas Neue">Bebas Neue</option>
-                            <option value="Black Ops One">Black Ops One</option>
-                            <option value="Creepster">Creepster</option>
-                            <option value="Permanent Marker">Permanent Marker</option>
-                            <option value="Press Start 2P">Press Start 2P</option>
-                            <option value="Righteous">Righteous</option>
-                            <option value="Rubik Mono One">Rubik Mono One</option>
-                            <option value="Special Elite">Special Elite</option>
-                            <option value="Teko">Teko</option>
-                            <option value="Unbounded">Unbounded</option>
-                          </optgroup>
-                          <optgroup label="Serif">
-                            <option value="Cinzel">Cinzel</option>
-                            <option value="Cinzel Decorative">Cinzel Decorative</option>
-                            <option value="Cormorant Garamond">Cormorant Garamond</option>
-                            <option value="DM Serif Display">DM Serif Display</option>
-                            <option value="Libre Baskerville">Libre Baskerville</option>
-                            <option value="Lora">Lora</option>
-                            <option value="Merriweather">Merriweather</option>
-                            <option value="Playfair Display">Playfair Display</option>
-                            <option value="Georgia">Georgia</option>
-                            <option value="Garamond">Garamond</option>
-                            <option value="Times New Roman">Times New Roman</option>
-                          </optgroup>
-                          <optgroup label="Sans">
-                            <option value="Share Tech Mono">Share Tech Mono</option>
-                            <option value="Inter">Inter</option>
-                            <option value="Montserrat">Montserrat</option>
-                            <option value="Oswald">Oswald</option>
-                            <option value="Outfit">Outfit</option>
-                            <option value="Poppins">Poppins</option>
-                            <option value="Roboto Condensed">Roboto Condensed</option>
-                            <option value="Space Grotesk">Space Grotesk</option>
-                            <option value="Arial">Arial</option>
-                            <option value="Impact">Impact</option>
-                            <option value="Arial Black">Arial Black</option>
-                            <option value="Trebuchet MS">Trebuchet MS</option>
-                            <option value="Verdana">Verdana</option>
-                          </optgroup>
-                          <optgroup label="Mono">
-                            <option value="Courier New">Courier New</option>
-                            <option value="Lucida Console">Lucida Console</option>
-                            <option value="Consolas">Consolas</option>
-                          </optgroup>
-                        </select>
-                      </div>
-                      <div class="control-row">
-                        <label for="fontWeight">Weight</label>
-                        <select id="fontWeight">
-                          <option value="400">Regular</option>
-                          <option value="700">Bold</option>
-                          <option value="900">Heavy</option>
-                        </select>
-                      </div>
-                    </div>
-                    <div class="control-row">
-                      <label>Import Font</label>
-                      <input id="fontImportInput" class="hidden-input" type="file" accept=".ttf,.otf,.woff,.woff2,font/ttf,font/otf,font/woff,font/woff2">
-                      <button class="ghost-button slim full-button" id="importFontBtn" type="button">IMPORT FONT FILE</button>
-                    </div>
-                    <div class="slider-row">
-                      <label for="fontSize">Size</label>
-                      <input id="fontSize" type="range" min="24" max="520" value="220">
-                      <output id="fontSizeValue">220</output>
-                    </div>
-                    <div class="two-column-controls">
-                      <div class="control-row swatch-row">
-                        <label for="textColor">Fill</label>
-                        <input id="textColor" type="color" value="#ffffff">
-                      </div>
-                      <div class="control-row swatch-row">
-                        <label for="strokeColor">Outline</label>
-                        <input id="strokeColor" type="color" value="#000000">
-                      </div>
-                    </div>
-                    <div class="slider-row">
-                      <label for="strokeWidth">Outline Size</label>
-                      <input id="strokeWidth" type="range" min="0" max="24" value="4">
-                      <output id="strokeWidthValue">4</output>
-                    </div>
-                    <div class="toggle-row">
-                      <label><input id="uppercaseToggle" type="checkbox" checked> Uppercase</label>
-                      <label><input id="boxToggle" type="checkbox"> Backplate</label>
-                    </div>
-                  </div>
-
-                  <div class="panel-block" id="qrPanel">
-                    <h3>QR Code</h3>
-                    <label class="stacked-label" for="qrLink">Destination URL (Locked)</label>
-                    <input id="qrLink" type="url" placeholder="http://www.legionrealm.net/" value="http://www.legionrealm.net/" readonly disabled style="opacity: 0.6; cursor: not-allowed;">
-                    <div class="two-column-controls">
-                      <div class="control-row swatch-row">
-                        <label for="qrDark">DARK COLOR</label>
-                        <input id="qrDark" type="color" value="#000000">
-                      </div>
-                      <div class="control-row swatch-row">
-                        <label for="qrLight">LIGHT COLOR</label>
-                        <input id="qrLight" type="color" value="#ffffff">
-                      </div>
-                    </div>
-                    <div class="two-column-controls">
-                      <div class="control-row">
-                        <label for="qrModuleShape">Modules</label>
-                        <select id="qrModuleShape">
-                          <option value="square">Square</option>
-                          <option value="rounded">Rounded</option>
-                          <option value="dot">Dots</option>
-                        </select>
-                      </div>
-                      <div class="control-row">
-                        <label for="qrFinderShape">Corners</label>
-                        <select id="qrFinderShape">
-                          <option value="square">Square</option>
-                          <option value="rounded">Rounded</option>
-                        </select>
-                      </div>
-                    </div>
-                    <div class="slider-row">
-                      <label for="qrScale">Scale</label>
-                      <input id="qrScale" type="range" min="10" max="250" value="100">
-                      <output id="qrScaleValue">100</output>
-                    </div>
-                    <p class="note-copy">Reliable QR codes are square overall. These styles change the internal modules only.</p>
-                    <button class="protocol-button slim full-button" id="updateQrBtn" type="button">UPDATE QR</button>
-                  </div>
-
-                  <div class="panel-block" id="shadowPanel">
-                    <h3>Drop Shadow</h3>
-                    <div class="toggle-row one-row">
-                      <label><input id="shadowToggle" type="checkbox" checked> Enabled</label>
-                    </div>
-                    <div class="control-row swatch-row">
-                      <label for="shadowColor">Color</label>
-                      <input id="shadowColor" type="color" value="#000000">
-                    </div>
-                    <div class="two-column-controls">
-                      <div class="slider-row">
-                        <label for="shadowBlur">Blur</label>
-                        <input id="shadowBlur" type="range" min="0" max="80" value="18">
-                        <output id="shadowBlurValue">18</output>
-                      </div>
-                      <div class="slider-row">
-                        <label for="shadowOpacity">Opacity</label>
-                        <input id="shadowOpacity" type="range" min="0" max="100" value="80">
-                        <output id="shadowOpacityValue">80</output>
-                      </div>
-                    </div>
-                    <div class="two-column-controls">
-                      <div class="slider-row">
-                        <label for="shadowX">Offset X</label>
-                        <input id="shadowX" type="range" min="-100" max="100" value="8">
-                        <output id="shadowXValue">8</output>
-                      </div>
-                      <div class="slider-row">
-                        <label for="shadowY">Offset Y</label>
-                        <input id="shadowY" type="range" min="-100" max="100" value="8">
-                        <output id="shadowYValue">8</output>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="panel-block">
-                    <div class="panel-title-row">
-                      <h3>Debug Log</h3>
-                      <button class="mini-button" id="copyDebugBtn" type="button">COPY</button>
-                    </div>
-                    <pre id="debugLog" class="debug-log" aria-live="polite"></pre>
-                  </div>
-                </aside>
-              </div>
-            </div>
-
-
-
-            <!-- Export Modal -->
-            <div id="outputModal" class="modal-backdrop" aria-hidden="true">
-              <div class="output-modal" role="dialog" aria-modal="true" aria-labelledby="outputTitle">
-                <div class="panel-title-row">
-                  <h2 id="outputTitle">PRINT / EXPORT</h2>
-                  <button class="mini-button" id="closeOutputBtn" type="button">CLOSE</button>
-                </div>
-                <div class="output-grid">
-                  <div class="panel-block">
-                    <h3>Export File</h3>
-                    <div class="control-row">
-                      <label for="exportFormat">Format</label>
-                      <select id="exportFormat">
-                        <option value="png">PNG</option>
-                      </select>
-                    </div>
-                    <div class="control-row">
-                      <label for="exportName">File Name</label>
-                      <input id="exportName" type="text" value="promotion-graphic">
-                    </div>
-                    <button class="protocol-button slim full-button" id="exportFileBtn" type="button">EXPORT FILE</button>
-                  </div>
-                  <div class="panel-block">
-                    <h3>Print</h3>
-                    <div class="control-row">
-                      <label for="printLayout">Layout</label>
-                      <select id="printLayout">
-                        <option value="single">1 Per Page</option>
-                        <option value="four">4 Per Page</option>
-                      </select>
-                    </div>
-                    <div class="control-row">
-                      <label for="printPageSize">Page Size</label>
-                      <select id="printPageSize">
-                        <option value="letter">US Letter</option>
-                        <option value="a4">A4</option>
-                      </select>
-                    </div>
-                    <div class="toggle-row one-row">
-                      <label><input id="printCutLines" type="checkbox" checked> Show Cut Lines For 4-Up</label>
-                    </div>
-                    <button class="protocol-button slim full-button" id="printFromModalBtn" type="button">OPEN PRINT WINDOW</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-          </section>
-        </div>
-
-        <!-- SECTION 5: REAL TIME TRACKER WRAPPER -->
-        <div id="sectionGlobe" class="campaign-section-content" style="display: none;">
-          <section class="global-traffic-panel section-system" style="margin-top: 0;">
-            <h2 class="promo-header-main" style="font-size: 1.4rem; margin-bottom: 10px;">Global Activity Globe</h2>
-            <p class="promote-subtitle" style="margin-bottom: 20px;">Privacy-safe aggregated community activity and artist locations worldwide.</p>
-            <div id="globeContainer" style="width:100%;height:500px;max-width:900px;margin:0 auto;background:#0a0a0a;border:1px solid #333;border-radius:4px;position:relative;">
-              <div class="globe-loading" style="text-align:center;padding:60px;color:var(--color-muted);">
-                <span style="font-size:2rem;">🌍</span>
-                <p style="margin-top:12px;">Globe visualization loads here with full JS</p>
-                <p style="font-size:0.8rem;color:#666;">Shows artists, partners, traffic centers & campaign activity</p>
-              </div>
-            </div>
-          </section>
-        </div>
-
-        <div id="sectionTraffic" class="campaign-section-content" style="display: none;">
-
-          <!-- GLOBAL TRAFFIC MONITOR -->
-          <section class="global-traffic-panel section-system" style="margin-top: 0;">
-            <h2 class="promo-header-main" style="font-size: 1.4rem; margin-bottom: 10px;">Realm US Traffic Monitor</h2>
-            <p class="promote-subtitle" style="margin-bottom: 20px;">Google Analytics metrics and active session distribution hubs.</p>
-            
-            <!-- Range Selector -->
-            <div class="traffic-range-container" style="margin-bottom: 24px; display: flex; align-items: center; gap: 12px;">
-              <label for="trafficRangeSelect" style="font-family: var(--font-display); font-size: 0.9rem; color: var(--color-muted); letter-spacing: 1.5px; text-transform: uppercase;">Analytics Range:</label>
-              <select id="trafficRangeSelect" style="background: rgba(0, 0, 0, 0.6); color: var(--color-text); border: 1px solid var(--color-line); padding: 8px 16px; border-radius: var(--radius); font-family: var(--font-mono); outline: none; cursor: pointer;">
-                <option value="24h">Last 24 Hours</option>
-                <option value="7d">Last 7 Days</option>
-                <option value="30d" selected>Last 30 Days</option>
-                <option value="90d">Last 90 Days</option>
-              </select>
-            </div>
-
-            <div class="traffic-metrics-layout">
-              <div class="traffic-metrics-sidebar">
-                <div class="traffic-metric-card">
-                  <span class="metric-label" id="lblTotalUsers">Total Users (30d)</span>
-                  <strong class="metric-value" id="valTotalUsers">--</strong>
-                  <span class="metric-trend" id="trendTotalUsers">N/A</span>
-                </div>
-                <div class="traffic-metric-card">
-                  <span class="metric-label" id="lblNewUsers">New Users (30d)</span>
-                  <strong class="metric-value" id="valNewUsers">--</strong>
-                  <span class="metric-trend" id="trendNewUsers">N/A</span>
-                </div>
-                <div class="traffic-metric-card">
-                  <span class="metric-label" id="lblPageViews">Website Traffic (30d)</span>
-                  <strong class="metric-value" id="valPageViews">--</strong>
-                  <span class="metric-trend" id="trendPageViews">N/A</span>
-                </div>
-                <div class="traffic-metric-card active-sessions-card">
-                  <span class="metric-label">Live Active Sessions</span>
-                  <div class="active-pulse-container">
-                    <span class="active-pulse-dot"></span>
-                    <strong class="metric-value" id="activeSessionsCounter">--</strong>
-                  </div>
-                  <span class="metric-subtext" id="activeSessionsSubtext">Live monitoring offline</span>
-                </div>
-              </div>
-              
-              <div class="traffic-map-container">
-                <div id="trafficMap" style="width: 100%; height: 450px;"></div>
-              </div>
-            </div>
-          </section>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-function bindPromoteView() {
-  const searchBtn = document.getElementById("promoteSearchBtn");
-  const geoBtn = document.getElementById("promoteGeoBtn");
-  const locInput = document.getElementById("promoteLocInput");
-  const radiusSelect = document.getElementById("promoteRadiusSelect");
-  const statusLog = document.getElementById("promoteStatus");
-  const resultsGrid = document.getElementById("promoteResults");
-
-  const portalGate = document.getElementById("promotePortalGate");
-  const agreeBtn = document.getElementById("promoteAgreeBtnContainer") || document.getElementById("promoteAgreeSigil");
-  const interactiveSections = document.getElementById("promoteInteractiveSections");
-
-  const choiceSocial = document.getElementById("choiceCardSocial");
-  const choicePhysical = document.getElementById("choiceCardPhysical");
-  const choiceScanner = document.getElementById("choiceCardScanner");
-  const choiceCustom = document.getElementById("choiceCardCustom");
-  const choiceTraffic = document.getElementById("choiceCardTraffic");
-  const choiceGlobe = document.getElementById("choiceCardGlobe");
-  
-  const sectionSocial = document.getElementById("sectionSocial");
-  const sectionPhysical = document.getElementById("sectionPhysical");
-  const sectionScanner = document.getElementById("sectionScanner");
-  const sectionCustom = document.getElementById("sectionCustom");
-    const sectionGlobe = document.getElementById("sectionGlobe");
-  const sectionTraffic = document.getElementById("sectionTraffic");
-
-  // Always show the gate initially on visit (do not store status in localStorage)
-  if (portalGate) {
-    portalGate.classList.remove("fade-out");
-    if (siteShell) {
-      siteShell.classList.add("portal-active");
-    }
-  }
-  if (interactiveSections) {
-    interactiveSections.style.display = "none";
-  }
-
-  if (agreeBtn && portalGate && interactiveSections) {
-    agreeBtn.addEventListener("click", () => {
-      portalGate.classList.add("fade-out");
-      if (siteShell) {
-        siteShell.classList.remove("portal-active");
-      }
-      setTimeout(() => {
-        interactiveSections.style.display = "block";
-        interactiveSections.style.animation = "fadeIn 0.8s ease-out";
-        
-        // Reset choice card selection on entry
-        if (sectionSocial) sectionSocial.style.display = "none";
-        if (sectionPhysical) sectionPhysical.style.display = "none";
-        if (sectionScanner) sectionScanner.style.display = "none";
-        if (sectionCustom) sectionCustom.style.display = "none";
-        if (sectionGlobe) sectionGlobe.style.display = "none";
-        if (sectionTraffic) sectionTraffic.style.display = "none";
-        if (choiceSocial) choiceSocial.classList.remove("active");
-        if (choicePhysical) choicePhysical.classList.remove("active");
-        if (choiceScanner) choiceScanner.classList.remove("active");
-        if (choiceCustom) choiceCustom.classList.remove("active");
-        if (choiceGlobe) choiceGlobe.classList.remove("active");
-        if (choiceTraffic) choiceTraffic.classList.remove("active");
-      }, 700);
-    });
-  }
-
-  // Handle Choice Card Selection to show/expand Social, Physical, Scanner, Custom, or Traffic Promo
-  if (choiceSocial && choicePhysical && choiceScanner && choiceCustom && choiceTraffic && choiceGlobe && sectionSocial && sectionPhysical && sectionScanner && sectionCustom && sectionGlobe && sectionTraffic) {
-    const deactivateAllSections = () => {
-      if (sectionSocial) sectionSocial.style.display = "none";
-      if (sectionPhysical) sectionPhysical.style.display = "none";
-      if (sectionScanner) sectionScanner.style.display = "none";
-      if (sectionCustom) sectionCustom.style.display = "none";
-      if (sectionGlobe) sectionGlobe.style.display = "none";
-      if (sectionTraffic) sectionTraffic.style.display = "none";
-      
-      if (choiceSocial) choiceSocial.classList.remove("active");
-      if (choicePhysical) choicePhysical.classList.remove("active");
-      if (choiceScanner) choiceScanner.classList.remove("active");
-      if (choiceCustom) choiceCustom.classList.remove("active");
-      if (choiceGlobe) choiceGlobe.classList.remove("active");
-      if (choiceTraffic) choiceTraffic.classList.remove("active");
-    };
-
-    choiceSocial.addEventListener("click", () => {
-      deactivateAllSections();
-      choiceSocial.classList.add("active");
-      sectionSocial.style.display = "block";
-      sectionSocial.style.animation = "fadeInUp 0.6s ease-out";
-    });
-
-    choicePhysical.addEventListener("click", () => {
-      deactivateAllSections();
-      choicePhysical.classList.add("active");
-      sectionPhysical.style.display = "block";
-      sectionPhysical.style.animation = "fadeInUp 0.6s ease-out";
-    });
-
-    choiceScanner.addEventListener("click", () => {
-      deactivateAllSections();
-      choiceScanner.classList.add("active");
-      sectionScanner.style.display = "block";
-      sectionScanner.style.animation = "fadeInUp 0.6s ease-out";
-    });
-
-    choiceCustom.addEventListener("click", () => {
-      deactivateAllSections();
-      choiceCustom.classList.add("active");
-      sectionCustom.style.display = "block";
-      sectionCustom.style.animation = "fadeInUp 0.6s ease-out";
-      initFlyerBuilderIfPossible();
-    });
-
-    choiceTraffic.addEventListener("click", () => {
-      deactivateAllSections();
-      choiceTraffic.classList.add("active");
-      sectionTraffic.style.display = "block";
-      sectionTraffic.style.animation = "fadeInUp 0.6s ease-out";
-      initTrafficMapIfPossible();
-    });
-
-    choiceGlobe.addEventListener("click", () => {
-      deactivateAllSections();
-      choiceGlobe.classList.add("active");
-      sectionGlobe.style.display = "block";
-      sectionGlobe.style.animation = "fadeInUp 0.6s ease-out";
-    });
-  }
-
-  let flyerBuilderInitialized = false;
-
-  function initFlyerBuilderIfPossible() {
-    if (flyerBuilderInitialized) return;
-    if (window.PromotionTool && typeof window.PromotionTool.createFlyerBuilder === "function") {
-      try {
-        window.__PROMOTION_TOOL_APP = window.PromotionTool.createFlyerBuilder({
-          mode: "custom",
-          allowPresetSave: true,
-          allowPresetLoad: true
-        });
-        flyerBuilderInitialized = true;
-        console.log("Flyer Builder initialized inside Custom Media Tools tab.");
-      } catch (err) {
-        console.error("Failed to initialize flyer builder:", err);
-      }
-    }
-  }
-
-  // Interactive Checklist Save/Load in LocalStorage (Digital)
-  const digitalCheckboxes = document.querySelectorAll(".digital-chk input");
-  digitalCheckboxes.forEach(cb => {
-    const idx = cb.getAttribute("data-idx");
-    const key = `son_promo_checklist_${idx}`;
-    cb.checked = localStorage.getItem(key) === "true";
-    cb.addEventListener("change", () => {
-      localStorage.setItem(key, cb.checked);
-    });
-  });
-
-  // Interactive Checklist Save/Load in LocalStorage (Physical)
-  const physicalCheckboxes = document.querySelectorAll(".physical-chk input");
-  physicalCheckboxes.forEach(cb => {
-    const idx = cb.getAttribute("data-idx");
-    const key = `son_promo_physical_checklist_${idx}`;
-    cb.checked = localStorage.getItem(key) === "true";
-    cb.addEventListener("change", () => {
-      localStorage.setItem(key, cb.checked);
-    });
-  });
-
-  // Interactive Campaign Protocol Tab Toggle
-  const tabs = document.querySelectorAll(".tab-btn");
-  tabs.forEach(tab => {
-    tab.addEventListener("click", () => {
-      tabs.forEach(t => t.classList.remove("active"));
-      document.querySelectorAll(".tab-content").forEach(tc => tc.classList.remove("active"));
-      
-      tab.classList.add("active");
-      const contentId = `tab-${tab.getAttribute("data-tab")}`;
-      const contentEl = document.getElementById(contentId);
-      if (contentEl) {
-        contentEl.classList.add("active");
-      }
-    });
-  });
-
-  const logStatus = (msg) => {
-    if (statusLog) {
-      statusLog.textContent = `CONSOLE: ${msg.toUpperCase()}`;
-    }
-  };
-
-  const toggleEvents = document.getElementById("toggleSearchEvents");
-  const toggleStores = document.getElementById("toggleSearchStores");
-  let activePromoSearchMode = "events";
-
-  if (toggleEvents && toggleStores) {
-    toggleEvents.addEventListener("click", () => {
-      activePromoSearchMode = "events";
-      toggleEvents.classList.add("active");
-      toggleStores.classList.remove("active");
-      logStatus("SEARCH MODE SET TO LIVE EVENTS.");
-    });
-    toggleStores.addEventListener("click", () => {
-      activePromoSearchMode = "stores";
-      toggleStores.classList.add("active");
-      toggleEvents.classList.remove("active");
-      logStatus("SEARCH MODE SET TO STORE SEARCH.");
-    });
-  }
-
-  // Haversine formula to compute geodesic distance in miles
-  const haversineDistance = (coords1, coords2) => {
-    const R = 3958.8; // Earth radius in miles
-    const lat1 = coords1[0] * Math.PI / 180;
-    const lat2 = coords2[0] * Math.PI / 180;
-    const dLat = (coords2[0] - coords1[0]) * Math.PI / 180;
-    const dLon = (coords2[1] - coords1[1]) * Math.PI / 180;
-    
-    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-              Math.cos(lat1) * Math.cos(lat2) *
-              Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  };
-
-  const renderStores = (stores, showingFallback, radiusLimitMiles) => {
-    const fallbackHeader = showingFallback 
-      ? `<div class="results-fallback-banner" style="grid-column: 1 / -1; background: rgba(139, 0, 0, 0.08); border: 1px solid var(--color-line-hot); padding: 12px; border-radius: var(--radius); color: var(--color-ember); font-family: var(--font-body); font-size: 0.9rem; text-align: center; margin-bottom: 12px; font-weight: 500;">
-           ⚠️ No shops detected within ${radiusLimitMiles} miles. Showing the closest alternative store locations in the database:
-         </div>`
-      : "";
-      
-    resultsGrid.innerHTML = fallbackHeader + stores.map(store => {
-      const directionsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(store.name + " " + store.address)}`;
-      return `
-        <div class="event-card-redesign store-card-redesign">
-          <div class="event-image-banner" style="background: linear-gradient(135deg, #0f0505, #1f0b0c); display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative;">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#ff2a2a" stroke-width="1.5" style="opacity: 0.85; margin-bottom: 6px;">
-              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-              <polyline points="9 22 9 12 15 12 15 22"></polyline>
-            </svg>
-            <span class="store-distance-badge" style="position: absolute; top: 12px; right: 12px; background: var(--color-blood); color: #fff; font-size: 0.75rem; font-family: var(--font-body); padding: 2px 8px; border-radius: var(--radius); font-weight: bold; letter-spacing: 0.5px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);">
-              ${store.distance.toFixed(1)} MILES AWAY
-            </span>
-          </div>
-          
-          <div class="event-card-head-redesign">
-            <span class="card-kicker">${escapeHTML(store.kicker || "STORE LOCATION")}</span>
-            <strong class="card-title">${escapeHTML(store.name)}</strong>
-          </div>
-          
-          <div class="event-card-details-redesign">
-            <div class="details-section">
-              <span class="details-header">ADDRESS</span>
-              <span class="detail-line" style="font-weight: bold; color: var(--color-ember);">📍 ${escapeHTML(store.address)}</span>
-            </div>
-            
-            ${store.description ? `
-            <div class="details-section" style="border-top: 1px dashed var(--color-line); padding-top: 10px; margin-top: 10px;">
-              <span class="details-header">DESCRIPTION</span>
-              <span class="detail-line" style="font-size: 0.85rem; line-height: 1.4; opacity: 0.95; font-family: var(--font-body);">
-                ${escapeHTML(store.description)}
-              </span>
-            </div>
-            ` : ""}
-          </div>
-          
-          <div class="event-card-foot-redesign">
-            <a href="${store.url}" target="_blank" rel="noopener noreferrer" class="card-action-btn search-events-btn">
-              WEBSITE
-            </a>
-            <a href="${directionsUrl}" target="_blank" rel="noopener noreferrer" class="card-action-btn get-directions-btn">
-              DIRECTIONS
-            </a>
-          </div>
-        </div>
-      `;
-    }).join("");
-  };
-
-  const runPromoSearch = async (city, state, locationLabel, lat, lon) => {
-    if (activePromoSearchMode === "events") {
-      const locationSlug = city.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-      logStatus(`SCANNING EVENTBRITE FOR MUSIC EVENTS IN ${locationLabel.toUpperCase()}...`);
-      
-      try {
-        const events = await fetchEventbriteEvents(locationSlug);
-        resultsGrid.innerHTML = "";
-        
-        if (!events.length) {
-          logStatus(`NO LIVE MUSIC EVENTS DETECTED IN ${locationLabel.toUpperCase()}.`);
-          resultsGrid.innerHTML = `
-            <div class="search-empty-state">
-              † NO LIVE MUSIC EVENTS DETECTED IN THIS AREA †
-              <p style="margin-top: 10px; font-size: 0.9rem; color: var(--color-muted); font-family: var(--font-body);">
-                Try querying an adjacent US City or Zipcode.
-              </p>
-            </div>
-          `;
-          return;
-        }
-
-        logStatus(`SCAN COMPLETE. DETECTED ${events.length} MUSIC EVENT(S) IN ${locationLabel.toUpperCase()}.`);
-        renderEventbriteEvents(events);
-
-      } catch (e) {
-        logStatus(`SCAN FAILURE: ${e.message.toUpperCase()}.`);
-        resultsGrid.innerHTML = `
-          <div class="search-empty-state">
-            † SCAN FAILED †
-            <p style="margin-top: 10px; font-size: 0.9rem; color: var(--color-muted); font-family: var(--font-body);">
-              ${escapeHTML(e.message)}
-            </p>
-          </div>
-        `;
-      }
-    } else {
-      logStatus(`SCANNING CURATED DATABASE FOR STORES NEAR ${locationLabel.toUpperCase()}...`);
-      
-      try {
-        resultsGrid.innerHTML = "";
-        
-        if (!lat || !lon) {
-          throw new Error("Target coordinates are unavailable for proximity check");
-        }
-        
-        let storesData = window.siteConfig.storeDatabase;
-        if (!storesData) {
-          logStatus("LOADING STORES DATABASE...");
-          const res = await fetch("src/data/stores.json");
-          storesData = await res.json();
-          window.siteConfig.storeDatabase = storesData;
-        }
-        
-        const stores = (storesData || []).map(store => {
-          const dist = haversineDistance([lat, lon], store.coords);
-          return { ...store, distance: dist };
-        });
-        
-        const selectedRadiusValue = radiusSelect ? radiusSelect.value : "40234";
-        let radiusLimitMiles = 25;
-        if (selectedRadiusValue === "80467") radiusLimitMiles = 50;
-        if (selectedRadiusValue === "160934") radiusLimitMiles = 100;
-        
-        let matches = stores.filter(s => s.distance <= radiusLimitMiles);
-        let showingFallback = false;
-        
-        matches.sort((a, b) => a.distance - b.distance);
-        
-        if (!matches.length) {
-          matches = stores.sort((a, b) => a.distance - b.distance).slice(0, 3);
-          showingFallback = true;
-        }
-        
-        if (showingFallback) {
-          logStatus(`NO STORES DETECTED WITHIN ${radiusLimitMiles} MILES. DISPLAYING CLOSEST ALTERNATIVES.`);
-        } else {
-          logStatus(`SCAN COMPLETE. FOUND ${matches.length} STORE(S) WITHIN ${radiusLimitMiles} MILES.`);
-        }
-        
-        renderStores(matches, showingFallback, radiusLimitMiles);
-      } catch (e) {
-        logStatus(`DATABASE SCAN ERROR: ${e.message.toUpperCase()}.`);
-        resultsGrid.innerHTML = `
-          <div class="search-empty-state">
-            † SCAN FAILED †
-            <p style="margin-top: 10px; font-size: 0.9rem; color: var(--color-muted); font-family: var(--font-body);">
-              ${escapeHTML(e.message)}
-            </p>
-          </div>
-        `;
-      }
-    }
-  };
-
-  const renderEventbriteEvents = (events) => {
-    resultsGrid.innerHTML = events
-      .map((ev, idx) => {
-        const title = ev.name || "Untitled Event";
-        const url = ev.url || "#";
-        const localTimeStr = ev.startDate || "";
-        
-        let friendlyDate = "Date TBA";
-        let friendlyTime = "Time TBA";
-        if (localTimeStr) {
-          try {
-            const dt = new Date(localTimeStr);
-            friendlyDate = dt.toLocaleDateString("en-US", {
-              weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
-            });
-            friendlyTime = dt.toLocaleTimeString("en-US", {
-              hour: '2-digit', minute: '2-digit'
-            });
-          } catch (e) {
-            friendlyDate = localTimeStr;
-          }
-        }
-        
-        const venueInfo = ev.location || {};
-        const venueName = venueInfo.name || "Unknown Venue";
-        const addrObj = venueInfo.address || {};
-        const venueCity = addrObj.addressLocality || "";
-        const venueState = addrObj.addressRegion || "";
-        const venueAddress = addrObj.streetAddress || "";
-        const fullAddress = `${venueAddress}${venueAddress && venueCity ? ', ' : ''}${venueCity}${venueCity && venueState ? ', ' : ''}${venueState}`.trim() || "Address Unavailable";
-        
-        const genre = ev.genre || (ev.about && ev.about.name) || "Concert";
-        
-        let image = "";
-        if (ev.image) {
-          image = typeof ev.image === "string" ? ev.image : (ev.image.url || ev.image.contentUrl || "");
-        }
-        
-        const desc = ev.description || "Click Buy Tickets to see full details and ticket options on Eventbrite.";
-        
-        const directionsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(venueName + " " + fullAddress)}`;
-
-        return `
-          <div class="event-card-redesign">
-            ${image ? `
-              <div class="event-image-banner" style="background-image: url('${image}');"></div>
-            ` : `
-              <div class="event-image-banner" style="background: linear-gradient(135deg, var(--color-blood), var(--color-ember-dark)); display: flex; align-items: center; justify-content: center;">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity: 0.5; color: var(--color-text);"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
-              </div>
-            `}
-            
-            <div class="event-card-head-redesign">
-              <span class="card-kicker">${escapeHTML(genre)}</span>
-              <strong class="card-title">${escapeHTML(title)}</strong>
-            </div>
-            
-            <div class="event-card-details-redesign">
-              <div class="details-section">
-                <span class="details-header">HOST VENUE</span>
-                <span class="detail-line" style="font-weight: bold; color: var(--color-ember);">${escapeHTML(venueName)}</span>
-                <span class="detail-line">📍 ${escapeHTML(fullAddress)}</span>
-              </div>
-              
-              <div class="details-section" style="border-top: 1px dashed var(--color-line); padding-top: 10px; margin-top: 10px;">
-                <span class="details-header">EVENT SCHEDULE & DESCRIPTION</span>
-                <span class="detail-line">📅 ${escapeHTML(friendlyDate)}</span>
-                <span class="detail-line">🕒 ${escapeHTML(friendlyTime)}</span>
-                <span class="detail-line" style="margin-top: 8px; font-style: italic; font-size: 0.85rem; opacity: 0.95;">
-                  "${escapeHTML(desc.length > 180 ? desc.substring(0, 180) + '...' : desc)}"
-                </span>
-              </div>
-            </div>
-            
-            <div class="event-card-foot-redesign">
-              <a href="${url}" target="_blank" rel="noopener noreferrer" class="card-action-btn search-events-btn">
-                BUY TICKETS
-              </a>
-              <a href="${directionsUrl}" target="_blank" rel="noopener noreferrer" class="card-action-btn get-directions-btn">
-                DIRECTIONS
-              </a>
-            </div>
-          </div>
-        `;
-      })
-      .join("");
-  };
-
-  if (searchBtn && locInput) {
-    searchBtn.addEventListener("click", async () => {
-      const val = locInput.value.trim();
-      if (!val) {
-        logStatus("ERROR: ZIPCODE INPUT IS EMPTY.");
-        return;
-      }
-      if (!/^\d{5}$/.test(val)) {
-        logStatus("ERROR: INVALID ZIPCODE. ENTER A 5-DIGIT US ZIPCODE (E.G. 44101).");
-        return;
-      }
-      
-      logStatus(`RESOLVING ZIPCODE: "${val}"...`);
-      try {
-        const loc = await geocodeZipcode(val);
-        runPromoSearch(loc.city, loc.state, loc.displayName, loc.lat, loc.lon);
-      } catch (err) {
-        logStatus(`GEOCATING ERROR: ${err.message.toUpperCase()}`);
-      }
-    });
-
-    locInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        searchBtn.click();
-      }
-    });
-
-    locInput.addEventListener("input", (e) => {
-      locInput.value = locInput.value.replace(/[^0-9]/g, "");
-    });
-  }
-
-  if (geoBtn) {
-    geoBtn.addEventListener("click", () => {
-      if (!navigator.geolocation) {
-        logStatus("ERROR: GEOLOCATION NOT SUPPORTED BY BROWSER.");
-        return;
-      }
-      logStatus("ACQUIRING DEVICE GEOLOCATION...");
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const lat = position.coords.latitude;
-          const lon = position.coords.longitude;
-          logStatus(`GPS LOCKED. RESOLVING COORDINATES...`);
-          try {
-            const loc = await reverseGeocode(lat, lon);
-            runPromoSearch(loc.city, loc.state, loc.displayName, loc.lat, loc.lon);
-          } catch (err) {
-            logStatus(`GPS ERROR: ${err.message.toUpperCase()}`);
-          }
-        },
-        (err) => {
-          logStatus(`GPS DENIED: ${err.message.toUpperCase()}. MANUALLY ENTER ZIPCODE.`);
-        },
-        { enableHighAccuracy: true, timeout: 8000 }
-      );
-    });
-  }
-
-  // Analytics and Simulated Traffic Dashboard
-  const rangeSelect = document.getElementById("trafficRangeSelect");
-  const lblTotalUsers = document.getElementById("lblTotalUsers");
-  const valTotalUsers = document.getElementById("valTotalUsers");
-  const trendTotalUsers = document.getElementById("trendTotalUsers");
-
-  const lblNewUsers = document.getElementById("lblNewUsers");
-  const valNewUsers = document.getElementById("valNewUsers");
-  const trendNewUsers = document.getElementById("trendNewUsers");
-
-  const lblPageViews = document.getElementById("lblPageViews");
-  const valPageViews = document.getElementById("valPageViews");
-  const trendPageViews = document.getElementById("trendPageViews");
-
-  const activeCounter = document.getElementById("activeSessionsCounter");
-  const activeSubtext = document.getElementById("activeSessionsSubtext");
-
-  let currentTrafficRange = "30d";
-
-  function updateTrafficStats() {
-    const rangeSuffixes = {
-      "24h": " (24h)",
-      "7d": " (7d)",
-      "30d": " (30d)",
-      "90d": " (90d)"
-    };
-    const suffix = rangeSuffixes[currentTrafficRange] || " (30d)";
-
-    if (lblTotalUsers) lblTotalUsers.textContent = `Total Users${suffix}`;
-    if (valTotalUsers) valTotalUsers.textContent = "--";
-    if (trendTotalUsers) {
-      trendTotalUsers.textContent = "N/A";
-      trendTotalUsers.className = "metric-trend";
-    }
-
-    if (lblNewUsers) lblNewUsers.textContent = `New Users${suffix}`;
-    if (valNewUsers) valNewUsers.textContent = "--";
-    if (trendNewUsers) {
-      trendNewUsers.textContent = "N/A";
-      trendNewUsers.className = "metric-trend";
-    }
-
-    if (lblPageViews) lblPageViews.textContent = `Website Traffic${suffix}`;
-    if (valPageViews) valPageViews.textContent = "--";
-    if (trendPageViews) {
-      trendPageViews.textContent = "N/A";
-      trendPageViews.className = "metric-trend";
-    }
-  }
-
-  if (rangeSelect) {
-    rangeSelect.addEventListener("change", (e) => {
-      currentTrafficRange = e.target.value;
-      updateTrafficStats();
-    });
-  }
-
-  // Ensure any existing live simulation interval is cleared
-  if (window.__TRAFFIC_SESSIONS_INTERVAL) {
-    clearInterval(window.__TRAFFIC_SESSIONS_INTERVAL);
-  }
-
-  // Set default state
-  if (activeCounter) activeCounter.textContent = "--";
-  if (activeSubtext) activeSubtext.textContent = "Live monitoring offline";
-
-  // Initial call
-  updateTrafficStats();
-
-  // US Traffic Map initialization
-  let trafficMapInitialized = false;
-  function initTrafficMapIfPossible() {
-    if (trafficMapInitialized) {
-      if (window.trafficMapInstance) {
-        window.trafficMapInstance.updateSize();
-      }
-      return;
-    }
-    const mapContainer = document.getElementById("trafficMap");
-    if (mapContainer && typeof jsVectorMap !== "undefined") {
-      try {
-        window.trafficMapInstance = new jsVectorMap({
-          selector: "#trafficMap",
-          map: "us_merc_en",
-          zoomOnScroll: false,
-          zoomButtons: false,
-          regionStyle: {
-            initial: {
-              fill: "rgba(10, 10, 10, 0.8)",
-              stroke: "rgba(184, 14, 23, 0.4)",
-              strokeWidth: 1.5,
-              fillOpacity: 1
-            },
-            hover: {
-              fill: "rgba(184, 14, 23, 0.15)",
-              fillOpacity: 0.8,
-              cursor: "pointer"
-            }
-          },
-          markers: [
-            { name: "Cleveland (Hub)", coords: [41.4993, -81.6944], style: { fill: "#ff2a2a", r: 6 } },
-            { name: "New York", coords: [40.7128, -74.0060], style: { fill: "#ff2a2a", r: 4 } },
-            { name: "Los Angeles", coords: [34.0522, -118.2437], style: { fill: "#ff2a2a", r: 4 } },
-            { name: "Chicago", coords: [41.8781, -87.6298], style: { fill: "#ff2a2a", r: 4 } },
-            { name: "Houston", coords: [29.7604, -95.3698], style: { fill: "#ff2a2a", r: 4 } },
-            { name: "Miami", coords: [25.7617, -80.1918], style: { fill: "#ff2a2a", r: 4 } },
-            { name: "Seattle", coords: [47.6062, -122.3321], style: { fill: "#ff2a2a", r: 4 } }
-          ],
-          markerStyle: {
-            initial: {
-              stroke: "rgba(184, 14, 23, 0.8)",
-              strokeWidth: 1.5
-            },
-            hover: {
-              fill: "#ff5555"
-            }
-          },
-          lines: [
-            { from: "Cleveland (Hub)", to: "New York", style: { stroke: "rgba(184, 14, 23, 0.35)", strokeWidth: 1.5, strokeDasharray: "4 4" } },
-            { from: "Cleveland (Hub)", to: "Los Angeles", style: { stroke: "rgba(184, 14, 23, 0.35)", strokeWidth: 1.5, strokeDasharray: "4 4" } },
-            { from: "Cleveland (Hub)", to: "Chicago", style: { stroke: "rgba(184, 14, 23, 0.35)", strokeWidth: 1.5, strokeDasharray: "4 4" } },
-            { from: "Cleveland (Hub)", to: "Houston", style: { stroke: "rgba(184, 14, 23, 0.35)", strokeWidth: 1.5, strokeDasharray: "4 4" } },
-            { from: "Cleveland (Hub)", to: "Miami", style: { stroke: "rgba(184, 14, 23, 0.35)", strokeWidth: 1.5, strokeDasharray: "4 4" } },
-            { from: "Cleveland (Hub)", to: "Seattle", style: { stroke: "rgba(184, 14, 23, 0.35)", strokeWidth: 1.5, strokeDasharray: "4 4" } }
-          ],
-          labels: {
-            markers: {
-              render: (marker) => marker.name
-            }
-          }
-        });
-        trafficMapInitialized = true;
-      } catch (e) {
-        console.error("Failed to initialize US Traffic Map:", e);
-      }
-    }
-  }
-}
-
-if (document.readyState === "loading") {
-  window.addEventListener("DOMContentLoaded", initApp);
-} else {
-  initApp();
-}
-
+function bindKeaganAlbumConsole() {const consoleNode = viewRoot.querySelector("[data-keagan-console]");if (!consoleNode) return;
+const cards = consoleNode.querySelectorAll("[data-keagan-album-id]");const albums = keaganAlbums();const background = consoleNode.querySelector("#keaganHeroBg");const image = consoleNode.querySelector("#keaganHeroImage");const title = consoleNode.querySelector("#keaganHeroTitle");const accent = consoleNode.querySelector("#keaganHeroAccent");const miniMeta = consoleNode.querySelector("#keaganMiniMeta");const factGrid = consoleNode.querySelector("#keaganFactGrid");const trackCount = consoleNode.querySelector("#keaganTrackCount");const trackList = consoleNode.querySelector("#keaganTrackList");const embed = consoleNode.querySelector("#keaganHeroEmbed");
+cards.forEach((card) => {card.addEventListener("click", () => {const album = albums.find((item) => item.id === card.dataset.keaganAlbumId);if (!album) return;
+cards.forEach((candidate) => {candidate.classList.toggle("is-active", candidate === card);candidate.setAttribute("aria-pressed", candidate === card ? "true" : "false");});
+consoleNode.classList.remove("is-swapping");void consoleNode.offsetWidth;consoleNode.classList.add("is-swapping");
+if (image) {image.src = album.image;image.alt = album.title;}if (background) background.src = album.image;if (title) title.textContent = album.title;if (accent) accent.textContent = album.accent;if (miniMeta) {miniMeta.innerHTML = `<span>${album.year}</span><span>${album.runtime}</span>`;}if (factGrid) factGrid.innerHTML = renderKeaganAlbumFacts(album);if (trackCount) trackCount.textContent = `${album.trackCount} tracks / ${album.runtime}`;if (trackList) trackList.innerHTML = renderTrackList(album);if (embed) {const wrapper = embed.parentElement;if (wrapper) {wrapper.classList.add("is-loading");
+let resolved = false;const done = () => {if (resolved) return;resolved = true;wrapper.classList.remove("is-loading");};
+embed.onload = done;window.setTimeout(done, 2500);}embed.src = spotifyEmbedUrl(album.href);}});});}
+function bindDivinityPortfolio() {const grid = document.getElementById("divinityPortGrid");const wrapper = document.getElementById("divinityPortWrapper");const expandBtn = document.getElementById("divinityPortExpandBtn");if (!grid || !wrapper || !expandBtn) return;
+const images = ["1.webp", "2.webp", "3.webp", "4.webp", "5.webp", "6.webp", "7.webp", "8.webp", "9.webp", "10.webp","11.webp", "12.webp", "13.webp", "14.webp", "15.webp", "16.webp", "17.webp", "18.webp", "19.webp", "20.webp","21.webp", "22.webp", "23.webp", "24.webp", "25.webp", "26.webp", "27.webp", "28.webp", "29.webp", "30.webp","31.webp", "33.webp", "34.webp", "35.webp", "36.webp", "37.webp", "38.webp", "39.webp", "40.webp", "41.webp","42.webp", "44.webp", "45.webp", "46.webp", "47.webp", "48.webp", "49.webp", "50.webp", "51.webp", "52.webp","53.webp", "54.webp", "55.webp", "56.webp", "57.webp", "59.webp", "60.webp", "61.webp", "62.webp", "63.webp","64.webp", "65.webp", "66.webp", "67.webp","485003291_691489600295865_2384445148084926291_n.webp","485083509_694222683355890_5379994471757009428_n.webp","489457983_714205418024283_7226064868915706508_n.webp","547522565_854522917325865_3462510322021611757_n.webp","616812952_960232680088221_2095537101605772302_n.webp","FB_IMG_1774912266470.webp", "FB_IMG_1774912273586.webp", "FB_IMG_1774912302070.webp", "FB_IMG_1774912308908.webp","FB_IMG_1774912313060.webp", "FB_IMG_1774912321880.webp", "FB_IMG_1774912334252.webp", "FB_IMG_1774912356144.webp","FB_IMG_1774912369249.webp", "FB_IMG_1774912374560.webp", "FB_IMG_1774912389485.webp", "FB_IMG_1774912398719.webp","FB_IMG_1774912404146.webp", "FB_IMG_1774912412954.webp", "FB_IMG_1774912421993.webp", "FB_IMG_1774912428187.webp","FB_IMG_1774912455572.webp", "FB_IMG_1774912470973.webp", "FB_IMG_1774912543557.webp", "FB_IMG_1774912559329.webp","FB_IMG_1774912582025.webp", "FB_IMG_1774912637458.webp", "orca-image--1258640799.jpeg.webp", "orca-image--1859499608.jpeg.webp","orca-image--196342583.jpeg.webp", "orca-image--2095311241.jpeg.webp", "orca-image-711100960.jpeg.webp","nightshade.webp"];
+const shuffled = [...images];for (let i = shuffled.length - 1; i > 0; i--) {const j = Math.floor(Math.random() * (i + 1));[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];}
+grid.innerHTML = "";
+const renderItem = (img, index, isHidden = false) => {const item = document.createElement("div");item.className = "divinity-portfolio-item";if (isHidden) {item.classList.add("is-hidden");item.style.display = "none";}const imgUrl = `https://cultdivinity.com/portfolio/${img}`;item.innerHTML = `<img src="${imgUrl}" alt="Krystalyn Deneve Artwork ${index}" loading="lazy" decoding="async">`;item.addEventListener("click", () => {openDivinityLightbox(imgUrl);});return item;};
+shuffled.forEach((img, idx) => {const isHidden = idx >= 12;const item = renderItem(img, idx + 1, isHidden);grid.appendChild(item);});
+expandBtn.addEventListener("click", () => {const hiddenItems = grid.querySelectorAll(".divinity-portfolio-item.is-hidden");hiddenItems.forEach(item => {item.classList.remove("is-hidden");item.style.display = "block";});expandBtn.style.display = "none";wrapper.classList.remove("is-collapsed");});}
+function bindSonGallery() {const grid = document.getElementById("sonPortGrid");const wrapper = document.getElementById("sonPortWrapper");const expandBtn = document.getElementById("sonPortExpandBtn");if (!grid || !wrapper || !expandBtn) return;
+const images = ["images/son/463619189_18095114947463274_1773267247556644044_n.jpg","images/son/487314944_9647852071939455_2372815069298903342_n.jpg","images/son/494118773_9836956476362346_4656582353664272704_n.jpg","images/son/494162522_9859845727406754_5573057615568191752_n.jpg","images/son/498327952_10010656232325702_4115048481086730564_n.jpg","images/son/514318478_24120298870934868_1444515052201366951_n.jpg","images/son/514323324_24116425937988828_6520506200923482964_n.jpg","images/son/514482713_24120465954251493_7803949417622555633_n.jpg","images/son/515083529_24119378957693526_2416044119396794384_n.jpg","images/son/557628749_24902326526065428_5975727814885637327_n.jpg","images/son/566363742_25041064808858265_4854427230165897640_n.jpg","images/son/610975344_25729740873323985_7011612998820304873_n.jpg","images/son/648865794_26275632385401495_28440860511883168_n.jpg","images/son/668984037_26638569502441113_3766474232566768382_n.jpg","images/son/675515938_26732628699701859_6706512719488354866_n.jpg","images/son/682301339_26828962450068483_1914265669887023745_n.jpg","images/son/grant us eyes.jpeg"];
+grid.innerHTML = "";
+const renderItem = (img, index, isHidden = false) => {const item = document.createElement("div");item.className = "divinity-portfolio-item";if (isHidden) {item.classList.add("is-hidden");item.style.display = "none";}const imgUrl = resolveUrl(img);item.innerHTML = `<img src="${imgUrl}" alt="S.O.N Image ${index}" loading="lazy" decoding="async">`;item.addEventListener("click", () => {openDivinityLightbox(imgUrl);});return item;};
+images.forEach((img, idx) => {const isHidden = idx >= 8;const item = renderItem(img, idx + 1, isHidden);grid.appendChild(item);});
+expandBtn.addEventListener("click", () => {const hiddenItems = grid.querySelectorAll("#sonPortGrid .divinity-portfolio-item.is-hidden");hiddenItems.forEach(item => {item.classList.remove("is-hidden");item.style.display = "block";});expandBtn.style.display = "none";wrapper.classList.remove("is-collapsed");});}
+function bindPhilbrixGallery() {const grid = document.getElementById("philbrixPortGrid");const wrapper = document.getElementById("philbrixPortWrapper");const expandBtn = document.getElementById("philbrixPortExpandBtn");if (!grid || !wrapper || !expandBtn) return;
+const images = ["images/philbrix/476835669_1359215671904724_8576598953606769678_n.jpg","images/philbrix/482807336_1382493439576947_8217902807504495779_n.jpg","images/philbrix/485306766_1390389605453997_6585223568325336195_n.jpg","images/philbrix/485607046_1391223342037290_8115186038259580136_n.jpg","images/philbrix/485765900_1389591358867155_5581226393361912876_n.jpg","images/philbrix/640077397_18566038576061355_1837353207573859770_n.jpg","images/philbrix/658043423_18580002718061355_4633109479160700946_n.jpg","images/philbrix/709882773_18595140130061355_219960142183883069_n.jpg","images/philbrix/712196901_18596572588061355_6491067378167815969_n.jpg","images/philbrix/725767583_18600967723061355_5369994730697635112_n.jpg"];
+grid.innerHTML = "";
+const renderItem = (img, index, isHidden = false) => {const item = document.createElement("div");item.className = "divinity-portfolio-item";if (isHidden) {item.classList.add("is-hidden");item.style.display = "none";}const imgUrl = resolveUrl(img);item.innerHTML = `<img src="${imgUrl}" alt="Philbrix Image ${index}" loading="lazy" decoding="async">`;item.addEventListener("click", () => {openDivinityLightbox(imgUrl);});return item;};
+images.forEach((img, idx) => {const isHidden = idx >= 8;const item = renderItem(img, idx + 1, isHidden);grid.appendChild(item);});
+expandBtn.addEventListener("click", () => {const hiddenItems = grid.querySelectorAll("#philbrixPortGrid .divinity-portfolio-item.is-hidden");hiddenItems.forEach(item => {item.classList.remove("is-hidden");item.style.display = "block";});expandBtn.style.display = "none";wrapper.classList.remove("is-collapsed");});}
+function openDivinityLightbox(url) {let lightbox = document.getElementById("divinityLightbox");if (!lightbox) {lightbox = document.createElement("div");lightbox.id = "divinityLightbox";lightbox.className = "divinity-lightbox";lightbox.innerHTML = `<button class="divinity-lightbox-close" aria-label="Close image">&times;</button><div class="divinity-lightbox-content"><img class="divinity-lightbox-img" src="" alt="Enlarged Art"></div>`;document.body.appendChild(lightbox);
+lightbox.addEventListener("click", () => {lightbox.classList.remove("is-active");document.body.classList.remove("lightbox-open");});lightbox.querySelector(".divinity-lightbox-content").addEventListener("click", (e) => {e.stopPropagation();});lightbox.querySelector(".divinity-lightbox-close").addEventListener("click", (e) => {e.stopPropagation();lightbox.classList.remove("is-active");document.body.classList.remove("lightbox-open");});}
+const img = lightbox.querySelector(".divinity-lightbox-img");img.src = url;lightbox.classList.add("is-active");document.body.classList.add("lightbox-open");}
+function bindStoreElements() {viewRoot.querySelectorAll("[data-add]").forEach((button) => {button.addEventListener("click", () => {const product = products.find((item) => item.id === button.dataset.add);const select = viewRoot.querySelector(`[data-option-select="${product.id}"]`);const option = product.options.find((item) => item.id === select.value);addToCart(product, option);});});
+const checkoutBtn = viewRoot.querySelector("#checkout");if (checkoutBtn) checkoutBtn.addEventListener("click", checkout);
+renderCart();}
+function bindHomeBoard() {const stage = viewRoot.querySelector("#homePreview");const links = viewRoot.querySelectorAll("[data-home-link]");if (!stage || !links.length) return;
+links.forEach((link) => {link.addEventListener("mouseenter", () => updateHomePreview(stage, link));link.addEventListener("focus", () => updateHomePreview(stage, link));});}
+function updateHomePreview(stage, link) {const image = link.dataset.previewImage;const title = link.dataset.previewTitle;const meta = link.dataset.previewMeta;const img = stage.querySelector("#homePreviewImage");const titleNode = stage.querySelector("#homePreviewTitle");const metaNode = stage.querySelector("#homePreviewMeta");
+stage.href = link.getAttribute("href");stage.setAttribute("aria-label", title);stage.classList.remove("is-swapping");void stage.offsetWidth;stage.classList.add("is-swapping");
+if (img) img.src = image;if (titleNode) titleNode.textContent = title;if (metaNode) metaNode.textContent = meta;}
+function bindVideoBoard() {const sanctums = viewRoot.querySelectorAll("[data-video-sanctum]");
+sanctums.forEach(sanctum => {const idSuffix = sanctum.dataset.index || "";const frame = sanctum.querySelector(`#activeVideoFrame${idSuffix}`);const poster = sanctum.querySelector(`#activeVideoPoster${idSuffix}`);const playButton = sanctum.querySelector(`#videoPlayButton${idSuffix}`);const list = sanctum.querySelector(`#videoTabletList${idSuffix}`);const status = sanctum.querySelector(`#videoFeedStatus${idSuffix}`);const count = sanctum.querySelector(`#videoCount${idSuffix}`);
+if (!frame || !poster || !playButton || !list) return;
+const selectVideo = (item, shouldPlay = false) => {if (!item) return;
+list.querySelectorAll("[data-video-id]").forEach((candidate) => {const isActive = candidate === item;candidate.classList.toggle("is-active", isActive);candidate.setAttribute("aria-pressed", isActive ? "true" : "false");});
+const title = item.dataset.videoTitle;const id = item.dataset.videoId;const thumb = item.dataset.videoThumb || videoThumb(id);const fallback = item.dataset.videoFallback || videoPosterFallback;
+frame.hidden = !shouldPlay;frame.title = title;frame.src = shouldPlay ? youtubeEmbedUrl(id) : "";poster.dataset.fallback = fallback;poster.dataset.thumbnail = thumb;poster.onerror = () => {if (poster.src !== new URL(fallback, location.href).href) poster.src = fallback;};poster.src = thumb;poster.classList.toggle("is-hidden", shouldPlay);playButton.classList.toggle("is-hidden", shouldPlay);playButton.dataset.videoId = id;};
+list.addEventListener("click", (event) => {const item = event.target.closest("[data-video-id]");if (!item) return;selectVideo(item, false);});
+playButton.addEventListener("click", () => {const active = list.querySelector(".video-item.is-active") || list.querySelector("[data-video-id]");selectVideo(active, true);});
+if (status) status.textContent = "";if (count) count.textContent = "";
+const initialItem = list.querySelector("[data-video-id]");if (initialItem) selectVideo(initialItem, false);warmVideoThumbnailCache(list);
+hydrateVideoFeed(sanctum, list, status, count, selectVideo);});}
+async function hydrateVideoFeed(sanctum, list, status, count, selectVideo) {const feedUrl = sanctum.dataset.feedUrl;if (!feedUrl) return;
+try {const videos = await fetchYouTubeFeed(feedUrl);if (!videos.length) throw new Error("Empty YouTube feed");
+list.innerHTML = videos.map((item, index) => renderVideoItem(item, index)).join("");bindImageFallbacks();if (status) status.textContent = "Channel feed synced";if (count) count.textContent = `${videos.length} videos`;selectVideo(list.querySelector("[data-video-id]"), false);} catch (error) {if (status) status.textContent = "Using saved archive";}}
+async function fetchYouTubeFeed(feedUrl) {const feedSources = [feedUrl, youtubeFeedProxy(feedUrl)];let lastError = null;
+for (const source of feedSources) {try {const response = await fetch(source);if (!response.ok) throw new Error(`Feed request failed: ${response.status}`);return parseYouTubeFeed(await response.text());} catch (error) {lastError = error;}}
+throw lastError || new Error("Unable to fetch YouTube feed");}
+function parseYouTubeFeed(xmlText) {const doc = new DOMParser().parseFromString(xmlText, "application/xml");return Array.from(doc.querySelectorAll("entry")).map((entry) => {const id = entry.querySelector("videoId")?.textContent || "";const title = entry.querySelector("title")?.textContent || "Legion Realm Video";const published = entry.querySelector("published")?.textContent || "";
+return normalizeVideoItem({title,youtubeId: id,published,url: youtubeWatchUrl(id),thumbnail: videoThumb(id)});}).filter((item) => item.youtubeId);}
+const fallbackPreviews = {"invocation": "https://cdnt-preview.dzcdn.net/api/1/1/b/0/2/0/b02089abe23764311ef92a2e084423f0.mp3?hdnea=exp=1781922913~acl=/api/1/1/b/0/2/0/b02089abe23764311ef92a2e084423f0.mp3*~data=user_id=0,application_id=42~hmac=6fbfed6b496bf3ad6c76b61300fd81bd162050c19a89350486045cb5b240b94d","thebastardson": "https://cdnt-preview.dzcdn.net/api/1/1/b/c/f/0/bcf8db49b253c11c5c61c38d36d27d47.mp3?hdnea=exp=1781922913~acl=/api/1/1/b/c/f/0/bcf8db49b253c11c5c61c38d36d27d47.mp3*~data=user_id=0,application_id=42~hmac=30920da5812746d4a97d07708d8825bc96bfb975177fb316a7f22f54acf1aec7","requiem": "https://cdnt-preview.dzcdn.net/api/1/1/6/5/a/0/65a9377384711ec7c853448ec973c7e8.mp3?hdnea=exp=1781922913~acl=/api/1/1/6/5/a/0/65a9377384711ec7c853448ec973c7e8.mp3*~data=user_id=0,application_id=42~hmac=0bd60fab58a395149883973500e0b549a56224f8f92345fe09e717c29e21c2d1","sulphur": "https://cdnt-preview.dzcdn.net/api/1/1/2/f/8/0/2f80ff73e0b545070b1c272e3cf81672.mp3?hdnea=exp=1781922913~acl=/api/1/1/2/f/8/0/2f80ff73e0b545070b1c272e3cf81672.mp3*~data=user_id=0,application_id=42~hmac=509fd8f0b191b569f44026604e6ad2dde126222ee691f61079976e75853c4f1f","thehangedman": "https://cdnt-preview.dzcdn.net/api/1/1/f/3/7/0/f3788a874671aeb5a8ccb4198e88b5c9.mp3?hdnea=exp=1781922913~acl=/api/1/1/f/3/7/0/f3788a874671aeb5a8ccb4198e88b5c9.mp3*~data=user_id=0,application_id=42~hmac=f1b5e47feff0775aee34dd7b721dbc68ae55a52cb15f12223e405b6ea74a2bd8","wherefearlives": "https://cdnt-preview.dzcdn.net/api/1/1/5/2/b/0/52b619c98b7f7a412744211fb887f1fa.mp3?hdnea=exp=1781922913~acl=/api/1/1/5/2/b/0/52b619c98b7f7a412744211fb887f1fa.mp3*~data=user_id=0,application_id=42~hmac=b44601db0bb2a1e817ddfb922cd411e0e895dfc3a3e9a1078b3ebede8d0cd612","undermyskin": "https://cdnt-preview.dzcdn.net/api/1/1/3/8/b/0/38b4b5bd68579194f34d330d0da8d557.mp3?hdnea=exp=1781922913~acl=/api/1/1/3/8/b/0/38b4b5bd68579194f34d330d0da8d557.mp3*~data=user_id=0,application_id=42~hmac=53985951ecfd0cf36eb96b1dd6c8eeb7fc70260b64c0a4e0351f9eb18003e12c","tenebrous": "https://cdnt-preview.dzcdn.net/api/1/1/8/3/1/0/831bd60045b50bb26297bb6f0e728a28.mp3?hdnea=exp=1781922913~acl=/api/1/1/8/3/1/0/831bd60045b50bb26297bb6f0e728a28.mp3*~data=user_id=0,application_id=42~hmac=7fa3b7e7215d6c81b59776c9b8ca1f7d80fb7cf3fcaa8639d7a5c7a669843dd5","absolution": "https://cdnt-preview.dzcdn.net/api/1/1/6/a/b/0/6abe71bc2f7a7f574c480170578fc737.mp3?hdnea=exp=1781922913~acl=/api/1/1/6/a/b/0/6abe71bc2f7a7f574c480170578fc737.mp3*~data=user_id=0,application_id=42~hmac=1d1e2e530a1a9a14777ea615b46c6f79de74014e564ef5783918608fc4716219","threeofswords": "https://cdnt-preview.dzcdn.net/api/1/1/4/0/9/0/409d239134ec19f34efeeada2b141b39.mp3?hdnea=exp=1781922913~acl=/api/1/1/4/0/9/0/409d239134ec19f34efeeada2b141b39.mp3*~data=user_id=0,application_id=42~hmac=002476c7f59cab3a9f77739d4943e73f9682442bc5dae9def77d8fb9f730c85f","firewalkwithme": "https://cdnt-preview.dzcdn.net/api/1/1/1/e/7/0/1e7bf38e87ab358173cf167835b2d378.mp3?hdnea=exp=1781922913~acl=/api/1/1/1/e/7/0/1e7bf38e87ab358173cf167835b2d378.mp3*~data=user_id=0,application_id=42~hmac=65f5dccb9ff84880094f54a5fb19e6261951417ede1ff5db213b6155d7fac975","therot": "https://cdnt-preview.dzcdn.net/api/1/1/0/f/8/0/0f85f7a8269a0683bce169448db25be9.mp3?hdnea=exp=1781922913~acl=/api/1/1/0/f/8/0/0f85f7a8269a0683bce169448db25be9.mp3*~data=user_id=0,application_id=42~hmac=9c91e67fda8b84179019ab0240dc4ecaca6fa6aa6209d5c7daf0a1cefd58c8ca","apocalyptic": "https://cdnt-preview.dzcdn.net/api/1/1/0/0/8/0/0081f127901122d13e7ea7547a348ca2.mp3?hdnea=exp=1781922913~acl=/api/1/1/0/0/8/0/0081f127901122d13e7ea7547a348ca2.mp3*~data=user_id=0,application_id=42~hmac=03dd08372c18b3fb8dc0f896c2caa69527472350173083313bad0a41df680a54","death": "https://cdnt-preview.dzcdn.net/api/1/1/1/9/a/0/19a507d6b1ab61e83f2bb96cc5e6746e.mp3?hdnea=exp=1781922913~acl=/api/1/1/1/9/a/0/19a507d6b1ab61e83f2bb96cc5e6746e.mp3*~data=user_id=0,application_id=42~hmac=43414210d2a67d7b4d7300b9413299f98d451739196dd334f5f1779fd05da94c","thywillbedone": "https://cdnt-preview.dzcdn.net/api/1/1/e/f/2/0/ef244ca996f6d1cf13320962969f0eb7.mp3?hdnea=exp=1781922913~acl=/api/1/1/e/f/2/0/ef244ca996f6d1cf13320962969f0eb7.mp3*~data=user_id=0,application_id=42~hmac=67c40e3df03da6639b16b9572449266d082998315be63678ee92a8f9eb0c829a",
+"aterriblefate": "https://cdnt-preview.dzcdn.net/api/1/1/0/5/0/0/0506b85032fc7c569a114d2a2583b21b.mp3?hdnea=exp=1781922913~acl=/api/1/1/0/5/0/0/0506b85032fc7c569a114d2a2583b21b.mp3*~data=user_id=0,application_id=42~hmac=8600000a83ef75f9d8846a2de2f2a489e370cb72048c3f6c86f69c2b16c8d3cc","grantuseyes": "https://cdnt-preview.dzcdn.net/api/1/1/8/b/2/0/8b2df462239a4eacd1605d8809fad317.mp3?hdnea=exp=1781922913~acl=/api/1/1/8/b/2/0/8b2df462239a4eacd1605d8809fad317.mp3*~data=user_id=0,application_id=42~hmac=321566ccfe7759527e5c457d1ae6e447ab608030541494ce73c0c21c30b25a3e","evil": "https://cdnt-preview.dzcdn.net/api/1/1/4/8/c/0/48c4a681cde2c153438871ca5a5057b0.mp3?hdnea=exp=1781922913~acl=/api/1/1/4/8/c/0/48c4a681cde2c153438871ca5a5057b0.mp3*~data=user_id=0,application_id=42~hmac=a72ee3787cb64dcb38ccbd16f3490e2c69bc2026654818164c50b9290f933d49","kingofdarkenergy": "https://cdnt-preview.dzcdn.net/api/1/1/3/7/a/0/37aa10265f299cc9686b589f9c8a52bb.mp3?hdnea=exp=1781922913~acl=/api/1/1/3/7/a/0/37aa10265f299cc9686b589f9c8a52bb.mp3*~data=user_id=0,application_id=42~hmac=ece95c66f36450e20eba7667ce8668a8354ddac451507b012cd67d8640a65307","breathe": "https://cdnt-preview.dzcdn.net/api/1/1/5/f/4/0/5f4727f1b59d5b1a8232b9358de99e17.mp3?hdnea=exp=1781922913~acl=/api/1/1/5/f/4/0/5f4727f1b59d5b1a8232b9358de99e17.mp3*~data=user_id=0,application_id=42~hmac=67dfd57bd38cd59a44be54c1a80d297ed94d54d5edd9ccd7deb1678a56353714","thedescent": "https://cdnt-preview.dzcdn.net/api/1/1/0/a/6/0/0a605ebf9db64473c18d05dd420f540b.mp3?hdnea=exp=1781922913~acl=/api/1/1/0/a/6/0/0a605ebf9db64473c18d05dd420f540b.mp3*~data=user_id=0,application_id=42~hmac=50b90061dc6c1626e5dba239a4c1052526f561bf64dee91e2313f6d033f69fa7","themouthofmadness": "https://cdnt-preview.dzcdn.net/api/1/1/5/0/e/0/50e5947c652e543e4e1b23461df7bcae.mp3?hdnea=exp=1781922913~acl=/api/1/1/5/0/e/0/50e5947c652e543e4e1b23461df7bcae.mp3*~data=user_id=0,application_id=42~hmac=06029ac0c3cbeb80606eaad8cf63df5846986e0e1c87918d90c3b174bddd692d","amen": "https://cdnt-preview.dzcdn.net/api/1/1/3/2/5/0/3252604dcdc9b327f52542e0f276799b.mp3?hdnea=exp=1781922913~acl=/api/1/1/3/2/5/0/3252604dcdc9b327f52542e0f276799b.mp3*~data=user_id=0,application_id=42~hmac=8a994bdad2ac6397342e232a05c4133008fbac46264b3da4c9898545cfb1c454","thebridge": "https://cdnt-preview.dzcdn.net/api/1/1/9/4/9/0/949167788cfb43a55b74b00fbd20158a.mp3?hdnea=exp=1781922913~acl=/api/1/1/9/4/9/0/949167788cfb43a55b74b00fbd20158a.mp3*~data=user_id=0,application_id=42~hmac=bc2c37770453095f0a44be9b6f410c5e38e54435da3c391d5e72220022124b7c","whatsthatnoise": "https://cdnt-preview.dzcdn.net/api/1/1/3/b/d/0/3bd37889e6ad9eaf122982db753dea94.mp3?hdnea=exp=1781922913~acl=/api/1/1/3/b/d/0/3bd37889e6ad9eaf122982db753dea94.mp3*~data=user_id=0,application_id=42~hmac=2972cd4c08231191bdf4f925fbf0a4995cc5ee9319be5ccb2ed8b645f79cc19f","theorderofthebluerose": "https://cdnt-preview.dzcdn.net/api/1/1/e/8/4/0/e84c3c709203a3f86e2c6200f3c6f089.mp3?hdnea=exp=1781922913~acl=/api/1/1/e/8/4/0/e84c3c709203a3f86e2c6200f3c6f089.mp3*~data=user_id=0,application_id=42~hmac=82ca9113d63cae1977cbc05c157c9410b3c8639c437599fd8c866463d640b060","feedthebeast": "https://cdnt-preview.dzcdn.net/api/1/1/3/7/3/0/373f4696b345228f528997a5423076c7.mp3?hdnea=exp=1781922913~acl=/api/1/1/3/7/3/0/373f4696b345228f528997a5423076c7.mp3*~data=user_id=0,application_id=42~hmac=7a52c1f291df61883e3c27258e5b99d1e344f12959a514a874961319ac75dc45","eyeforaneye": "https://cdnt-preview.dzcdn.net/api/1/1/4/4/5/0/4458275bafa5538acc1e9d455ace9f67.mp3?hdnea=exp=1781922913~acl=/api/1/1/4/4/5/0/4458275bafa5538acc1e9d455ace9f67.mp3*~data=user_id=0,application_id=42~hmac=909e2b8168feb622b97ce02ac0c5333d890f36879272ee44dda2f24d9b569358","theblessing": "https://cdnt-preview.dzcdn.net/api/1/1/d/e/8/0/de839fe2f40e2f706ce51891dc3b12b9.mp3?hdnea=exp=1781922913~acl=/api/1/1/d/e/8/0/de839fe2f40e2f706ce51891dc3b12b9.mp3*~data=user_id=0,application_id=42~hmac=6fb42be03aa54729f0d0cb7ba9c0c9ceb15e812944cebf52eccf009615ea9b43","thehive": "https://cdnt-preview.dzcdn.net/api/1/1/d/5/d/0/d5d2a507b8e2303e8f7f3b83a6d65b5d.mp3?hdnea=exp=1781922913~acl=/api/1/1/d/5/d/0/d5d2a507b8e2303e8f7f3b83a6d65b5d.mp3*~data=user_id=0,application_id=42~hmac=ff1477b53ad568461fe50901d0fb5a6d67be57d091e573fdc12cc79c345620d7"};
+let previewUrls = { ...fallbackPreviews };let previewFetcherPromise = null;let currentAudio = null;let currentPlayingLi = null;let globalVolume = 0.5;
+const visualizerState = {active: false,reqId: null,analyser: null,source: null,audioContext: null,isSimulated: true};const visualizerHeights = new Float32Array(32);const visualizerPeaks = new Float32Array(32);const visualizerParticles = [];let visualizerIntensity = 0;
+function drawRoundedRect(ctx, x, y, width, height, radius) {ctx.beginPath();ctx.moveTo(x + radius, y);ctx.lineTo(x + width - radius, y);ctx.quadraticCurveTo(x + width, y, x + width, y + radius);ctx.lineTo(x + width, y + height);ctx.lineTo(x, y + height);ctx.lineTo(x, y + radius);ctx.quadraticCurveTo(x, y, x + radius, y);ctx.closePath();ctx.fill();}
+function drawSulfurSigil(ctx, cx, cy, size, rotateRad, strokeStyle, fillStyle, lineWidth = 2) {ctx.save();ctx.translate(cx, cy);if (rotateRad) {ctx.rotate(rotateRad);}
+const scale = size / 116;
+ctx.beginPath();ctx.strokeStyle = strokeStyle || "#ff2a2a";ctx.lineWidth = lineWidth;ctx.lineCap = "round";ctx.lineJoin = "round";
+ctx.moveTo(0 * scale, -58 * scale);ctx.lineTo(48 * scale, 24 * scale);ctx.lineTo(-48 * scale, 24 * scale);ctx.closePath();if (fillStyle) {ctx.fillStyle = fillStyle;ctx.fill();}ctx.stroke();
+ctx.beginPath();ctx.moveTo(0 * scale, 22 * scale);ctx.lineTo(0 * scale, 58 * scale);ctx.moveTo(-23 * scale, 41 * scale);ctx.lineTo(23 * scale, 41 * scale);ctx.stroke();
+ctx.restore();}
+function startVisualizerLoop() {if (visualizerState.active) return;visualizerState.active = true;
+function drawFrame() {if (!visualizerState.active) return;visualizerState.reqId = requestAnimationFrame(drawFrame);
+const canvas = document.getElementById("playerVisualizer");if (!canvas) {stopVisualizerLoop();return;}const ctx = canvas.getContext("2d");const width = canvas.width;const height = canvas.height;
+ctx.clearRect(0, 0, width, height);
+const barCount = 14;const isPlaying = !!(currentAudio && !currentAudio.paused);const time = Date.now() * 0.004;
+for (let i = 0; i < barCount; i++) {let target = 0;const dist = Math.abs(i - (barCount - 1) / 2); 
+const ratio = dist / ((barCount - 1) / 2); 
+const freqBooster = 0.62 + ratio * 1.08;
+if (isPlaying) {if (visualizerState.analyser && !visualizerState.isSimulated) {const rawData = new Uint8Array(visualizerState.analyser.frequencyBinCount);visualizerState.analyser.getByteFrequencyData(rawData);
+const maxBin = Math.floor(rawData.length * 0.38);const minBin = 1;const binIndex = Math.min(rawData.length - 1,Math.floor(Math.pow(ratio, 1.6) * (maxBin - minBin) + minBin));target = (rawData[binIndex] || 0) * freqBooster;target = Math.min(255, target);} else {
+let songSeed = 0;if (currentPlayingLi) {const titleNode = currentPlayingLi.querySelector(".track-title strong");if (titleNode) {const title = titleNode.textContent;for (let j = 0; j < title.length; j++) {songSeed += title.charCodeAt(j);}}}const speed = 1.0 + (songSeed % 4) * 0.15;const phase = time * speed;
+if (dist <= 2) {
+const bassPulse = Math.max(0, Math.sin(phase * 3.5) + Math.sin(phase * 0.7));target = (bassPulse * 0.45 + Math.random() * 0.2) * 150 + 30;} else if (dist <= 5) {
+const midWave = Math.sin(phase * 1.8 + dist * 0.5) * 0.4 + 0.6;target = (midWave * 0.6 + Math.random() * 0.2) * 130 + 30;} else {
+const highFlicker = Math.sin(phase * 5.0 + dist * 0.8) * 0.3 + 0.5;target = (highFlicker * 0.4 + Math.random() * 0.3) * 90 + 20;}const envelope = Math.sin((i / barCount) * Math.PI) * 0.35 + 0.65; 
+target *= envelope * freqBooster;target = Math.min(255, target);}
+const columnVar = 0.85 + Math.sin(dist * 2.1) * 0.15;target *= columnVar;target = Math.min(255, target);} else {
+const idleWave = Math.sin(time * 0.8 + i * 0.4) * 0.5 + 0.5;target = idleWave * 8;}
+visualizerHeights[i] += (target - visualizerHeights[i]) * (isPlaying ? 0.28 : 0.1);}
+let avgHeight = 0;for (let i = 0; i < barCount; i++) {avgHeight += visualizerHeights[i] / 255;}avgHeight /= barCount;
+const intensityTarget = Math.min(1, avgHeight * 1.2);const intensitySmooth = intensityTarget > visualizerIntensity ? 0.18 : 0.06;visualizerIntensity += (intensityTarget - visualizerIntensity) * intensitySmooth;
+const spacing = width / barCount;for (let i = 0; i < barCount; i++) {const val = visualizerHeights[i];const size = 13 + (val / 255) * 11; 
+const topMargin = 12;   
+const bottomMargin = 10; 
+const cyIdle = height - size / 2 - bottomMargin;const cyMax = size / 2 + topMargin;const cy = cyIdle - (val / 255) * (cyIdle - cyMax);
+const cx = i * spacing + spacing / 2;const glow = isPlaying ? (val / 255) * 15 + 2 : 2;const color = isPlaying ? `rgba(255, 42, 42, ${0.35 + (val / 255) * 0.65})` : "rgba(216, 209, 185, 0.22)";const lWidth = isPlaying ? 1.4 + (val / 255) * 0.8 : 1.8;
+if (isPlaying && val > 5) {ctx.save();ctx.beginPath();ctx.strokeStyle = `rgba(255, 42, 42, ${0.08 + (val / 255) * 0.12})`;ctx.lineWidth = 1.0;ctx.moveTo(cx, height - bottomMargin);ctx.lineTo(cx, cy + size / 2 - 2);ctx.stroke();ctx.restore();}
+let fillGlow = null;if (isPlaying && val > 15) {fillGlow = ctx.createLinearGradient(cx, cy - size / 2, cx, cy + size / 2);fillGlow.addColorStop(0, `rgba(255, 42, 42, ${0.18 * (val / 255)})`);fillGlow.addColorStop(1, "rgba(255, 42, 42, 0)");}
+if (isPlaying && val > 20) {ctx.save();ctx.globalAlpha = 0.15 * (val / 255);ctx.translate(cx, height - bottomMargin + 4);ctx.scale(1, -0.6); 
+ctx.translate(-cx, -cy);drawSulfurSigil(ctx, cx, cy, size, 0, color, null, 1.2);ctx.restore();}
+ctx.save();ctx.shadowBlur = glow;ctx.shadowColor = "#ff2a2a";drawSulfurSigil(ctx, cx, cy, size, 0, color, fillGlow, lWidth);ctx.restore();
+const spawnThreshold = 0.04 + visualizerIntensity * 0.40;const maxParticles = Math.round(8 + visualizerIntensity * 55);if (isPlaying && val > 50 + (1 - visualizerIntensity) * 40 && Math.random() < spawnThreshold && visualizerParticles.length < maxParticles) {const intensityBoost = visualizerIntensity * 1.6;visualizerParticles.push({x: cx,y: cy - size / 2,vx: (Math.random() - 0.5) * (0.6 + intensityBoost * 1.0),vy: -(Math.random() * 1.2 + 0.3 + intensityBoost * 1.8),size: 4 + Math.random() * (6 + intensityBoost * 8),color: Math.random() < 0.18 + visualizerIntensity * 0.22 ? "#ffaa00" : "#ff2a2a",alpha: 1.0,decay: 0.025 + Math.random() * 0.020 - visualizerIntensity * 0.015,rotation: Math.random() * Math.PI * 2,rotSpeed: (Math.random() - 0.5) * (0.04 + intensityBoost * 0.08)});}}
+if (visualizerParticles.length > 0) {if (!isPlaying) {for (let pIdx = visualizerParticles.length - 1; pIdx >= 0; pIdx--) {visualizerParticles[pIdx].decay *= 3.5;}}for (let pIdx = visualizerParticles.length - 1; pIdx >= 0; pIdx--) {const p = visualizerParticles[pIdx];p.x += p.vx;p.y += p.vy;p.alpha -= p.decay;p.rotation += p.rotSpeed;
+if (p.alpha <= 0 || p.y < -30) {visualizerParticles.splice(pIdx, 1);continue;}
+ctx.save();
+const boundaryFade = Math.max(0, Math.min(1, p.y / 20));ctx.globalAlpha = p.alpha * boundaryFade;ctx.shadowBlur = 4;ctx.shadowColor = p.color;
+drawSulfurSigil(ctx, p.x, p.y, p.size, p.rotation, p.color, null, 1.2);
+ctx.beginPath();ctx.arc(p.x, p.y, 1.0, 0, Math.PI * 2);ctx.fillStyle = "#ffffff";ctx.shadowBlur = 5;ctx.shadowColor = "#ffffff";ctx.fill();
+ctx.restore();}}}
+visualizerState.reqId = requestAnimationFrame(drawFrame);}
+function stopVisualizerLoop() {visualizerState.active = false;if (visualizerState.reqId) {cancelAnimationFrame(visualizerState.reqId);visualizerState.reqId = null;}}
+function cleanTitle(title) {const base = title.split("(")[0].split("feat.")[0].trim();return base.toLowerCase().replace(/[^a-z0-9]/g, "");}
+function fetchDeezerPreviews() {if (previewFetcherPromise) return previewFetcherPromise;
+previewFetcherPromise = new Promise((resolve) => {const callbackName = "deezer_callback_" + Date.now();window[callbackName] = function(response) {if (response && response.data) {response.data.forEach(track => {const clean = cleanTitle(track.title);if (track.preview) {previewUrls[clean] = track.preview;}});}delete window[callbackName];resolve();};
+const script = document.createElement("script");script.src = `https://api.deezer.com/search?q=artist:"Somethin Outta Nothin"&limit=100&output=jsonp&callback=${callbackName}`;script.onerror = () => {delete window[callbackName];resolve();};document.body.appendChild(script);});
+return previewFetcherPromise;}
+function playPreview(title, li) {const clean = cleanTitle(title);const url = previewUrls[clean];
+if (!url) {console.warn("No preview URL found for track:", title);return;}
+if (currentAudio) {currentAudio.pause();if (currentPlayingLi) {currentPlayingLi.classList.remove("is-playing");}
+if (currentAudio.src === url) {currentAudio = null;currentPlayingLi = null;updatePlayerBarState();return;}}
+const playAudioWithVisualizer = (useCORS) => {const audio = new Audio();if (useCORS) {audio.crossOrigin = "anonymous";}audio.src = url;audio.volume = globalVolume;
+audio.addEventListener("ended", () => {li.classList.remove("is-playing");if (currentAudio === audio) {currentAudio = null;currentPlayingLi = null;}updatePlayerBarState();});
+audio.addEventListener("error", () => {if (useCORS) {console.warn("CORS audio play blocked, retrying without CORS");li.classList.remove("is-playing");playAudioWithVisualizer(false);} else {li.classList.remove("is-playing");if (currentAudio === audio) {currentAudio = null;currentPlayingLi = null;}updatePlayerBarState();}});
+audio.play().then(() => {updatePlayerBarState();
+if (useCORS) {try {if (!visualizerState.audioContext) {visualizerState.audioContext = new (window.AudioContext || window.webkitAudioContext)();}if (visualizerState.audioContext.state === "suspended") {visualizerState.audioContext.resume();}
+const source = visualizerState.audioContext.createMediaElementSource(audio);const analyser = visualizerState.audioContext.createAnalyser();analyser.fftSize = 512;source.connect(analyser);analyser.connect(visualizerState.audioContext.destination);
+visualizerState.analyser = analyser;visualizerState.isSimulated = false;} catch (e) {console.warn("Web Audio API binding failed, using simulated visualizer:", e);visualizerState.analyser = null;visualizerState.isSimulated = true;}} else {visualizerState.analyser = null;visualizerState.isSimulated = true;}
+startVisualizerLoop();}).catch(err => {console.error("Audio playback error:", err);if (useCORS) {console.warn("Playback error on CORS attempt, retrying without CORS");li.classList.remove("is-playing");playAudioWithVisualizer(false);} else {updatePlayerBarState();}});
+currentAudio = audio;currentPlayingLi = li;li.classList.add("is-playing");};
+playAudioWithVisualizer(true);}
+function adjustTrackDisplayFontSize(element) {if (!element) return;const baseFontSizeRem = 1.5;const minFontSizeRem = 0.6;
+element.style.setProperty('font-size', `${baseFontSizeRem}rem`, 'important');
+const clientWidth = element.clientWidth;const scrollWidth = element.scrollWidth;
+if (clientWidth > 0 && scrollWidth > clientWidth) {const ratio = clientWidth / scrollWidth;const newSize = Math.max(minFontSizeRem, baseFontSizeRem * ratio * 0.95);element.style.setProperty('font-size', `${newSize}rem`, 'important');}}
+if (typeof window !== "undefined" && !window.__TRACK_DISPLAY_OBSERVER) {window.__TRACK_DISPLAY_OBSERVER = new ResizeObserver((entries) => {window.requestAnimationFrame(() => {for (let entry of entries) {adjustTrackDisplayFontSize(entry.target);}});});}
+function updatePlayerBarState() {const consoleNode = viewRoot.querySelector("[data-album-console]");if (!consoleNode) return;const playerShell = consoleNode.querySelector("#playerShell");
+const playIcon = consoleNode.querySelector("#playIcon");const pauseIcon = consoleNode.querySelector("#pauseIcon");const trackDisplay = consoleNode.querySelector("#playerTrackDisplay");const playPauseBtn = consoleNode.querySelector("#playerPlayPauseBtn");
+const isPlaying = !!(currentAudio && !currentAudio.paused);
+if (playerShell) {playerShell.classList.toggle("is-playing", isPlaying);}if (playPauseBtn) {playPauseBtn.classList.toggle("is-playing", isPlaying);}if (playIcon && pauseIcon) {playIcon.style.display = isPlaying ? "none" : "block";pauseIcon.style.display = isPlaying ? "block" : "none";}
+if (trackDisplay) {if (isPlaying && currentPlayingLi) {const titleNode = currentPlayingLi.querySelector(".track-title strong");if (titleNode) {trackDisplay.textContent = titleNode.textContent;trackDisplay.classList.add("is-playing");}} else {trackDisplay.textContent = "SELECT A TRACK";trackDisplay.classList.remove("is-playing");}
+adjustTrackDisplayFontSize(trackDisplay);}}
+function togglePlayPause() {if (currentAudio) {if (currentPlayingLi) {const trackTitleNode = currentPlayingLi.querySelector(".track-title strong");if (trackTitleNode) {playPreview(trackTitleNode.textContent, currentPlayingLi);}} else {currentAudio.pause();currentAudio = null;updatePlayerBarState();}} else {const consoleNode = viewRoot.querySelector("[data-album-console]");if (consoleNode) {const firstLi = consoleNode.querySelector("#albumTrackList li");if (firstLi) {const trackTitleNode = firstLi.querySelector(".track-title strong");if (trackTitleNode) {playPreview(trackTitleNode.textContent, firstLi);}}}}}
+function bindAlbumConsole() {const consoleNode = viewRoot.querySelector("[data-album-console]");if (!consoleNode) return;
+fetchDeezerPreviews();
+const cards = consoleNode.querySelectorAll("[data-album-id]");const albums = musicAlbums();const background = consoleNode.querySelector("#albumHeroBg");const image = consoleNode.querySelector("#albumHeroImage");const title = consoleNode.querySelector("#albumHeroTitle");const accent = consoleNode.querySelector("#albumHeroAccent");const factGrid = consoleNode.querySelector("#albumFactGrid");const trackCount = consoleNode.querySelector("#albumTrackCount");const trackList = consoleNode.querySelector("#albumTrackList");const spotifyLink = consoleNode.querySelector("#albumSpotifyLink");
+const playPauseBtn = consoleNode.querySelector("#playerPlayPauseBtn");const volumeSlider = consoleNode.querySelector("#playerVolumeSlider");const trackDisplay = consoleNode.querySelector("#playerTrackDisplay");const volumeContainer = consoleNode.querySelector("#playerVolumeContainer");const volumeToggleBtn = consoleNode.querySelector("#volumeToggleBtn");
+if (trackDisplay && window.__TRACK_DISPLAY_OBSERVER) {window.__TRACK_DISPLAY_OBSERVER.observe(trackDisplay);adjustTrackDisplayFontSize(trackDisplay);}
+if (playPauseBtn) {playPauseBtn.addEventListener("click", () => {togglePlayPause();});}
+if (volumeToggleBtn && volumeContainer) {volumeToggleBtn.addEventListener("click", (e) => {e.stopPropagation();volumeContainer.classList.toggle("is-expanded");});}
+if (volumeContainer) {volumeContainer.addEventListener("click", (e) => {e.stopPropagation();});}
+if (volumeSlider) {volumeSlider.value = globalVolume;volumeSlider.addEventListener("input", (e) => {globalVolume = parseFloat(e.target.value);if (currentAudio) {currentAudio.volume = globalVolume;}});}
+if (typeof window !== "undefined" && !window.__VOLUME_COLLAPSE_BOUND) {window.__VOLUME_COLLAPSE_BOUND = true;document.addEventListener("click", () => {const container = document.querySelector("#playerVolumeContainer");if (container) {container.classList.remove("is-expanded");}});}
+const setupTrackClicks = () => {if (trackList) {
+const newTrackList = trackList.cloneNode(true);trackList.parentNode.replaceChild(newTrackList, trackList);
+newTrackList.addEventListener("click", (e) => {const li = e.target.closest("li");if (!li) return;
+const trackTitleNode = li.querySelector(".track-title strong");if (trackTitleNode) {playPreview(trackTitleNode.textContent, li);}});}};
+setupTrackClicks();startVisualizerLoop();
+cards.forEach((card) => {card.addEventListener("click", () => {
+if (currentAudio) {currentAudio.pause();currentAudio = null;}if (currentPlayingLi) {currentPlayingLi.classList.remove("is-playing");currentPlayingLi = null;}updatePlayerBarState();
+const album = albums.find((item) => item.id === card.dataset.albumId);if (!album) return;
+cards.forEach((candidate) => {candidate.classList.toggle("is-active", candidate === card);candidate.setAttribute("aria-pressed", candidate === card ? "true" : "false");});
+consoleNode.classList.remove("is-swapping");void consoleNode.offsetWidth;consoleNode.classList.add("is-swapping");
+if (image) {image.src = album.image;image.alt = album.title;}if (background) background.src = album.image;if (title) title.textContent = album.title;if (accent) accent.textContent = album.accent;if (factGrid) factGrid.innerHTML = renderAlbumFacts(album);if (trackCount) trackCount.textContent = `${album.trackCount} tracks / ${album.runtime}`;if (trackList) {const activeTrackList = consoleNode.querySelector("#albumTrackList");activeTrackList.innerHTML = renderTrackList(album);setupTrackClicks();}if (spotifyLink) {spotifyLink.href = album.href;}});});}
+function addToCart(product, option) {const key = `${product.id}:${option.id}`;const current = cart.get(key) || { product, option, quantity: 0 };cart.set(key, { product, option, quantity: current.quantity + 1 });saveCart();renderCart();}
+function removeFromCart(key) {cart.delete(key);saveCart();renderCart();}
+function renderCart() {const cartItems = viewRoot.querySelector("#cartItems");const cartTotal = viewRoot.querySelector("#cartTotal");const checkoutButton = viewRoot.querySelector("#checkout");if (!cartItems || !cartTotal || !checkoutButton) return;
+const items = [...cart.entries()];
+if (!items.length) {cartItems.innerHTML = `<p class="empty">No items selected.</p>`;cartTotal.textContent = money.format(0);checkoutButton.disabled = true;return;}
+checkoutButton.disabled = false;cartItems.innerHTML = items.map(([key, { product, option, quantity }]) => `<div class="cart-row"><div><span>${product.title}</span><small>${option.name} x ${quantity}</small></div><div class="cart-controls" aria-label="Adjust ${product.title}"><button class="cart-adjust" type="button" data-adjust="${key}" data-delta="-1" aria-label="Decrease ${product.title}">-</button><button class="cart-adjust" type="button" data-adjust="${key}" data-delta="1" aria-label="Increase ${product.title}">+</button></div><button class="cart-remove" type="button" data-remove="${key}" aria-label="Remove ${product.title}">Remove</button></div>`).join("");
+cartItems.querySelectorAll("[data-remove]").forEach((button) => {button.addEventListener("click", () => removeFromCart(button.dataset.remove));});
+cartItems.querySelectorAll("[data-adjust]").forEach((button) => {button.addEventListener("click", () =>adjustCart(button.dataset.adjust, Number(button.dataset.delta)));});
+const total = items.reduce((sum, [, item]) => sum + item.product.price * item.quantity,0);cartTotal.textContent = money.format(total);}
+function adjustCart(key, delta) {const current = cart.get(key);if (!current) return;
+const quantity = current.quantity + delta;if (quantity <= 0) {cart.delete(key);} else {cart.set(key, { ...current, quantity });}
+saveCart();renderCart();}
+function getRootDomain(hostname) {if (!hostname || hostname === "localhost" || hostname === "127.0.0.1") return hostname;const parts = hostname.split(".");if (parts.length <= 2) return hostname;return parts.slice(-2).join(".");}
+function isSameSite(url1, url2) {try {const host1 = new URL(url1, window.location.origin).hostname;const host2 = new URL(url2, window.location.origin).hostname;return getRootDomain(host1) === getRootDomain(host2);} catch {return false;}}
+function checkout() {const items = [...cart.values()];if (!items.length) return;const status = viewRoot.querySelector("#cartStatus");const checkoutButton = viewRoot.querySelector("#checkout");
+if (checkoutButton) {checkoutButton.disabled = true;}
+if (items.length === 1) {if (status) {status.textContent = "Redirecting to checkout...";}const { option, quantity } = items[0];submitCartItem(option.id, quantity, "_self");cart.clear();saveCart();renderCart();return;}
+const sameSite = isSameSite(window.location.href, checkoutConfig.cartUrl);
+if (!sameSite) {if (status) {status.style.minHeight = "auto";status.innerHTML = `<div class="cart-warning"><p><strong>Multi-item checkout is restricted by browser security on this domain.</strong></p><p>Because the current site is running cross-site to your Big Cartel store, browser security blocks cart session cookies. In production, this will work seamlessly when your custom subdomain (e.g., <code>shop.yourdomain.com</code>) is configured.</p><p>For now, you can buy single items, or add these items manually on the store:</p><ul class="fallback-links">${items.map(({ product }) => `<li><a href="${product.url}" target="_blank" rel="noreferrer">${escapeHTML(product.title)}</a></li>`).join("")}</ul></div>`;}if (checkoutButton) {checkoutButton.disabled = false;}return;}
+const targetName = "bigcartel_checkout";if (status) {status.textContent = `Preparing checkout (0/${items.length})...`;}
+const checkoutWindow = window.open("about:blank", targetName);
+items.forEach(({ option, quantity, product }, index) => {window.setTimeout(() => {if (status) {status.textContent = `Adding ${product.title} (${index + 1}/${items.length})...`;}submitCartItem(option.id, quantity, targetName);}, index * 2000);});
+window.setTimeout(() => {if (status) {status.textContent = "Redirecting to checkout...";}
+if (checkoutWindow) {checkoutWindow.location.href = checkoutConfig.cartUrl;}if (status) {status.textContent = "Checkout prepared in new window!";}if (checkoutButton) {checkoutButton.disabled = false;}cart.clear();saveCart();renderCart();}, items.length * 2000 + 500);}
+function submitCartItem(optionId, quantity, targetName) {const form = document.createElement("form");form.method = "post";form.action = checkoutConfig.cartUrl;form.target = targetName;
+const idInput = document.createElement("input");idInput.type = "hidden";idInput.name = "cart[add][id]";idInput.value = optionId;form.appendChild(idInput);
+const quantityInput = document.createElement("input");quantityInput.type = "hidden";quantityInput.name = "cart[add][quantity]";quantityInput.value = String(quantity);form.appendChild(quantityInput);
+document.body.appendChild(form);form.submit();form.remove();}
+function openBigCartelCart(targetName) {const form = document.createElement("form");form.method = "get";form.action = checkoutConfig.cartUrl;form.target = targetName;
+document.body.appendChild(form);form.submit();form.remove();}
+function initPointerTracking() {const overlay = document.createElement("div");overlay.className = "ambient-pointer-overlay";document.body.appendChild(overlay);
+let mouseX = window.innerWidth / 2;let mouseY = window.innerHeight / 2;let ticking = false;
+document.addEventListener("mousemove", (event) => {mouseX = event.clientX;mouseY = event.clientY;
+if (!ticking) {window.requestAnimationFrame(() => {overlay.style.transform = `translate3d(${mouseX}px, ${mouseY}px, 0)`;ticking = false;});ticking = true;}});}
+function refreshProductGrid() {const grid = viewRoot.querySelector(".product-grid");if (grid) {grid.innerHTML = products.map((product, index) => renderProduct(product, index)).join("");bindStoreElements();}}
+function loadBigCartelProductsJSONP() {return new Promise((resolve, reject) => {const callbackName = "cb_" + Math.random().toString(36).substring(2, 9);const script = document.createElement("script");script.id = callbackName;script.src = `https://legionrealm.bigcartel.com/products.js?callback=${callbackName}`;
+const timeout = setTimeout(() => {cleanup();reject(new Error("JSONP request timed out"));}, 6000);
+function cleanup() {clearTimeout(timeout);delete window[callbackName];const el = document.getElementById(callbackName);if (el) el.remove();}
+window[callbackName] = function(data) {cleanup();if (data && Array.isArray(data)) {resolve(data);} else {reject(new Error("Invalid JSONP response format"));}};
+script.onerror = () => {cleanup();reject(new Error("JSONP script load failed"));};
+document.body.appendChild(script);});}
+async function loadBigCartelProductsProxy(proxyUrl) {const targetUrl = "https://legionrealm.bigcartel.com/products.js";const url = proxyUrl.includes("quest=") ? proxyUrl + encodeURIComponent(targetUrl): proxyUrl + targetUrl;
+const res = await fetch(url);if (!res.ok) throw new Error(`Fetch failed with status ${res.status}`);
+const text = await res.text();try {const parsed = JSON.parse(text);if (Array.isArray(parsed)) return parsed;if (parsed.contents) {const contentsParsed = JSON.parse(parsed.contents);if (Array.isArray(contentsParsed)) return contentsParsed;}} catch (e) {throw new Error("Failed to parse proxy response as JSON");}throw new Error("Response is not a valid JSON array");}
+function processProductsData(data) {if (!Array.isArray(data)) {throw new Error("Products data is not an array");}
+products.length = 0; 
+data.forEach(item => {products.push({id: String(item.id),title: item.name,price: item.price,url: "https://legionrealm.bigcartel.com" + item.url,image: item.images.length > 0 ? item.images[0].url : "",note: (item.description || "").replace(/(<([^>]+)>)/gi, "").substring(0, 80).trim(),options: item.options.map(o => ({id: String(o.id),name: o.name,soldOut: o.sold_out}))});});}
+async function loadBigCartelProducts() {let data = null;
+try {console.log("Attempting to load products via JSONP...");data = await loadBigCartelProductsJSONP();console.log("Successfully loaded products via JSONP.");} catch (jsonpErr) {console.warn("JSONP failed, trying CORS proxies...", jsonpErr);
+const proxies = ["https://api.codetabs.com/v1/proxy?quest=","https://corsproxy.io/?","https://api.allorigins.win/raw?url="];
+for (const proxy of proxies) {try {console.log(`Attempting to load products via proxy: ${proxy}...`);data = await loadBigCartelProductsProxy(proxy);console.log(`Successfully loaded products via proxy: ${proxy}`);break; 
+} catch (proxyErr) {console.warn(`Proxy failed: ${proxy}`, proxyErr);}}}
+if (data) {try {processProductsData(data);refreshProductGrid();} catch (processErr) {console.error("Failed to process loaded product data:", processErr);}} else {console.warn("All dynamic product fetch attempts failed. Keeping fallback products.");}}
+function escapeHTML(str) {if (!str) return "";return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");}
+async function fetchGeocode(url) {const proxies = ["https://corsproxy.io/?url=","https://api.codetabs.com/v1/proxy?quest=","https://api.allorigins.win/raw?url="];
+for (const proxy of proxies) {try {const res = await fetch(proxy + encodeURIComponent(url));if (res.ok) {const text = await res.text();try {const parsed = JSON.parse(text);if (parsed.contents) {return JSON.parse(parsed.contents);}return parsed;} catch (e) {
+}}} catch (err) {console.warn("Geocoding proxy failed", err);}}throw new Error("Geocoding service unavailable.");}
+async function geocodeZipcode(zipcode) {const url = `https://nominatim.openstreetmap.org/search?postalcode=${encodeURIComponent(zipcode)}&country=us&format=json&limit=1&addressdetails=1`;const data = await fetchGeocode(url);if (!data || !data.length) throw new Error("Zipcode not found in the United States");
+const addr = data[0].address || {};const city = addr.city || addr.town || addr.village || addr.suburb || addr.hamlet || addr.county || "Local";const state = addr.state || "";
+return {city: city,state: state,displayName: `${city}, ${state}`,lat: parseFloat(data[0].lat),lon: parseFloat(data[0].lon)};}
+async function reverseGeocode(lat, lon) {const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1`;const data = await fetchGeocode(url);if (!data || !data.address) throw new Error("Location details not found");
+const addr = data.address || {};const countryCode = (addr.country_code || "").toLowerCase();if (countryCode !== "us") {throw new Error("Device location is outside the United States. Search is restricted to the US.");}
+const city = addr.city || addr.town || addr.village || addr.suburb || addr.hamlet || addr.county || "Local";const state = addr.state || "";
+return {city: city,state: state,displayName: `${city}, ${state}`,lat: parseFloat(lat),lon: parseFloat(lon)};}
+function findJsonLdEvents(data) {let events = [];if (typeof data === "object" && data !== null) {if (Array.isArray(data)) {data.forEach(item => {events = events.concat(findJsonLdEvents(item));});} else {const type = data["@type"];const isEvent = typeof type === "string" && type.toLowerCase().includes("event");if (isEvent) {events.push(data);}for (const key in data) {if (typeof data[key] === "object") {events = events.concat(findJsonLdEvents(data[key]));}}}}return events;}
+async function fetchEventbriteEvents(locationSlug) {const targetUrl = `https://www.eventbrite.com/d/${locationSlug}/music--events/`;
+const proxies = ["https://corsproxy.io/?url=","https://api.codetabs.com/v1/proxy?quest=","https://api.allorigins.win/raw?url="];
+let htmlText = "";let success = false;
+for (const proxy of proxies) {try {const url = proxy + encodeURIComponent(targetUrl);const res = await fetch(url);if (res.ok) {htmlText = await res.text();success = true;break;}} catch (proxyErr) {console.warn(`Proxy failed: ${proxy}`, proxyErr);}}
+if (!success) {throw new Error("Failed to contact Eventbrite directly or via proxies.");}
+const parser = new DOMParser();const doc = parser.parseFromString(htmlText, "text/html");const scripts = doc.querySelectorAll('script[type="application/ld+json"]');
+let rawEvents = [];scripts.forEach(script => {try {const data = JSON.parse(script.textContent.trim());const found = findJsonLdEvents(data);rawEvents = rawEvents.concat(found);} catch (e) {console.warn("Failed to parse JSON-LD script tag", e);}});
+const seenUrls = new Set();const events = [];rawEvents.forEach(ev => {const title = ev.name;const url = ev.url;if (!title || !url || seenUrls.has(url)) return;seenUrls.add(url);events.push(ev);});
+return events;}
+function renderPromote(view) {return `<div class="promote-page-redesign">
+<!-- Portal Gate Overlay --><div id="promotePortalGate" class="portal-gate-overlay"><div class="portal-content-box"><h2 class="portal-header-main">Underground Promotion Directives</h2>
+<!-- Relentless Callout Box --><div class="portal-relentless-callout"><p class="relentless-text">This is a relentless promotional effort. We ask that you take this guide seriously so we can expand our community and build things to new heights. Show how dedicated you are by agreeing to and living by the examples set forth.</p></div>
+<div class="portal-grid"><div class="portal-card-left"><p class="promo-intro-para">Be part of the community in a positive way: show up with a bright attitude to set an example for others, come with your best mindset about things and go with the vibe. Do not join in on hateful conversations, and instead focus on building and that next level of expansion while ignoring everything else.</p><p class="promo-intro-para">It is about making meaningful connections, making new friends, supporting the art we love, and having a good time above all else. Do it for the love of the music and culture, not for reputation or valor.</p><p class="promo-intro-para">Always share stuff you actually like and focus your energy on stuff that best reflects you as an individual, but have mutual respect for others in the underground and their arts even if it is not your taste. Do not engage or partake in community based drama, and give newcomers the best experience possible.</p></div>
+<div class="portal-values-box"><h3 class="box-title">Core Values</h3><ul class="values-list"><li><svg class="values-sigil" viewBox="0 0 120 140" aria-hidden="true"><path d="M60 12 L108 94 H12 Z"></path><path d="M60 92 V128 M37 111 H83"></path></svg><span>Telling the truth to ourselves & others.</span></li><li><svg class="values-sigil" viewBox="0 0 120 140" aria-hidden="true"><path d="M60 12 L108 94 H12 Z"></path><path d="M60 92 V128 M37 111 H83"></path></svg><span>Treating others with compassion.</span></li><li><svg class="values-sigil" viewBox="0 0 120 140" aria-hidden="true"><path d="M60 12 L108 94 H12 Z"></path><path d="M60 92 V128 M37 111 H83"></path></svg><span>Working hard.</span></li><li><svg class="values-sigil" viewBox="0 0 120 140" aria-hidden="true"><path d="M60 12 L108 94 H12 Z"></path><path d="M60 92 V128 M37 111 H83"></path></svg><span>Being respectful.</span></li><li><svg class="values-sigil" viewBox="0 0 120 140" aria-hidden="true"><path d="M60 12 L108 94 H12 Z"></path><path d="M60 92 V128 M37 111 H83"></path></svg><span>Celebrating diversity.</span></li><li><svg class="values-sigil" viewBox="0 0 120 140" aria-hidden="true"><path d="M60 12 L108 94 H12 Z"></path><path d="M60 92 V128 M37 111 H83"></path></svg><span>Leaving things better than when we arrived.</span></li><li><svg class="values-sigil" viewBox="0 0 120 140" aria-hidden="true"><path d="M60 12 L108 94 H12 Z"></path><path d="M60 92 V128 M37 111 H83"></path></svg><span>Forgiveness.</span></li><li><svg class="values-sigil" viewBox="0 0 120 140" aria-hidden="true"><path d="M60 12 L108 94 H12 Z"></path><path d="M60 92 V128 M37 111 H83"></path></svg><span>Humility.</span></li></ul></div></div>
+<!-- Sulfur Sigil Action Button --><div class="sulfur-sigil-btn-container" id="promoteAgreeBtnContainer" style="cursor: pointer;"><svg id="promoteAgreeSigil" class="sulfur-sigil-btn sulfur-sigil" viewBox="0 0 120 140" xmlns="http://www.w3.org/2000/svg" aria-label="Accept Directives"><path d="M60 12 L108 94 H12 Z"></path><path d="M60 92 V128 M37 111 H83"></path></svg><div class="portal-agree-label">AGREE</div></div></div></div>
+<!-- All active promotion contents wrapped in a toggled container --><div id="promoteInteractiveSections" class="promote-interactive-sections" style="display: none;">
+<!-- Premium Campaign Choice Switching Cards --><div class="campaign-choice-container"><div class="campaign-choice-card" id="choiceCardSocial"><div class="choice-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="choice-svg"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg></div><h3 class="choice-card-title">Social Media Campaign</h3><p class="choice-card-subtitle">Social media expansion & sharing guidelines</p></div>
+<div class="campaign-choice-card" id="choiceCardPhysical"><div class="choice-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="choice-svg"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg></div><h3 class="choice-card-title">Physical Campaign</h3><p class="choice-card-subtitle">Outreach canvassing & local street guide</p></div>
+<div class="campaign-choice-card" id="choiceCardScanner"><div class="choice-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="choice-svg"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg></div><h3 class="choice-card-title">Promo Search</h3><p class="choice-card-subtitle">Scan local live music venues & shops</p></div>
+<div class="campaign-choice-card" id="choiceCardCustom"><div class="choice-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="choice-svg"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg></div><h3 class="choice-card-title">Custom Media Tools</h3><p class="choice-card-subtitle">Promotional flyer builder & composition workspace</p></div>
+<div class="campaign-choice-card" id="choiceCardGlobe"><div class="choice-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="choice-svg"><circle cx="12" cy="12" r="10"></circle><ellipse cx="12" cy="12" rx="10" ry="4"></ellipse><line x1="2" y1="12" x2="22" y2="12"></line></svg></div><h3 class="choice-card-title">Activity Globe</h3><p class="choice-card-subtitle">3D globe of community reach & network activity</p></div>
+<div class="campaign-choice-card" id="choiceCardTraffic"><div class="choice-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="choice-svg"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg></div><h3 class="choice-card-title">Real Time Tracker</h3><p class="choice-card-subtitle">Live sessions & active traffic monitor</p></div></div>
+<!-- SECTION 1: SOCIAL MEDIA PROMOTION WRAPPER --><div id="sectionSocial" class="campaign-section-content" style="display: none;">
+<!-- Tiny Social Channel Cards (Corresponding pictures for all 5 home page things) --><div class="tiny-channels-container"><span class="tiny-channels-label">Target Channels</span><div class="tiny-channels-grid"><!-- Somethin Outta Nothin (S.O.N) --><a href="son.html" class="tiny-channel-card"><img src="images/son/610975344_25729740873323985_7011612998820304873_n.jpg" alt="Somethin Outta Nothin"><div class="tiny-channel-content"><span class="tiny-channel-social">Section</span><strong class="tiny-channel-name">S.O.N</strong></div></a>
+<!-- Do It For The Underground --><a href="underground.html" class="tiny-channel-card"><img src="images/underground/doitfortheunderground.jpg" alt="Do It For The Underground"><div class="tiny-channel-content"><span class="tiny-channel-social">Section</span><strong class="tiny-channel-name">Underground</strong></div></a>
+<!-- Cult Divinity --><a href="divinity.html" class="tiny-channel-card"><img src="images/divinity/divinity.png" alt="Cult Divinity"><div class="tiny-channel-content"><span class="tiny-channel-social">Section</span><strong class="tiny-channel-name">Cult Divinity</strong></div></a>
+<!-- Philbrix Studio --><a href="studio.html" class="tiny-channel-card"><img src="images/philbrix/philbrix-studio.png" alt="Philbrix Studio"><div class="tiny-channel-content"><span class="tiny-channel-social">Section</span><strong class="tiny-channel-name">Philbrix</strong></div></a>
+<!-- Night Owl Prints & Keagan Grimm --><a href="nightowlprints.html" class="tiny-channel-card"><img src="images/nightowlprints/nightowlprints.png" alt="Night Owl Prints"><div class="tiny-channel-content"><span class="tiny-channel-social">Section</span><strong class="tiny-channel-name">Night Owl</strong></div></a></div></div><section class="promote-dashboard-section section-system" style="margin-top: 16px;"><h2 class="promo-header-main" style="border-bottom: 1px solid var(--color-line); padding-bottom: 8px; margin-bottom: 16px;">Social Media Promotion Campaign</h2><div class="dashboard-grid"><!-- Left Column: Daily Checklist --><div class="dashboard-panel checklist-panel"><h3 class="panel-title">Social Media Daily Checklist</h3><div class="checklist-container"><label class="checklist-item digital-chk"><input type="checkbox" data-idx="0"><span class="custom-checkbox"></span><span class="checklist-text">Everyday you should be adding a handful of people on your Facebook.</span></label><label class="checklist-item digital-chk"><input type="checkbox" data-idx="1"><span class="custom-checkbox"></span><span class="checklist-text">Everyday you should be following a handful of people on your Instagram.</span></label><label class="checklist-item digital-chk"><input type="checkbox" data-idx="2"><span class="custom-checkbox"></span><span class="checklist-text">Everyday you should be commenting on posts your favorite artists do.</span></label><label class="checklist-item digital-chk"><input type="checkbox" data-idx="3"><span class="custom-checkbox"></span><span class="checklist-text">Everyday you should be sharing your favorite artists’ posts to your story.</span></label><label class="checklist-item digital-chk"><input type="checkbox" data-idx="4"><span class="custom-checkbox"></span><span class="checklist-text">Everyday you should do at least 1 high quality share on your social media.</span></label><label class="checklist-item digital-chk"><input type="checkbox" data-idx="5"><span class="custom-checkbox"></span><span class="checklist-text">Everyday you should do at least 1 unrelated to another artist post that best reflects you.</span></label><label class="checklist-item digital-chk"><input type="checkbox" data-idx="6"><span class="custom-checkbox"></span><span class="checklist-text">Everyday you should react to all photos of people you have added and their underground content as they post them. Do this passively as you scroll.</span></label></div></div>
+<!-- Right Column: Interactive Tabs for Campaign Protocols --><div class="dashboard-panel instructions-panel"><h3 class="panel-title">Social Media Campaign Protocols</h3><div class="tabs-container"><div class="tab-buttons"><button class="tab-btn active" data-tab="network">SOCIAL MEDIA: NETWORK</button><button class="tab-btn" data-tab="sharing">SOCIAL MEDIA: SHARING</button></div>
+<div class="tab-content active" id="tab-network"><h4 class="tab-section-title">NETWORK EXPANSION</h4><ul class="bullet-list"><li>Constantly add normal people like fans onto your social media that are in the community, who react, share, comment on posts, and support the underground just like you do.</li><li>It is in the artist’s best interest that you are getting new fans into the community, so you should be seeking creative ways to add people that like similar types of things but may not know about the stuff you are sharing. You can cross into communities that do not inherently know the specific niche of horrorcore underground.</li><li>Add people on Facebook or follow people on Instagram that react with content that is like the content you wish to promote, then make high quality posts to get engagement and invite those people to your favorite artists once you are friends with them.</li><li>Avoid spamming advertisements in DMs. If someone asks why you added them, simply explain that you're a fellow underground music fan looking to connect with like-minded people to share and discover new content together.</li><li>It's more effective to support multiple music artists at once. You keep your page fresh by rotating in different types of content to see. By actively growing your friends list at the same time, you can rotate which artists you are sending invites to their pages every time you've added 100 different people.</li></ul></div>
+<div class="tab-content" id="tab-sharing"><h4 class="tab-section-title">HIGH-QUALITY SHARING</h4><ul class="bullet-list"><li>Do high quality posts when sharing promotional content: do not put links in the main body of the post, always put links in comments, make sure the graphics are official artist graphics or that you have taken the time to make it look really visually clean, do not stretch pixels, make sure everything is the correct resolution, do not use clearly AI generated text to represent content, and care a lot about the visual presentation of everything.</li><li>Do not overshare a single piece of content into a bunch of groups. Do 1 group at most, and if you do not ever get engagements when you share posts into certain groups, stop sharing them into those groups.</li><li>React, comment, and share onto your story content from your favorite horrorcore artists every time they make a post when you see it.</li><li>React to every post of others sharing underground content.</li><li>Create playlists you share with your friends or your subcommunities.</li><li>Constantly stream your beloved music artists passively on your devices even if the device is AFK.</li><li>Add to metadata available on various sources, fill out wikis with their information, and transcribe missing lyrics accurately onto lyric websites.</li></ul></div></div></div></div></section></div>
+<!-- SECTION 2: PHYSICAL PROMOTION WRAPPER --><div id="sectionPhysical" class="campaign-section-content" style="display: none;"><section class="promote-dashboard-section section-system" style="margin-top: 16px;"><h2 class="promo-header-main" style="border-bottom: 1px solid var(--color-line); padding-bottom: 8px; margin-bottom: 16px;">Physical Promotion Campaign</h2><div class="dashboard-grid"><!-- Left Column: Physical Checklist --><div class="dashboard-panel checklist-panel"><h3 class="panel-title">Physical Checklist</h3><div class="checklist-container"><label class="checklist-item physical-chk"><input type="checkbox" data-idx="0"><span class="custom-checkbox"></span><span class="checklist-text">Keep promo flyers/stickers in your car or bag so they are ready to go while traveling.</span></label><label class="checklist-item physical-chk"><input type="checkbox" data-idx="1"><span class="custom-checkbox"></span><span class="checklist-text">Find upcoming local music events or concerts to hand out promotional items safely.</span></label><label class="checklist-item physical-chk"><input type="checkbox" data-idx="2"><span class="custom-checkbox"></span><span class="checklist-text">Identify local businesses, record stores, or hotspots with community display boards.</span></label><label class="checklist-item physical-chk"><input type="checkbox" data-idx="3"><span class="custom-checkbox"></span><span class="checklist-text">Approach venue staff or business owners kindly and professionally for promo permission.</span></label><label class="checklist-item physical-chk"><input type="checkbox" data-idx="4"><span class="custom-checkbox"></span><span class="checklist-text">Utilize free printing services at your local library, college, or community space.</span></label></div></div>
+<!-- Right Column: Physical Protocols Bullet List --><div class="dashboard-panel instructions-panel"><h3 class="panel-title">Physical Campaign Protocols</h3><div class="tabs-container"><div class="tab-content active" style="display: block;"><h4 class="tab-section-title">PHYSICAL PROMOTION</h4><ul class="bullet-list"><li>Promote in your local communities or music concerts you attend by handing out flyers or posting flyers where allowed.</li><li>Never break the law, and respect everyone and their belongings in public.</li><li>Hand out flyers outside music events. Reaching people as they are leaving the show is more likely to be remembered because they are more likely to keep the flyer.</li><li>Hang flyers only where they are allowed to be displayed.</li><li>Ask local businesses to hang flyers where appropriate.</li><li>Attend festivals and aesthetically related events to hand out promotional material. Investigate all local events throughout the year and consider whether there may be a good chance that an event-goer will check out what you are promoting.</li><li>Create various types of flyers and promotional materials in different sizes, and try different tactics.</li><li>Be safe in your interactions with strangers, and bring friends when you go to large events.</li><li>Be professional and kind when you approach people. Tell them about the content you are promoting and offer them a flyer.</li><li>Be creative, have fun, and be safe.</li><li>Offer promotion material to anyone making a delivery to your home.</li></ul></div></div></div></div></section></div>
+<!-- SECTION 3: PROMO SEARCH --><div id="sectionScanner" class="campaign-section-content" style="display: none;"><section class="promote-locator section-system" style="margin-top: 0;"><h2 class="promo-header-main" style="font-size: 1.4rem; margin-bottom: 10px;">Promo Search</h2><p class="promote-subtitle">Scan for local music events or search our curated database of local shops to promote at, including:</p><ul class="promote-categories-list" style="display: flex; flex-wrap: wrap; gap: 8px 20px; margin: 14px 0 22px 0; padding: 0; list-style: none; font-family: var(--font-display); font-size: 0.8rem; color: var(--color-ember); letter-spacing: 1.5px; text-transform: uppercase;"><li style="display: flex; align-items: center; gap: 8px;"><svg width="6" height="6" viewBox="0 0 100 100" style="fill: var(--color-blood);"><circle cx="50" cy="50" r="50"/></svg>Music CD Stores</li><li style="display: flex; align-items: center; gap: 8px;"><svg width="6" height="6" viewBox="0 0 100 100" style="fill: var(--color-blood);"><circle cx="50" cy="50" r="50"/></svg>Horror Stores</li><li style="display: flex; align-items: center; gap: 8px;"><svg width="6" height="6" viewBox="0 0 100 100" style="fill: var(--color-blood);"><circle cx="50" cy="50" r="50"/></svg>Metaphysical Stores</li><li style="display: flex; align-items: center; gap: 8px;"><svg width="6" height="6" viewBox="0 0 100 100" style="fill: var(--color-blood);"><circle cx="50" cy="50" r="50"/></svg>Hot Topic</li><li style="display: flex; align-items: center; gap: 8px;"><svg width="6" height="6" viewBox="0 0 100 100" style="fill: var(--color-blood);"><circle cx="50" cy="50" r="50"/></svg>Spencer's</li></ul>
+<div class="scanner-console-panel"><!-- Search Mode Toggle --><div class="search-toggle-container"><button class="toggle-btn active" id="toggleSearchEvents" data-mode="events">LIVE EVENTS</button><button class="toggle-btn" id="toggleSearchStores" data-mode="stores">STORE SEARCH</button></div>
+<div class="scanner-bar" style="margin-top: 14px;"><div class="input-group"><input type="text" id="promoteLocInput" inputmode="numeric" pattern="[0-9]*" maxlength="5" placeholder="ZIPCODE (e.g. 44101)" aria-label="5-digit US Zipcode"></div>
+<div class="select-group"><select id="promoteRadiusSelect" aria-label="Search Radius"><option value="40234">25 MILES</option><option value="80467">50 MILES</option><option value="160934">100 MILES</option></select></div>
+<button class="button button-primary" id="promoteSearchBtn">RUN SCANNER</button><button class="button button-secondary" id="promoteGeoBtn"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="geo-icon"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>GPS LOCATE</button></div>
+<div class="terminal-console-screen" id="promoteStatus" aria-live="polite">SYSTEM READY. SELECT SEARCH MODE, THEN SCAN.</div></div>
+<div class="event-results-grid-redesign" id="promoteResults"><!-- Search results will populate here --></div></section></div>
+<!-- SECTION 4: CUSTOM MEDIA TOOLS WRAPPER --><div id="sectionCustom" class="campaign-section-content" style="display: none;"><section class="promote-dashboard-section section-system" style="margin-top: 16px;"><h2 class="promo-header-main" style="border-bottom: 1px solid var(--color-line); padding-bottom: 8px; margin-bottom: 16px;">Custom Media Tools</h2><p class="promote-subtitle" style="margin-bottom: 24px;">Deploy custom tools to generate promotional material for the underground.</p>
+<!-- Flyer Builder Tool View --><div id="toolContainer-flyer-builder" class="custom-tool-view"><div class="composer-shell" style="margin-top: 20px;"><aside class="control-panel" aria-label="Flyer controls"><div class="panel-block"><h3>Canvas</h3><p class="note-copy no-top">Default is US Letter at 300 DPI: 8.5 x 11 in, 2550 x 3300 px.</p><div class="control-row"><label for="formatSelect">Size</label><select id="formatSelect"></select></div><div class="toggle-row one-row"><label><input id="autoCanvasFromImageToggle" type="checkbox" checked> Auto Size To Biggest Image</label></div><div id="customSizeRow" class="panel-inline-grid panel-hidden"><div class="control-row"><label for="customWidth">Width</label><input id="customWidth" type="number" min="64" value="2550"></div><div class="control-row"><label for="customHeight">Height</label><input id="customHeight" type="number" min="64" value="3300"></div><button class="protocol-button slim full-span" id="applyCustomSizeBtn" type="button">APPLY CUSTOM SIZE</button></div><div class="control-row swatch-row"><label for="canvasColor">Background</label><input id="canvasColor" type="color" value="#000000"></div></div>
+<div class="panel-block"><h3>Add Layers</h3><input id="imageInput" class="hidden-input" type="file" accept="image/*" multiple><div class="button-stack"><button class="ghost-button slim full-button" id="addImageBtn" type="button">ADD IMAGE LAYER</button><button class="ghost-button slim full-button" id="addTextBtn" type="button">ADD TEXT LAYER</button><button class="ghost-button slim full-button" id="addQrBtn" type="button">ADD QR CODE LAYER</button></div></div>
+<div class="panel-block"><h3>Guides</h3><div class="toggle-row one-row"><label><input id="snapGuidesToggle" type="checkbox" checked> Snap To Active Guides</label></div><div class="two-column-controls"><div class="control-row"><label for="guideOrientation">Type</label><select id="guideOrientation"><option value="vertical">Vertical</option><option value="horizontal">Horizontal</option></select></div><div class="control-row"><label for="guideUnit">Unit</label><select id="guideUnit"><option value="percent">Percent</option><option value="px">Pixels</option></select></div></div><div class="control-row"><label for="guidePosition">Position</label><input id="guidePosition" type="number" min="0" value="50"></div><div class="button-row top-gap"><button class="ghost-button slim" id="centerGuideBtn" type="button">CENTER VALUE</button><button class="protocol-button slim" id="addGuideBtn" type="button">ADD GUIDE</button></div><div id="guideList" class="guide-list" aria-live="polite"></div></div>
+<div class="panel-block"><h3>Presets</h3><p class="note-copy no-top">Save one project file with images, imported fonts, guides, canvas settings, and layers.</p><input id="presetInput" class="hidden-input" type="file" accept=".ptpreset,application/zip"><div class="button-row top-gap"><button class="ghost-button slim" id="presetLoadBtn" type="button">LOAD PRESET</button><button class="protocol-button slim" id="presetSaveBtn" type="button">SAVE PRESET</button></div></div></aside>
+<div class="mobile-canvas-toolbar panel-block" aria-label="Mobile layer controls"><div id="mobileLayerPicker" class="mobile-layer-picker" style="display: flex; overflow-x: auto; gap: 8px; padding-bottom: 10px; margin-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); scrollbar-width: none;"><!-- Dynamic Buttons --></div><div class="button-row" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;"><button class="ghost-button mini-button" id="mobileCenterHBtn" type="button">CTR H</button><button class="ghost-button mini-button" id="mobileCenterVBtn" type="button">CTR V</button><button class="ghost-button mini-button" id="mobileLockBtn" type="button">LOCK</button></div></div>
+<div class="stage-panel"><div class="canvas-frame"><canvas id="flyerCanvas" width="2550" height="3300" aria-label="Flyer preview canvas"></canvas></div><div id="canvasContextMenu" class="canvas-context-menu" role="menu" aria-hidden="true"><button type="button" data-action="center-horizontal">Center Horizontal</button><button type="button" data-action="center-vertical">Center Vertical</button><button type="button" data-action="center-both">Center Both</button><button type="button" data-action="duplicate">Duplicate Layer</button><button type="button" data-action="delete">Delete Layer</button><button type="button" data-action="front">Bring To Front</button><button type="button" data-action="back">Send To Back</button></div></div>
+<aside class="stack-panel" aria-label="Layer stack and output controls"><div class="panel-block"><h3>Layers</h3><p class="note-copy no-top">Drag layers to reorder. Top of this list prints on top.</p><p class="note-copy" style="margin-top: 6px; color: var(--color-ember); line-height: 1.3;">💡 Tip: Right-click any active layer on the canvas to open the context menu.</p><div id="layerList" class="layer-list" aria-live="polite"></div><div class="button-row top-gap"><button class="ghost-button slim" id="duplicateLayerBtn" type="button">DUPLICATE</button><button class="ghost-button slim" id="deleteLayerBtn" type="button">DELETE</button></div><div class="button-row top-gap"><button class="protocol-button slim" id="openOutputBtn" type="button">PRINT / EXPORT</button></div><p id="statusLine" class="status-line">READY</p></div>
+<div class="panel-block" id="layerSettingsPanel"><h3>Layer Settings</h3><p id="selectedLayerLabel" class="status-line left-status">NO LAYER SELECTED</p><div class="slider-row"><label for="layerOpacity">Opacity</label><input id="layerOpacity" type="range" min="0" max="100" value="100"><output id="layerOpacityValue">100</output></div><div class="two-column-controls"><div class="slider-row"><label for="layerX">X</label><input id="layerX" type="range" min="0" max="1080" value="540"><output id="layerXValue">540</output></div><div class="slider-row"><label for="layerY">Y</label><input id="layerY" type="range" min="0" max="1080" value="540"><output id="layerYValue">540</output></div></div><div class="slider-row" id="layerScaleRow"><label for="layerScale">Scale</label><input id="layerScale" type="range" min="10" max="250" value="100"><output id="layerScaleValue">100</output></div><div class="slider-row"><label for="layerHue">Hue Shift</label><input id="layerHue" type="range" min="-180" max="180" value="0"><output id="layerHueValue">0</output></div><div class="slider-row"><label for="layerSaturation">Saturation</label><input id="layerSaturation" type="range" min="0" max="250" value="100"><output id="layerSaturationValue">100</output></div><div class="slider-row"><label for="layerBlur">Blur</label><input id="layerBlur" type="range" min="0" max="40" value="0"><output id="layerBlurValue">0</output></div></div>
+<div class="panel-block" id="textPanel"><h3>Text</h3><label class="stacked-label" for="textContent">Message</label><textarea id="textContent" rows="3" spellcheck="false"></textarea><div class="two-column-controls"><div class="control-row"><label for="fontSelect">Font</label><select id="fontSelect"><optgroup label="Display"><option value="Orbitron">Orbitron</option><option value="Anton">Anton</option><option value="Archivo Black">Archivo Black</option><option value="Audiowide">Audiowide</option><option value="Bangers">Bangers</option><option value="Bebas Neue">Bebas Neue</option><option value="Black Ops One">Black Ops One</option><option value="Creepster">Creepster</option><option value="Permanent Marker">Permanent Marker</option><option value="Press Start 2P">Press Start 2P</option><option value="Righteous">Righteous</option><option value="Rubik Mono One">Rubik Mono One</option><option value="Special Elite">Special Elite</option><option value="Teko">Teko</option><option value="Unbounded">Unbounded</option></optgroup><optgroup label="Serif"><option value="Cinzel">Cinzel</option><option value="Cinzel Decorative">Cinzel Decorative</option><option value="Cormorant Garamond">Cormorant Garamond</option><option value="DM Serif Display">DM Serif Display</option><option value="Libre Baskerville">Libre Baskerville</option><option value="Lora">Lora</option><option value="Merriweather">Merriweather</option><option value="Playfair Display">Playfair Display</option><option value="Georgia">Georgia</option><option value="Garamond">Garamond</option><option value="Times New Roman">Times New Roman</option></optgroup><optgroup label="Sans"><option value="Share Tech Mono">Share Tech Mono</option><option value="Inter">Inter</option><option value="Montserrat">Montserrat</option><option value="Oswald">Oswald</option><option value="Outfit">Outfit</option><option value="Poppins">Poppins</option><option value="Roboto Condensed">Roboto Condensed</option><option value="Space Grotesk">Space Grotesk</option><option value="Arial">Arial</option><option value="Impact">Impact</option><option value="Arial Black">Arial Black</option><option value="Trebuchet MS">Trebuchet MS</option><option value="Verdana">Verdana</option></optgroup><optgroup label="Mono"><option value="Courier New">Courier New</option><option value="Lucida Console">Lucida Console</option><option value="Consolas">Consolas</option></optgroup></select></div><div class="control-row"><label for="fontWeight">Weight</label><select id="fontWeight"><option value="400">Regular</option><option value="700">Bold</option><option value="900">Heavy</option></select></div></div><div class="control-row"><label>Import Font</label><input id="fontImportInput" class="hidden-input" type="file" accept=".ttf,.otf,.woff,.woff2,font/ttf,font/otf,font/woff,font/woff2"><button class="ghost-button slim full-button" id="importFontBtn" type="button">IMPORT FONT FILE</button></div><div class="slider-row"><label for="fontSize">Size</label><input id="fontSize" type="range" min="24" max="520" value="220"><output id="fontSizeValue">220</output></div><div class="two-column-controls"><div class="control-row swatch-row"><label for="textColor">Fill</label><input id="textColor" type="color" value="#ffffff"></div><div class="control-row swatch-row"><label for="strokeColor">Outline</label><input id="strokeColor" type="color" value="#000000"></div></div><div class="slider-row"><label for="strokeWidth">Outline Size</label><input id="strokeWidth" type="range" min="0" max="24" value="4"><output id="strokeWidthValue">4</output></div><div class="toggle-row"><label><input id="uppercaseToggle" type="checkbox" checked> Uppercase</label><label><input id="boxToggle" type="checkbox"> Backplate</label></div></div>
+<div class="panel-block" id="qrPanel"><h3>QR Code</h3><label class="stacked-label" for="qrLink">Destination URL (Locked)</label><input id="qrLink" type="url" placeholder="http://www.legionrealm.net/" value="http://www.legionrealm.net/" readonly disabled style="opacity: 0.6; cursor: not-allowed;"><div class="two-column-controls"><div class="control-row swatch-row"><label for="qrDark">DARK COLOR</label><input id="qrDark" type="color" value="#000000"></div><div class="control-row swatch-row"><label for="qrLight">LIGHT COLOR</label><input id="qrLight" type="color" value="#ffffff"></div></div><div class="two-column-controls"><div class="control-row"><label for="qrModuleShape">Modules</label><select id="qrModuleShape"><option value="square">Square</option><option value="rounded">Rounded</option><option value="dot">Dots</option></select></div><div class="control-row"><label for="qrFinderShape">Corners</label><select id="qrFinderShape"><option value="square">Square</option><option value="rounded">Rounded</option></select></div></div><div class="slider-row"><label for="qrScale">Scale</label><input id="qrScale" type="range" min="10" max="250" value="100"><output id="qrScaleValue">100</output></div><p class="note-copy">Reliable QR codes are square overall. These styles change the internal modules only.</p><button class="protocol-button slim full-button" id="updateQrBtn" type="button">UPDATE QR</button></div>
+<div class="panel-block" id="shadowPanel"><h3>Drop Shadow</h3><div class="toggle-row one-row"><label><input id="shadowToggle" type="checkbox" checked> Enabled</label></div><div class="control-row swatch-row"><label for="shadowColor">Color</label><input id="shadowColor" type="color" value="#000000"></div><div class="two-column-controls"><div class="slider-row"><label for="shadowBlur">Blur</label><input id="shadowBlur" type="range" min="0" max="80" value="18"><output id="shadowBlurValue">18</output></div><div class="slider-row"><label for="shadowOpacity">Opacity</label><input id="shadowOpacity" type="range" min="0" max="100" value="80"><output id="shadowOpacityValue">80</output></div></div><div class="two-column-controls"><div class="slider-row"><label for="shadowX">Offset X</label><input id="shadowX" type="range" min="-100" max="100" value="8"><output id="shadowXValue">8</output></div><div class="slider-row"><label for="shadowY">Offset Y</label><input id="shadowY" type="range" min="-100" max="100" value="8"><output id="shadowYValue">8</output></div></div></div>
+<div class="panel-block"><div class="panel-title-row"><h3>Debug Log</h3><button class="mini-button" id="copyDebugBtn" type="button">COPY</button></div><pre id="debugLog" class="debug-log" aria-live="polite"></pre></div></aside></div></div>
+<!-- Export Modal --><div id="outputModal" class="modal-backdrop" aria-hidden="true"><div class="output-modal" role="dialog" aria-modal="true" aria-labelledby="outputTitle"><div class="panel-title-row"><h2 id="outputTitle">PRINT / EXPORT</h2><button class="mini-button" id="closeOutputBtn" type="button">CLOSE</button></div><div class="output-grid"><div class="panel-block"><h3>Export File</h3><div class="control-row"><label for="exportFormat">Format</label><select id="exportFormat"><option value="png">PNG</option></select></div><div class="control-row"><label for="exportName">File Name</label><input id="exportName" type="text" value="promotion-graphic"></div><button class="protocol-button slim full-button" id="exportFileBtn" type="button">EXPORT FILE</button></div><div class="panel-block"><h3>Print</h3><div class="control-row"><label for="printLayout">Layout</label><select id="printLayout"><option value="single">1 Per Page</option><option value="four">4 Per Page</option></select></div><div class="control-row"><label for="printPageSize">Page Size</label><select id="printPageSize"><option value="letter">US Letter</option><option value="a4">A4</option></select></div><div class="toggle-row one-row"><label><input id="printCutLines" type="checkbox" checked> Show Cut Lines For 4-Up</label></div><button class="protocol-button slim full-button" id="printFromModalBtn" type="button">OPEN PRINT WINDOW</button></div></div></div></div>
+</section></div>
+<!-- SECTION 5: REAL TIME TRACKER WRAPPER --><div id="sectionGlobe" class="campaign-section-content" style="display: none;"><section class="global-traffic-panel section-system" style="margin-top: 0;"><h2 class="promo-header-main" style="font-size: 1.4rem; margin-bottom: 10px;">Global Activity Globe</h2><p class="promote-subtitle" style="margin-bottom: 20px;">Privacy-safe aggregated community activity and artist locations worldwide.</p><div id="globeContainer" style="width:100%;height:500px;max-width:900px;margin:0 auto;background:#0a0a0a;border:1px solid #333;border-radius:4px;position:relative;"><div class="globe-loading" style="text-align:center;padding:60px;color:var(--color-muted);"><span style="font-size:2rem;">🌍</span><p style="margin-top:12px;">Globe visualization loads here with full JS</p><p style="font-size:0.8rem;color:#666;">Shows artists, partners, traffic centers & campaign activity</p></div></div></section></div>
+<div id="sectionTraffic" class="campaign-section-content" style="display: none;">
+<!-- GLOBAL TRAFFIC MONITOR --><section class="global-traffic-panel section-system" style="margin-top: 0;"><h2 class="promo-header-main" style="font-size: 1.4rem; margin-bottom: 10px;">Realm US Traffic Monitor</h2><p class="promote-subtitle" style="margin-bottom: 20px;">Google Analytics metrics and active session distribution hubs.</p>
+<!-- Range Selector --><div class="traffic-range-container" style="margin-bottom: 24px; display: flex; align-items: center; gap: 12px;"><label for="trafficRangeSelect" style="font-family: var(--font-display); font-size: 0.9rem; color: var(--color-muted); letter-spacing: 1.5px; text-transform: uppercase;">Analytics Range:</label><select id="trafficRangeSelect" style="background: rgba(0, 0, 0, 0.6); color: var(--color-text); border: 1px solid var(--color-line); padding: 8px 16px; border-radius: var(--radius); font-family: var(--font-mono); outline: none; cursor: pointer;"><option value="24h">Last 24 Hours</option><option value="7d">Last 7 Days</option><option value="30d" selected>Last 30 Days</option><option value="90d">Last 90 Days</option></select></div>
+<div class="traffic-metrics-layout"><div class="traffic-metrics-sidebar"><div class="traffic-metric-card"><span class="metric-label" id="lblTotalUsers">Total Users (30d)</span><strong class="metric-value" id="valTotalUsers">--</strong><span class="metric-trend" id="trendTotalUsers">N/A</span></div><div class="traffic-metric-card"><span class="metric-label" id="lblNewUsers">New Users (30d)</span><strong class="metric-value" id="valNewUsers">--</strong><span class="metric-trend" id="trendNewUsers">N/A</span></div><div class="traffic-metric-card"><span class="metric-label" id="lblPageViews">Website Traffic (30d)</span><strong class="metric-value" id="valPageViews">--</strong><span class="metric-trend" id="trendPageViews">N/A</span></div><div class="traffic-metric-card active-sessions-card"><span class="metric-label">Live Active Sessions</span><div class="active-pulse-container"><span class="active-pulse-dot"></span><strong class="metric-value" id="activeSessionsCounter">--</strong></div><span class="metric-subtext" id="activeSessionsSubtext">Live monitoring offline</span></div></div>
+<div class="traffic-map-container"><div id="trafficMap" style="width: 100%; height: 450px;"></div></div></div></section></div></div></div>`;}
+function bindPromoteView() {const searchBtn = document.getElementById("promoteSearchBtn");const geoBtn = document.getElementById("promoteGeoBtn");const locInput = document.getElementById("promoteLocInput");const radiusSelect = document.getElementById("promoteRadiusSelect");const statusLog = document.getElementById("promoteStatus");const resultsGrid = document.getElementById("promoteResults");
+const portalGate = document.getElementById("promotePortalGate");const agreeBtn = document.getElementById("promoteAgreeBtnContainer") || document.getElementById("promoteAgreeSigil");const interactiveSections = document.getElementById("promoteInteractiveSections");
+const choiceSocial = document.getElementById("choiceCardSocial");const choicePhysical = document.getElementById("choiceCardPhysical");const choiceScanner = document.getElementById("choiceCardScanner");const choiceCustom = document.getElementById("choiceCardCustom");const choiceTraffic = document.getElementById("choiceCardTraffic");const choiceGlobe = document.getElementById("choiceCardGlobe");
+const sectionSocial = document.getElementById("sectionSocial");const sectionPhysical = document.getElementById("sectionPhysical");const sectionScanner = document.getElementById("sectionScanner");const sectionCustom = document.getElementById("sectionCustom");const sectionGlobe = document.getElementById("sectionGlobe");const sectionTraffic = document.getElementById("sectionTraffic");
+if (portalGate) {portalGate.classList.remove("fade-out");if (siteShell) {siteShell.classList.add("portal-active");}}if (interactiveSections) {interactiveSections.style.display = "none";}
+if (agreeBtn && portalGate && interactiveSections) {agreeBtn.addEventListener("click", () => {portalGate.classList.add("fade-out");if (siteShell) {siteShell.classList.remove("portal-active");}setTimeout(() => {interactiveSections.style.display = "block";interactiveSections.style.animation = "fadeIn 0.8s ease-out";
+if (sectionSocial) sectionSocial.style.display = "none";if (sectionPhysical) sectionPhysical.style.display = "none";if (sectionScanner) sectionScanner.style.display = "none";if (sectionCustom) sectionCustom.style.display = "none";if (sectionGlobe) sectionGlobe.style.display = "none";if (sectionTraffic) sectionTraffic.style.display = "none";if (choiceSocial) choiceSocial.classList.remove("active");if (choicePhysical) choicePhysical.classList.remove("active");if (choiceScanner) choiceScanner.classList.remove("active");if (choiceCustom) choiceCustom.classList.remove("active");if (choiceGlobe) choiceGlobe.classList.remove("active");if (choiceTraffic) choiceTraffic.classList.remove("active");}, 700);});}
+if (choiceSocial && choicePhysical && choiceScanner && choiceCustom && choiceTraffic && choiceGlobe && sectionSocial && sectionPhysical && sectionScanner && sectionCustom && sectionGlobe && sectionTraffic) {const deactivateAllSections = () => {if (sectionSocial) sectionSocial.style.display = "none";if (sectionPhysical) sectionPhysical.style.display = "none";if (sectionScanner) sectionScanner.style.display = "none";if (sectionCustom) sectionCustom.style.display = "none";if (sectionGlobe) sectionGlobe.style.display = "none";if (sectionTraffic) sectionTraffic.style.display = "none";
+if (choiceSocial) choiceSocial.classList.remove("active");if (choicePhysical) choicePhysical.classList.remove("active");if (choiceScanner) choiceScanner.classList.remove("active");if (choiceCustom) choiceCustom.classList.remove("active");if (choiceGlobe) choiceGlobe.classList.remove("active");if (choiceTraffic) choiceTraffic.classList.remove("active");};
+choiceSocial.addEventListener("click", () => {deactivateAllSections();choiceSocial.classList.add("active");sectionSocial.style.display = "block";sectionSocial.style.animation = "fadeInUp 0.6s ease-out";});
+choicePhysical.addEventListener("click", () => {deactivateAllSections();choicePhysical.classList.add("active");sectionPhysical.style.display = "block";sectionPhysical.style.animation = "fadeInUp 0.6s ease-out";});
+choiceScanner.addEventListener("click", () => {deactivateAllSections();choiceScanner.classList.add("active");sectionScanner.style.display = "block";sectionScanner.style.animation = "fadeInUp 0.6s ease-out";});
+choiceCustom.addEventListener("click", () => {deactivateAllSections();choiceCustom.classList.add("active");sectionCustom.style.display = "block";sectionCustom.style.animation = "fadeInUp 0.6s ease-out";initFlyerBuilderIfPossible();});
+choiceTraffic.addEventListener("click", () => {deactivateAllSections();choiceTraffic.classList.add("active");sectionTraffic.style.display = "block";sectionTraffic.style.animation = "fadeInUp 0.6s ease-out";initTrafficMapIfPossible();});
+choiceGlobe.addEventListener("click", () => {deactivateAllSections();choiceGlobe.classList.add("active");sectionGlobe.style.display = "block";sectionGlobe.style.animation = "fadeInUp 0.6s ease-out";});}
+let flyerBuilderInitialized = false;
+function initFlyerBuilderIfPossible() {if (flyerBuilderInitialized) return;if (window.PromotionTool && typeof window.PromotionTool.createFlyerBuilder === "function") {try {window.__PROMOTION_TOOL_APP = window.PromotionTool.createFlyerBuilder({mode: "custom",allowPresetSave: true,allowPresetLoad: true});flyerBuilderInitialized = true;console.log("Flyer Builder initialized inside Custom Media Tools tab.");} catch (err) {console.error("Failed to initialize flyer builder:", err);}}}
+const digitalCheckboxes = document.querySelectorAll(".digital-chk input");digitalCheckboxes.forEach(cb => {const idx = cb.getAttribute("data-idx");const key = `son_promo_checklist_${idx}`;cb.checked = localStorage.getItem(key) === "true";cb.addEventListener("change", () => {localStorage.setItem(key, cb.checked);});});
+const physicalCheckboxes = document.querySelectorAll(".physical-chk input");physicalCheckboxes.forEach(cb => {const idx = cb.getAttribute("data-idx");const key = `son_promo_physical_checklist_${idx}`;cb.checked = localStorage.getItem(key) === "true";cb.addEventListener("change", () => {localStorage.setItem(key, cb.checked);});});
+const tabs = document.querySelectorAll(".tab-btn");tabs.forEach(tab => {tab.addEventListener("click", () => {tabs.forEach(t => t.classList.remove("active"));document.querySelectorAll(".tab-content").forEach(tc => tc.classList.remove("active"));
+tab.classList.add("active");const contentId = `tab-${tab.getAttribute("data-tab")}`;const contentEl = document.getElementById(contentId);if (contentEl) {contentEl.classList.add("active");}});});
+const logStatus = (msg) => {if (statusLog) {statusLog.textContent = `CONSOLE: ${msg.toUpperCase()}`;}};
+const toggleEvents = document.getElementById("toggleSearchEvents");const toggleStores = document.getElementById("toggleSearchStores");let activePromoSearchMode = "events";
+if (toggleEvents && toggleStores) {toggleEvents.addEventListener("click", () => {activePromoSearchMode = "events";toggleEvents.classList.add("active");toggleStores.classList.remove("active");logStatus("SEARCH MODE SET TO LIVE EVENTS.");});toggleStores.addEventListener("click", () => {activePromoSearchMode = "stores";toggleStores.classList.add("active");toggleEvents.classList.remove("active");logStatus("SEARCH MODE SET TO STORE SEARCH.");});}
+const haversineDistance = (coords1, coords2) => {const R = 3958.8; 
+const lat1 = coords1[0] * Math.PI / 180;const lat2 = coords2[0] * Math.PI / 180;const dLat = (coords2[0] - coords1[0]) * Math.PI / 180;const dLon = (coords2[1] - coords1[1]) * Math.PI / 180;
+const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +Math.cos(lat1) * Math.cos(lat2) *Math.sin(dLon / 2) * Math.sin(dLon / 2);const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));return R * c;};
+const renderStores = (stores, showingFallback, radiusLimitMiles) => {const fallbackHeader = showingFallback ? `<div class="results-fallback-banner" style="grid-column: 1 / -1; background: rgba(139, 0, 0, 0.08); border: 1px solid var(--color-line-hot); padding: 12px; border-radius: var(--radius); color: var(--color-ember); font-family: var(--font-body); font-size: 0.9rem; text-align: center; margin-bottom: 12px; font-weight: 500;">⚠️ No shops detected within ${radiusLimitMiles} miles. Showing the closest alternative store locations in the database:</div>`: "";
+resultsGrid.innerHTML = fallbackHeader + stores.map(store => {const directionsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(store.name + " " + store.address)}`;return `<div class="event-card-redesign store-card-redesign"><div class="event-image-banner" style="background: linear-gradient(135deg, #0f0505, #1f0b0c); display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative;"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#ff2a2a" stroke-width="1.5" style="opacity: 0.85; margin-bottom: 6px;"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg><span class="store-distance-badge" style="position: absolute; top: 12px; right: 12px; background: var(--color-blood); color: #fff; font-size: 0.75rem; font-family: var(--font-body); padding: 2px 8px; border-radius: var(--radius); font-weight: bold; letter-spacing: 0.5px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);">${store.distance.toFixed(1)} MILES AWAY</span></div>
+<div class="event-card-head-redesign"><span class="card-kicker">${escapeHTML(store.kicker || "STORE LOCATION")}</span><strong class="card-title">${escapeHTML(store.name)}</strong></div>
+<div class="event-card-details-redesign"><div class="details-section"><span class="details-header">ADDRESS</span><span class="detail-line" style="font-weight: bold; color: var(--color-ember);">📍 ${escapeHTML(store.address)}</span></div>
+${store.description ? `<div class="details-section" style="border-top: 1px dashed var(--color-line); padding-top: 10px; margin-top: 10px;"><span class="details-header">DESCRIPTION</span><span class="detail-line" style="font-size: 0.85rem; line-height: 1.4; opacity: 0.95; font-family: var(--font-body);">${escapeHTML(store.description)}</span></div>` : ""}</div>
+<div class="event-card-foot-redesign"><a href="${store.url}" target="_blank" rel="noopener noreferrer" class="card-action-btn search-events-btn">WEBSITE</a><a href="${directionsUrl}" target="_blank" rel="noopener noreferrer" class="card-action-btn get-directions-btn">DIRECTIONS</a></div></div>`;}).join("");};
+const runPromoSearch = async (city, state, locationLabel, lat, lon) => {if (activePromoSearchMode === "events") {const locationSlug = city.toLowerCase().replace(/[^a-z0-9]+/g, "-");logStatus(`SCANNING EVENTBRITE FOR MUSIC EVENTS IN ${locationLabel.toUpperCase()}...`);
+try {const events = await fetchEventbriteEvents(locationSlug);resultsGrid.innerHTML = "";
+if (!events.length) {logStatus(`NO LIVE MUSIC EVENTS DETECTED IN ${locationLabel.toUpperCase()}.`);resultsGrid.innerHTML = `<div class="search-empty-state">† NO LIVE MUSIC EVENTS DETECTED IN THIS AREA †<p style="margin-top: 10px; font-size: 0.9rem; color: var(--color-muted); font-family: var(--font-body);">Try querying an adjacent US City or Zipcode.</p></div>`;return;}
+logStatus(`SCAN COMPLETE. DETECTED ${events.length} MUSIC EVENT(S) IN ${locationLabel.toUpperCase()}.`);renderEventbriteEvents(events);
+} catch (e) {logStatus(`SCAN FAILURE: ${e.message.toUpperCase()}.`);resultsGrid.innerHTML = `<div class="search-empty-state">† SCAN FAILED †<p style="margin-top: 10px; font-size: 0.9rem; color: var(--color-muted); font-family: var(--font-body);">${escapeHTML(e.message)}</p></div>`;}} else {logStatus(`SCANNING CURATED DATABASE FOR STORES NEAR ${locationLabel.toUpperCase()}...`);
+try {resultsGrid.innerHTML = "";
+if (!lat || !lon) {throw new Error("Target coordinates are unavailable for proximity check");}
+let storesData = window.siteConfig.storeDatabase;if (!storesData) {logStatus("LOADING STORES DATABASE...");const res = await fetch("src/data/stores.json");storesData = await res.json();window.siteConfig.storeDatabase = storesData;}
+const stores = (storesData || []).map(store => {const dist = haversineDistance([lat, lon], store.coords);return { ...store, distance: dist };});
+const selectedRadiusValue = radiusSelect ? radiusSelect.value : "40234";let radiusLimitMiles = 25;if (selectedRadiusValue === "80467") radiusLimitMiles = 50;if (selectedRadiusValue === "160934") radiusLimitMiles = 100;
+let matches = stores.filter(s => s.distance <= radiusLimitMiles);let showingFallback = false;
+matches.sort((a, b) => a.distance - b.distance);
+if (!matches.length) {matches = stores.sort((a, b) => a.distance - b.distance).slice(0, 3);showingFallback = true;}
+if (showingFallback) {logStatus(`NO STORES DETECTED WITHIN ${radiusLimitMiles} MILES. DISPLAYING CLOSEST ALTERNATIVES.`);} else {logStatus(`SCAN COMPLETE. FOUND ${matches.length} STORE(S) WITHIN ${radiusLimitMiles} MILES.`);}
+renderStores(matches, showingFallback, radiusLimitMiles);} catch (e) {logStatus(`DATABASE SCAN ERROR: ${e.message.toUpperCase()}.`);resultsGrid.innerHTML = `<div class="search-empty-state">† SCAN FAILED †<p style="margin-top: 10px; font-size: 0.9rem; color: var(--color-muted); font-family: var(--font-body);">${escapeHTML(e.message)}</p></div>`;}}};
+const renderEventbriteEvents = (events) => {resultsGrid.innerHTML = events.map((ev, idx) => {const title = ev.name || "Untitled Event";const url = ev.url || "#";const localTimeStr = ev.startDate || "";
+let friendlyDate = "Date TBA";let friendlyTime = "Time TBA";if (localTimeStr) {try {const dt = new Date(localTimeStr);friendlyDate = dt.toLocaleDateString("en-US", {weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'});friendlyTime = dt.toLocaleTimeString("en-US", {hour: '2-digit', minute: '2-digit'});} catch (e) {friendlyDate = localTimeStr;}}
+const venueInfo = ev.location || {};const venueName = venueInfo.name || "Unknown Venue";const addrObj = venueInfo.address || {};const venueCity = addrObj.addressLocality || "";const venueState = addrObj.addressRegion || "";const venueAddress = addrObj.streetAddress || "";const fullAddress = `${venueAddress}${venueAddress && venueCity ? ', ' : ''}${venueCity}${venueCity && venueState ? ', ' : ''}${venueState}`.trim() || "Address Unavailable";
+const genre = ev.genre || (ev.about && ev.about.name) || "Concert";
+let image = "";if (ev.image) {image = typeof ev.image === "string" ? ev.image : (ev.image.url || ev.image.contentUrl || "");}
+const desc = ev.description || "Click Buy Tickets to see full details and ticket options on Eventbrite.";
+const directionsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(venueName + " " + fullAddress)}`;
+return `<div class="event-card-redesign">${image ? `<div class="event-image-banner" style="background-image: url('${image}');"></div>` : `<div class="event-image-banner" style="background: linear-gradient(135deg, var(--color-blood), var(--color-ember-dark)); display: flex; align-items: center; justify-content: center;"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity: 0.5; color: var(--color-text);"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg></div>`}
+<div class="event-card-head-redesign"><span class="card-kicker">${escapeHTML(genre)}</span><strong class="card-title">${escapeHTML(title)}</strong></div>
+<div class="event-card-details-redesign"><div class="details-section"><span class="details-header">HOST VENUE</span><span class="detail-line" style="font-weight: bold; color: var(--color-ember);">${escapeHTML(venueName)}</span><span class="detail-line">📍 ${escapeHTML(fullAddress)}</span></div>
+<div class="details-section" style="border-top: 1px dashed var(--color-line); padding-top: 10px; margin-top: 10px;"><span class="details-header">EVENT SCHEDULE & DESCRIPTION</span><span class="detail-line">📅 ${escapeHTML(friendlyDate)}</span><span class="detail-line">🕒 ${escapeHTML(friendlyTime)}</span><span class="detail-line" style="margin-top: 8px; font-style: italic; font-size: 0.85rem; opacity: 0.95;">"${escapeHTML(desc.length > 180 ? desc.substring(0, 180) + '...' : desc)}"</span></div></div>
+<div class="event-card-foot-redesign"><a href="${url}" target="_blank" rel="noopener noreferrer" class="card-action-btn search-events-btn">BUY TICKETS</a><a href="${directionsUrl}" target="_blank" rel="noopener noreferrer" class="card-action-btn get-directions-btn">DIRECTIONS</a></div></div>`;}).join("");};
+if (searchBtn && locInput) {searchBtn.addEventListener("click", async () => {const val = locInput.value.trim();if (!val) {logStatus("ERROR: ZIPCODE INPUT IS EMPTY.");return;}if (!/^\d{5}$/.test(val)) {logStatus("ERROR: INVALID ZIPCODE. ENTER A 5-DIGIT US ZIPCODE (E.G. 44101).");return;}
+logStatus(`RESOLVING ZIPCODE: "${val}"...`);try {const loc = await geocodeZipcode(val);runPromoSearch(loc.city, loc.state, loc.displayName, loc.lat, loc.lon);} catch (err) {logStatus(`GEOCATING ERROR: ${err.message.toUpperCase()}`);}});
+locInput.addEventListener("keydown", (e) => {if (e.key === "Enter") {searchBtn.click();}});
+locInput.addEventListener("input", (e) => {locInput.value = locInput.value.replace(/[^0-9]/g, "");});}
+if (geoBtn) {geoBtn.addEventListener("click", () => {if (!navigator.geolocation) {logStatus("ERROR: GEOLOCATION NOT SUPPORTED BY BROWSER.");return;}logStatus("ACQUIRING DEVICE GEOLOCATION...");navigator.geolocation.getCurrentPosition(async (position) => {const lat = position.coords.latitude;const lon = position.coords.longitude;logStatus(`GPS LOCKED. RESOLVING COORDINATES...`);try {const loc = await reverseGeocode(lat, lon);runPromoSearch(loc.city, loc.state, loc.displayName, loc.lat, loc.lon);} catch (err) {logStatus(`GPS ERROR: ${err.message.toUpperCase()}`);}},(err) => {logStatus(`GPS DENIED: ${err.message.toUpperCase()}. MANUALLY ENTER ZIPCODE.`);},{ enableHighAccuracy: true, timeout: 8000 });});}
+const rangeSelect = document.getElementById("trafficRangeSelect");const lblTotalUsers = document.getElementById("lblTotalUsers");const valTotalUsers = document.getElementById("valTotalUsers");const trendTotalUsers = document.getElementById("trendTotalUsers");
+const lblNewUsers = document.getElementById("lblNewUsers");const valNewUsers = document.getElementById("valNewUsers");const trendNewUsers = document.getElementById("trendNewUsers");
+const lblPageViews = document.getElementById("lblPageViews");const valPageViews = document.getElementById("valPageViews");const trendPageViews = document.getElementById("trendPageViews");
+const activeCounter = document.getElementById("activeSessionsCounter");const activeSubtext = document.getElementById("activeSessionsSubtext");
+let currentTrafficRange = "30d";
+function updateTrafficStats() {const rangeSuffixes = {"24h": " (24h)","7d": " (7d)","30d": " (30d)","90d": " (90d)"};const suffix = rangeSuffixes[currentTrafficRange] || " (30d)";
+if (lblTotalUsers) lblTotalUsers.textContent = `Total Users${suffix}`;if (valTotalUsers) valTotalUsers.textContent = "--";if (trendTotalUsers) {trendTotalUsers.textContent = "N/A";trendTotalUsers.className = "metric-trend";}
+if (lblNewUsers) lblNewUsers.textContent = `New Users${suffix}`;if (valNewUsers) valNewUsers.textContent = "--";if (trendNewUsers) {trendNewUsers.textContent = "N/A";trendNewUsers.className = "metric-trend";}
+if (lblPageViews) lblPageViews.textContent = `Website Traffic${suffix}`;if (valPageViews) valPageViews.textContent = "--";if (trendPageViews) {trendPageViews.textContent = "N/A";trendPageViews.className = "metric-trend";}}
+if (rangeSelect) {rangeSelect.addEventListener("change", (e) => {currentTrafficRange = e.target.value;updateTrafficStats();});}
+if (window.__TRAFFIC_SESSIONS_INTERVAL) {clearInterval(window.__TRAFFIC_SESSIONS_INTERVAL);}
+if (activeCounter) activeCounter.textContent = "--";if (activeSubtext) activeSubtext.textContent = "Live monitoring offline";
+updateTrafficStats();
+let trafficMapInitialized = false;function initTrafficMapIfPossible() {if (trafficMapInitialized) {if (window.trafficMapInstance) {window.trafficMapInstance.updateSize();}return;}const mapContainer = document.getElementById("trafficMap");if (mapContainer && typeof jsVectorMap !== "undefined") {try {window.trafficMapInstance = new jsVectorMap({selector: "#trafficMap",map: "us_merc_en",zoomOnScroll: false,zoomButtons: false,regionStyle: {initial: {fill: "rgba(10, 10, 10, 0.8)",stroke: "rgba(184, 14, 23, 0.4)",strokeWidth: 1.5,fillOpacity: 1},hover: {fill: "rgba(184, 14, 23, 0.15)",fillOpacity: 0.8,cursor: "pointer"}},markers: [{ name: "Cleveland (Hub)", coords: [41.4993, -81.6944], style: { fill: "#ff2a2a", r: 6 } },{ name: "New York", coords: [40.7128, -74.0060], style: { fill: "#ff2a2a", r: 4 } },{ name: "Los Angeles", coords: [34.0522, -118.2437], style: { fill: "#ff2a2a", r: 4 } },{ name: "Chicago", coords: [41.8781, -87.6298], style: { fill: "#ff2a2a", r: 4 } },{ name: "Houston", coords: [29.7604, -95.3698], style: { fill: "#ff2a2a", r: 4 } },{ name: "Miami", coords: [25.7617, -80.1918], style: { fill: "#ff2a2a", r: 4 } },{ name: "Seattle", coords: [47.6062, -122.3321], style: { fill: "#ff2a2a", r: 4 } }],markerStyle: {initial: {stroke: "rgba(184, 14, 23, 0.8)",strokeWidth: 1.5},hover: {fill: "#ff5555"}},lines: [{ from: "Cleveland (Hub)", to: "New York", style: { stroke: "rgba(184, 14, 23, 0.35)", strokeWidth: 1.5, strokeDasharray: "4 4" } },{ from: "Cleveland (Hub)", to: "Los Angeles", style: { stroke: "rgba(184, 14, 23, 0.35)", strokeWidth: 1.5, strokeDasharray: "4 4" } },{ from: "Cleveland (Hub)", to: "Chicago", style: { stroke: "rgba(184, 14, 23, 0.35)", strokeWidth: 1.5, strokeDasharray: "4 4" } },{ from: "Cleveland (Hub)", to: "Houston", style: { stroke: "rgba(184, 14, 23, 0.35)", strokeWidth: 1.5, strokeDasharray: "4 4" } },{ from: "Cleveland (Hub)", to: "Miami", style: { stroke: "rgba(184, 14, 23, 0.35)", strokeWidth: 1.5, strokeDasharray: "4 4" } },{ from: "Cleveland (Hub)", to: "Seattle", style: { stroke: "rgba(184, 14, 23, 0.35)", strokeWidth: 1.5, strokeDasharray: "4 4" } }],labels: {markers: {render: (marker) => marker.name}}});trafficMapInitialized = true;} catch (e) {console.error("Failed to initialize US Traffic Map:", e);}}}}
+if (document.readyState === "loading") {window.addEventListener("DOMContentLoaded", initApp);} else {initApp();}
