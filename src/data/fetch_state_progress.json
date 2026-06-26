@@ -1,0 +1,333 @@
+{
+  "completed_states": [
+    "AL"
+  ],
+  "stores": {
+    "AL": [
+      {
+        "name": "Graves Cemetery",
+        "address": "County Road 387, Hillsboro, AL 35643",
+        "zip": "35643",
+        "coords": [
+          34.6770348,
+          -87.2011281
+        ],
+        "kicker": "HORROR LOCATION",
+        "description": "",
+        "url": "https://www.google.com/search?q=Graves%20Cemetery%20Hillsboro"
+      },
+      {
+        "name": "The Fret Shop",
+        "address": "309 Jordan Lane Northwest, Huntsville, AL 35805",
+        "zip": "35805",
+        "coords": [
+          34.7235322,
+          -86.6279134
+        ],
+        "kicker": "STORE LOCATION",
+        "description": "",
+        "url": "https://www.thefretshop.com/"
+      },
+      {
+        "name": "Music Music Lessons and Instruments",
+        "address": "630 Boll Weevil Circle, AL 36330",
+        "zip": "36330",
+        "coords": [
+          31.319848,
+          -85.8291783
+        ],
+        "kicker": "MUSIC RECORD SHOP",
+        "description": "",
+        "url": "https://www.facebook.com/pages/Music-Music/121731911171048?fref=ts"
+      },
+      {
+        "name": "I Teach Keys",
+        "address": "127 8449 Crossland Loop, AL 36117",
+        "zip": "36117",
+        "coords": [
+          32.339746,
+          -86.1653696
+        ],
+        "kicker": "MUSIC RECORD SHOP",
+        "description": "",
+        "url": "https://www.iteachkeys.com"
+      },
+      {
+        "name": "Railroad Bazaar Music",
+        "address": "1207 Edison Drive, Athens, AL 35611",
+        "zip": "35611",
+        "coords": [
+          34.7840314,
+          -86.9489949
+        ],
+        "kicker": "MUSIC RECORD SHOP",
+        "description": "",
+        "url": "https://railroadbazaar.com/"
+      },
+      {
+        "name": "Spicer's Music",
+        "address": "2140 East University Drive, Auburn, AL 36830",
+        "zip": "36830",
+        "coords": [
+          32.6289975,
+          -85.4508347
+        ],
+        "kicker": "MUSIC RECORD SHOP",
+        "description": "",
+        "url": "https://spicersmusic.com/"
+      },
+      {
+        "name": "Gravely Chiropractic",
+        "address": "4223 Orange Beach Boulevard, Orange Beach, AL 36561",
+        "zip": "36561",
+        "coords": [
+          30.2859936,
+          -87.5818523
+        ],
+        "kicker": "HORROR LOCATION",
+        "description": "",
+        "url": "https://www.google.com/search?q=Gravely%20Chiropractic%20Orange%20Beach"
+      },
+      {
+        "name": "The Fragrance & Herbalist Shoppe",
+        "address": "136 North Mount Pleasant Avenue, Monroeville, AL 36460",
+        "zip": "36460",
+        "coords": [
+          31.5289665,
+          -87.3246435
+        ],
+        "kicker": "OCCULT & METAPHYSICAL",
+        "description": "",
+        "url": "http://www.thefragranceshoppeonline.com/"
+      },
+      {
+        "name": "Black Tie CBD",
+        "address": "2801 John Hawkins Parkway, Hoover, AL 35244",
+        "zip": "35244",
+        "coords": [
+          33.3655533,
+          -86.8242823
+        ],
+        "kicker": "OCCULT & METAPHYSICAL",
+        "description": "",
+        "url": "https://www.blacktiesmoke.com/"
+      },
+      {
+        "name": "10,000 Hz",
+        "address": "717 1st Avenue, Opelika, AL 36801",
+        "zip": "36801",
+        "coords": [
+          32.6493632,
+          -85.3797356
+        ],
+        "kicker": "MUSIC RECORD SHOP",
+        "description": "",
+        "url": "https://10000hzrecords.com/"
+      },
+      {
+        "name": "Guitar Center",
+        "address": "5900 University Drive Northwest, Huntsville, AL 35806",
+        "zip": "35806",
+        "coords": [
+          34.7422691,
+          -86.6668677
+        ],
+        "kicker": "STORE LOCATION",
+        "description": "",
+        "url": "https://www.google.com/search?q=Guitar%20Center%20Huntsville"
+      },
+      {
+        "name": "Gadsden Music",
+        "address": "4800 Whitesburg Drive South, Huntsville, AL 35802",
+        "zip": "35802",
+        "coords": [
+          34.693291,
+          -86.5701749
+        ],
+        "kicker": "MUSIC RECORD SHOP",
+        "description": "",
+        "url": "https://gadsdenmusic.com/"
+      },
+      {
+        "name": "VooDoo Wing Co.",
+        "address": "1306 University Boulevard, Tuscaloosa, AL",
+        "zip": "",
+        "coords": [
+          33.2113765,
+          -87.5548446
+        ],
+        "kicker": "OCCULT & METAPHYSICAL",
+        "description": "",
+        "url": "https://www.voodoowingco.com/"
+      },
+      {
+        "name": "Bewitched",
+        "address": "4925 University Drive Northwest, AL",
+        "zip": "",
+        "coords": [
+          34.7366483,
+          -86.6549936
+        ],
+        "kicker": "OCCULT & METAPHYSICAL",
+        "description": "",
+        "url": "https://bewitchedal.com/"
+      },
+      {
+        "name": "Spencer's",
+        "address": "2107 Tiger Town Parkway, Opelika, AL 36801",
+        "zip": "36801",
+        "coords": [
+          32.6183953,
+          -85.4050008
+        ],
+        "kicker": "SPENCER'S",
+        "description": "",
+        "url": "https://www.google.com/search?q=Spencer%27s%20Opelika"
+      },
+      {
+        "name": "Seasick Records",
+        "address": "3131 5th Avenue South, AL 35233",
+        "zip": "35233",
+        "coords": [
+          33.5159204,
+          -86.785052
+        ],
+        "kicker": "MUSIC RECORD SHOP",
+        "description": "",
+        "url": "https://seasickbham.com/"
+      },
+      {
+        "name": "Books Beans & Candles",
+        "address": "1620 Richard Arrington Jr Boulevard South, Birmingham, AL 35205",
+        "zip": "35205",
+        "coords": [
+          33.495661,
+          -86.7927146
+        ],
+        "kicker": "OCCULT & METAPHYSICAL",
+        "description": "",
+        "url": "https://bookbeancandle.com"
+      },
+      {
+        "name": "Mason Music",
+        "address": "243 Browns Ferry Road, Madison, AL 35758",
+        "zip": "35758",
+        "coords": [
+          34.7072887,
+          -86.7481244
+        ],
+        "kicker": "MUSIC RECORD SHOP",
+        "description": "",
+        "url": "https://masonmusic.com/locations/music-lessons-in-madison-huntsville/"
+      },
+      {
+        "name": "Apothecary Draft House",
+        "address": "7 Public Square East, Jacksonville, AL",
+        "zip": "",
+        "coords": [
+          33.8138273,
+          -85.7607078
+        ],
+        "kicker": "OCCULT & METAPHYSICAL",
+        "description": "",
+        "url": "https://www.google.com/search?q=Apothecary%20Draft%20House%20Jacksonville"
+      },
+      {
+        "name": "Sour Gummy Records",
+        "address": "205 South Market Street, Scottsboro, AL 35768",
+        "zip": "35768",
+        "coords": [
+          34.6725951,
+          -86.0331047
+        ],
+        "kicker": "MUSIC RECORD SHOP",
+        "description": "",
+        "url": "https://sourgummyrecords.square.site"
+      },
+      {
+        "name": "World of Music",
+        "address": "1914 Cogswell Avenue, Pell City, AL 35125",
+        "zip": "35125",
+        "coords": [
+          33.5863115,
+          -86.2851279
+        ],
+        "kicker": "MUSIC RECORD SHOP",
+        "description": "",
+        "url": "https://www.worldofmusicpc.com/"
+      },
+      {
+        "name": "Voodoo Lounge",
+        "address": "110 South Side Square, AL",
+        "zip": "",
+        "coords": [
+          34.7295199,
+          -86.5847178
+        ],
+        "kicker": "OCCULT & METAPHYSICAL",
+        "description": "",
+        "url": "https://www.google.com/search?q=Voodoo%20Lounge%20"
+      },
+      {
+        "name": "The Haunted Book Shop",
+        "address": "9 South Joachim Street, Mobile, AL 36602",
+        "zip": "36602",
+        "coords": [
+          30.6906496,
+          -88.0435776
+        ],
+        "kicker": "HORROR LOCATION",
+        "description": "",
+        "url": "https://www.thehauntedbookshopmobile.com"
+      },
+      {
+        "name": "Alabama Music",
+        "address": "2450 Mall Road, Florence, AL 35630",
+        "zip": "35630",
+        "coords": [
+          34.832007,
+          -87.6381844
+        ],
+        "kicker": "MUSIC RECORD SHOP",
+        "description": "",
+        "url": "https://www.google.com/search?q=Alabama%20Music%20Florence"
+      },
+      {
+        "name": "Madison Band Supply",
+        "address": "1604 Hughes Road, Madison, AL 35758",
+        "zip": "35758",
+        "coords": [
+          34.7510804,
+          -86.741517
+        ],
+        "kicker": "STORE LOCATION",
+        "description": "",
+        "url": "https://www.madisonbandsupply.com/"
+      },
+      {
+        "name": "Gravel Hill Church",
+        "address": "North Valley Avenue, Fort Payne, AL 35967",
+        "zip": "35967",
+        "coords": [
+          34.3767884,
+          -85.7789926
+        ],
+        "kicker": "HORROR LOCATION",
+        "description": "",
+        "url": "https://www.google.com/search?q=Gravel%20Hill%20Church%20Fort%20Payne"
+      },
+      {
+        "name": "Oneonta Herb Shop",
+        "address": "213 2nd Avenue West, Oneonta, AL",
+        "zip": "",
+        "coords": [
+          33.9430473,
+          -86.4798865
+        ],
+        "kicker": "OCCULT & METAPHYSICAL",
+        "description": "",
+        "url": "https://www.google.com/search?q=Oneonta%20Herb%20Shop%20Oneonta"
+      }
+    ]
+  }
+}

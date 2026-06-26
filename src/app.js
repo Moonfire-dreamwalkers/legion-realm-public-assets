@@ -669,20 +669,22 @@ function initApp() {
 function renderAnnouncements(view) {
   return `
     <div class="announcements-obsidian section-system" id="announcementsView">
-      <section class="announcements-hero" style="text-align: center; margin-bottom: 40px; padding: 0 20px;">
-        <h2 class="promo-header-main" style="border-bottom: 1px solid var(--color-line); padding-bottom: 12px; margin-bottom: 16px; font-family: var(--font-display); font-size: 2.2rem; letter-spacing: 2px;">Announcements</h2>
-        <p class="announcements-subtext" style="font-family: var(--font-body); font-size: 1.1rem; color: var(--color-text); max-width: 700px; margin: 0 auto;">Latest news and updates from Legion Realm staff.</p>
+      <section class="announcements-hero">
+        <div class="announcements-hero-sigil" aria-hidden="true">${sulfurSvg()}</div>
+        <h2 class="promo-header-main">LEGION REALM DISPATCHES</h2>
+        <p class="announcements-subtext">Official news and updates broadcast directly from Legion Realm command.</p>
       </section>
-      <div class="announcements-feed" id="announcementsFeed" style="max-width: 800px; margin: 0 auto; padding: 0 20px;">
-        <div class="announcements-loading" style="text-align:center;padding:60px 20px;color:var(--color-muted);">
-          <span style="font-size:1.5rem;">⏳</span>
-          <p style="margin-top:12px;">Loading announcements...</p>
+      <div class="announcements-feed" id="announcementsFeed">
+        <div class="announcements-loading">
+          <div class="announcements-shimmer"></div>
+          <div class="announcements-shimmer"></div>
+          <div class="announcements-shimmer"></div>
+          <p>Loading announcements...</p>
         </div>
       </div>
     </div>
   `;
 }
-
 function renderView(view) {
   const renderers = {
     home: renderHome,
@@ -1903,6 +1905,97 @@ function bindView(viewId) {
   }
 }
 
+async function bindAnnouncementsView() {
+  const feed = document.getElementById("announcementsFeed");
+  if (!feed) return;
+
+  // Check staff status from auth (available globally via src/auth.js)
+  const isStaff = (typeof authState !== "undefined" && authState.user && authState.user.isStaff === true);
+
+  // Primary: fetch from GitHub public assets CDN
+  // Fallback: Vercel API
+  const cdnUrl = cdnBase
+    ? `${cdnBase}/announcements.json`
+    : `https://cdn.jsdelivr.net/gh/Moonfire-dreamwalkers/legion-realm-public-assets@main/announcements.json`;
+
+  let data = null;
+
+  try {
+    const cdnRes = await fetch(cdnUrl, { cache: "no-store" });
+    if (cdnRes.ok) {
+      data = await cdnRes.json();
+    }
+  } catch (e) {
+    console.warn("[announcements] CDN fetch failed, trying API fallback");
+  }
+
+  if (!data || !Array.isArray(data)) {
+    try {
+      const apiRes = await fetch("/api/announcements");
+      if (apiRes.ok) {
+        data = await apiRes.json();
+      }
+    } catch (apiErr) {
+      console.error("[announcements] API fallback also failed");
+    }
+  }
+
+  if (!Array.isArray(data) || data.length === 0) {
+    feed.innerHTML = `
+      <div class="announcements-empty">
+        <div class="announcements-empty-sigil">${sulfurSvg()}</div>
+        <p>No announcements have been broadcast yet.</p>
+      </div>
+    `;
+    return;
+  }
+
+  
+  // Filter out archived announcements for public view
+  const visibleData = data.filter(function(item) { return !item.archived; });
+
+  if (visibleData.length === 0) {
+    feed.innerHTML = `
+      <div class="announcements-empty">
+        <div class="announcements-empty-sigil">${sulfurSvg()}</div>
+        <p>No active announcements. Check back soon.</p>
+      </div>
+    `;
+    return;
+  }
+
+  feed.innerHTML = visibleData.map(item => {
+    const date = item.timestamp ? new Date(item.timestamp).toLocaleDateString("en-US", {
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
+    }) : "";
+
+    return `
+      <article class="announcement-card">
+        ${isStaff ? `<span class="announcement-card-id">${escapeHTML(item.id)}</span>` : ""}
+        <div class="announcement-card-header">
+          <div>
+            ${item.title ? `<h3 class="announcement-card-title">${escapeHTML(item.title)}</h3>` : ""}
+            <div class="announcement-card-meta">
+              ${item.author ? `By <strong>${escapeHTML(item.author)}</strong> &bull; ` : ""}
+              <span>${date}</span>
+            </div>
+          </div>
+        </div>
+        ${item.content ? `<div class="announcement-card-body">${escapeHTML(item.content)}</div>` : ""}
+        ${item.imageUrl ? `<div class="announcement-card-image"><img src="${escapeHTML(item.imageUrl)}" alt="" loading="lazy"></div>` : ""}
+        ${item.discordMessageLink ? `
+          <a href="${escapeHTML(item.discordMessageLink)}" target="_blank" rel="noreferrer" class="announcement-card-discord-link">
+            View on Discord
+          </a>
+        ` : ""}
+      </article>
+    `;
+  }).join("");
+}
 function bindKeaganAlbumConsole() {
   const consoleNode = viewRoot.querySelector("[data-keagan-console]");
   if (!consoleNode) return;

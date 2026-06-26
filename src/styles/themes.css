@@ -1,0 +1,510 @@
+/* ── Theme Definitions ── */
+
+/* 1. Demon-Skull Theme */
+html[data-theme="demon"] {
+  --color-void: #0a0a0a;
+  --color-panel: #111111;
+  --color-panel-strong: #1a1a1a;
+  --color-blood: #8b0000;
+  --color-blood-hot: #a00000;
+  --color-ember: #d4cfb4;
+  --color-moss: #1c1c1c;
+  --color-mist: #c9c9c9;
+  --color-muted: #666666;
+  --color-mauve: #1c1c1c;
+  --color-mauve-hot: #3d0000;
+  --color-line: #2a2a2a;
+  --color-line-hot: #8b0000;
+
+  --color-sand: #d4cfb4;
+  --color-cream: #c9c9c9;
+  --color-warm-gray: #666666;
+
+  --shadow-red: 0 0 28px rgba(139, 0, 0, 0.34);
+  --shadow-panel: 0 0 20px rgba(139, 0, 0, 0.15);
+
+  --radius: 0px;
+  --cut-slab: none;
+  --cut-tall: none;
+  --cut-button: none;
+
+  --body-background: radial-gradient(circle at 50% 10%, rgba(61, 0, 0, 0.32), transparent 24rem),
+    radial-gradient(circle at 50% 56%, rgba(139, 0, 0, 0.12), transparent 34rem),
+    linear-gradient(180deg, #0a0a0a, #050505 42rem, #0a0a0a);
+  --body-before-bg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140' viewBox='0 0 140 140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.78' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='table' tableValues='0 .15'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.42'/%3E%3C/svg%3E");
+  --body-before-opacity: 0.12;
+  --body-after-bg: radial-gradient(circle at 50% 46%, transparent 0 22rem, rgba(0, 0, 0, 0.54) 48rem),
+    linear-gradient(90deg, rgba(61, 0, 0, 0.34), transparent 16%, transparent 84%, rgba(61, 0, 0, 0.34)),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.2), transparent 38%, rgba(0, 0, 0, 0.62));
+}
+
+/* 2. Obsidian Theme */
+html[data-theme="obsidian"] {
+  --color-void: #030303;
+  --color-panel: #0b0a09;
+  --color-panel-strong: #22201c;
+  --color-blood: #b8060c;
+  --color-blood-hot: #f01820;
+  --color-ember: #ebdec2;
+  --color-moss: #0b0a09;
+  --color-mist: #ebdec2;
+  --color-muted: rgba(235, 222, 194, 0.42);
+  --color-mauve: #030303;
+  --color-mauve-hot: rgba(184, 6, 12, 0.32);
+  --color-line: rgba(235, 222, 194, 0.075);
+  --color-line-hot: rgba(184, 6, 12, 0.32);
+
+  --color-sand: #ebdec2;
+  --color-cream: #fff7e8;
+  --color-warm-gray: rgba(235, 222, 194, 0.42);
+
+  --shadow-red: 0 0 18px rgba(240, 24, 32, 0.28);
+  --shadow-panel: inset 0 1px 0 rgba(255, 246, 224, 0.09),
+    inset 0 0 0 1px rgba(235, 222, 194, 0.075),
+    inset 0 -32px 76px rgba(0, 0, 0, 0.66),
+    inset 0 0 42px rgba(184, 6, 12, 0.08);
+
+  --radius: 0px;
+  --cut-slab: polygon(18px 0, calc(100% - 18px) 0, 100% 18px, 100% calc(100% - 18px), calc(100% - 18px) 100%, 18px 100%, 0 calc(100% - 18px), 0 18px);
+  --cut-tall: polygon(18px 0, calc(100% - 18px) 0, 100% 18px, 100% calc(100% - 18px), calc(100% - 18px) 100%, 18px 100%, 0 calc(100% - 18px), 0 18px);
+  --cut-button: polygon(10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px), 0 10px);
+
+  --body-background: radial-gradient(circle at var(--pointer-x) var(--pointer-y), rgba(240, 24, 32, 0.22), transparent 19rem),
+    radial-gradient(ellipse at 50% 0%, rgba(184, 6, 12, 0.22), transparent 36rem),
+    repeating-linear-gradient(90deg, transparent 0 72px, rgba(235, 222, 194, 0.018) 73px 74px),
+    linear-gradient(180deg, #0b0808, #030303 42rem, #090706);
+  --body-before-bg: radial-gradient(circle at 20% 16%, rgba(255, 246, 224, 0.08), transparent 2px),
+    radial-gradient(circle at 80% 42%, rgba(240, 24, 32, 0.08), transparent 3px),
+    radial-gradient(circle at 34% 78%, rgba(255, 246, 224, 0.05), transparent 2px),
+    repeating-linear-gradient(111deg, transparent 0 21px, rgba(255, 246, 224, 0.026) 22px 23px),
+    repeating-linear-gradient(33deg, transparent 0 44px, rgba(184, 6, 12, 0.048) 45px 46px);
+  --body-before-opacity: 0.16;
+  --body-after-bg: radial-gradient(circle at var(--pointer-x) var(--pointer-y), transparent 0 15rem, rgba(0, 0, 0, 0.14) 33rem),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.5), transparent 21%, transparent 79%, rgba(0, 0, 0, 0.5)),
+    radial-gradient(ellipse at 50% 100%, rgba(184, 6, 12, 0.12), transparent 30rem);
+}
+
+/* 3. Fortress Theme */
+html[data-theme="fortress"] {
+  --color-void: #050302;
+  --color-panel: #171614;
+  --color-panel-strong: #080807;
+  --color-blood: rgba(255, 35, 22, 0.92);
+  --color-blood-hot: #ff2316;
+  --color-ember: #e2dbcc;
+  --color-moss: #080807;
+  --color-mist: #e2dbcc;
+  --color-muted: rgba(226, 219, 204, 0.55);
+  --color-mauve: #050302;
+  --color-mauve-hot: rgba(255, 35, 22, 0.38);
+  --color-line: rgba(226, 219, 204, 0.22);
+  --color-line-hot: rgba(255, 35, 22, 0.92);
+
+  --color-sand: #e2dbcc;
+  --color-cream: #fff7e8;
+  --color-warm-gray: rgba(226, 219, 204, 0.55);
+
+  --shadow-red: 0 0 42px rgba(255, 35, 22, 0.38);
+  --shadow-panel: inset 0 2px 0 rgba(255, 255, 255, 0.13),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.78),
+    inset 0 0 0 2px rgba(0, 0, 0, 0.74),
+    inset 0 0 0 3px rgba(235, 222, 194, 0.075),
+    0 18px 0 rgba(0, 0, 0, 0.24),
+    0 32px 84px rgba(0, 0, 0, 0.58),
+    0 0 42px rgba(255, 35, 22, 0.22);
+
+  --radius: 0px;
+  --cut-slab: polygon(34px 0, calc(100% - 34px) 0, 100% 34px, 100% calc(100% - 34px), calc(100% - 34px) 100%, 34px 100%, 0 calc(100% - 34px), 0 34px);
+  --cut-tall: polygon(24px 0, calc(100% - 24px) 0, 100% 24px, 100% calc(100% - 24px), calc(100% - 24px) 100%, 24px 100%, 0 calc(100% - 24px), 0 24px);
+  --cut-button: polygon(12px 0, calc(100% - 12px) 0, 100% 12px, 100% calc(100% - 12px), calc(100% - 12px) 100%, 12px 100%, 0 calc(100% - 12px), 0 12px);
+
+  --body-background: radial-gradient(ellipse at 50% 0%, rgba(108, 9, 8, 0.34), transparent 34rem),
+    radial-gradient(circle at var(--pointer-x) var(--pointer-y), rgba(255, 35, 22, 0.14), transparent 22rem),
+    repeating-linear-gradient(118deg, transparent 0 34px, rgba(255, 255, 255, 0.012) 35px 36px),
+    linear-gradient(180deg, #050302, #090807 26rem, #030303);
+  --body-before-bg: none;
+  --body-before-opacity: 0;
+  --body-after-bg: none;
+}
+
+/* 4. Occult Theme */
+html[data-theme="occult"] {
+  --color-void: #080706;
+  --color-panel: #1c1a17;
+  --color-panel-strong: #030303;
+  --color-blood: rgba(154, 13, 10, 0.72);
+  --color-blood-hot: #9a0d0a;
+  --color-ember: #d7cbba;
+  --color-moss: #080706;
+  --color-mist: #d7cbba;
+  --color-muted: rgba(215, 203, 180, 0.55);
+  --color-mauve: #030303;
+  --color-mauve-hot: rgba(126, 8, 7, 0.18);
+  --color-line: rgba(215, 203, 180, 0.18);
+  --color-line-hot: rgba(154, 13, 10, 0.72);
+
+  --color-sand: #d7cbba;
+  --color-cream: #fff7e8;
+  --color-warm-gray: rgba(215, 203, 180, 0.55);
+
+  --shadow-red: 0 0 35px rgba(154, 13, 10, 0.34);
+  --shadow-panel: inset 0 1px 0 rgba(255, 247, 226, 0.08),
+    inset 0 0 35px rgba(0, 0, 0, 0.86),
+    inset 0 -16px 30px rgba(0, 0, 0, 0.58),
+    0 18px 0 rgba(0, 0, 0, 0.34),
+    0 30px 80px rgba(0, 0, 0, 0.66);
+
+  --radius: 0px;
+  --cut-slab: polygon(22px 0, calc(100% - 22px) 0, 100% 22px, 100% calc(100% - 22px), calc(100% - 22px) 100%, 22px 100%, 0 calc(100% - 22px), 0 22px);
+  --cut-tall: polygon(22px 0, calc(100% - 22px) 0, 100% 22px, 100% calc(100% - 22px), calc(100% - 22px) 100%, 22px 100%, 0 calc(100% - 22px), 0 22px);
+  --cut-button: polygon(9px 0, calc(100% - 9px) 0, 100% 9px, 100% calc(100% - 9px), calc(100% - 9px) 100%, 9px 100%, 0 calc(100% - 9px), 0 9px);
+
+  --body-background: radial-gradient(circle at 50% 12%, rgba(92, 42, 92, 0.26), transparent 30rem),
+    radial-gradient(circle at 80% 76%, rgba(107, 15, 26, 0.24), transparent 28rem),
+    linear-gradient(90deg, rgba(13, 13, 13, 0.96), rgba(13, 13, 13, 0.52) 46%, rgba(13, 13, 13, 0.95)),
+    url("../../images/son/515083529_24119378957693526_2416044119396794384_n.jpg") center top / cover fixed,
+    #0d0d0d;
+  --body-before-bg: radial-gradient(circle at 18% 22%, rgba(217, 201, 176, 0.05) 0 1px, transparent 1px),
+    radial-gradient(circle at 72% 60%, rgba(139, 26, 26, 0.12) 0 1px, transparent 1px),
+    repeating-linear-gradient(23deg, transparent 0 16px, rgba(217, 201, 176, 0.025) 16px 17px),
+    repeating-linear-gradient(111deg, transparent 0 31px, rgba(0, 0, 0, 0.32) 31px 34px);
+  --body-before-opacity: 0.48;
+  --body-after-bg: radial-gradient(circle at 50% 50%, transparent 0 20rem, rgba(0, 0, 0, 0.54) 48rem),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.96), transparent 15%, transparent 85%, rgba(0, 0, 0, 0.96)),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.1), transparent 42%, rgba(0, 0, 0, 0.9));
+}
+
+/* 5. Real Stone / Basalt Theme */
+html[data-theme="stone"] {
+  --color-void: #070706;
+  --color-panel: #0b0b0a;
+  --color-panel-strong: #050504;
+  --color-blood: rgba(123, 12, 8, 0.42);
+  --color-blood-hot: #7b0c08;
+  --color-ember: #c3ae82;
+  --color-moss: #070706;
+  --color-mist: #c3ae82;
+  --color-muted: rgba(195, 174, 130, 0.55);
+  --color-mauve: #070706;
+  --color-mauve-hot: rgba(75, 22, 33, 0.2);
+  --color-line: rgba(195, 174, 130, 0.22);
+  --color-line-hot: rgba(123, 12, 8, 0.42);
+
+  --color-sand: #c3ae82;
+  --color-cream: #f1dfc2;
+  --color-warm-gray: rgba(195, 174, 130, 0.55);
+
+  --shadow-red: 0 0 20px rgba(123, 12, 8, 0.24);
+  --shadow-panel: inset 0 1px 0 rgba(255, 244, 220, 0.07),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.72),
+    0 22px 70px rgba(0, 0, 0, 0.62);
+
+  --radius: 0px;
+  --cut-slab: polygon(18px 0, calc(100% - 18px) 0, 100% 18px, 100% calc(100% - 18px), calc(100% - 18px) 100%, 18px 100%, 0 calc(100% - 18px), 0 18px);
+  --cut-tall: polygon(18px 0, calc(100% - 18px) 0, 100% 18px, 100% calc(100% - 18px), calc(100% - 18px) 100%, 18px 100%, 0 calc(100% - 18px), 0 18px);
+  --cut-button: polygon(8px 0, calc(100% - 8px) 0, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px), 0 8px);
+
+  --body-background: linear-gradient(90deg, rgba(7, 7, 6, 0.92), rgba(7, 7, 6, 0.58) 42%, rgba(7, 7, 6, 0.9)),
+    linear-gradient(180deg, rgba(75, 22, 33, 0.35), transparent 42%, rgba(73, 80, 68, 0.2)),
+    url("../../images/son/515083529_24119378957693526_2416044119396794384_n.jpg") center top / cover fixed,
+    #070706;
+  --body-before-bg: radial-gradient(circle at 20% 18%, rgba(195, 174, 130, 0.07) 0 1px, transparent 1px),
+    radial-gradient(circle at 70% 56%, rgba(195, 174, 130, 0.05) 0 1px, transparent 1px),
+    linear-gradient(90deg, rgba(195, 174, 130, 0.028) 1px, transparent 0);
+  --body-before-opacity: 0.24;
+  --body-after-bg: linear-gradient(90deg, rgba(0, 0, 0, 0.92), transparent 18%, transparent 82%, rgba(0, 0, 0, 0.92)),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.12), transparent 50%, rgba(0, 0, 0, 0.86));
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   ANNOUNCEMENTS — Legion Realm Dispatches
+   ══════════════════════════════════════════════════════════════════════ */
+
+.announcements-hero {
+  text-align: center;
+  margin-bottom: 48px;
+  padding: 32px 20px 40px;
+  position: relative;
+}
+
+.announcements-hero-sigil {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 16px;
+  opacity: 0.18;
+}
+
+.announcements-hero-sigil svg {
+  width: 48px;
+  height: 56px;
+  stroke: var(--color-blood);
+}
+
+.announcements-hero .promo-header-main {
+  border-bottom: 1px solid var(--color-line);
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+  font-family: var(--font-display);
+  font-size: 2.2rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--color-mist);
+}
+
+.announcements-subtext {
+  font-family: var(--font-body);
+  font-size: 1.1rem;
+  color: var(--color-text);
+  max-width: 700px;
+  margin: 0 auto;
+  opacity: 0.75;
+}
+
+.announcements-feed {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 20px 60px;
+}
+
+/* Loading shimmer */
+.announcements-loading {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--color-muted);
+}
+
+.announcements-shimmer {
+  height: 100px;
+  margin-bottom: 16px;
+  background: linear-gradient(90deg, 
+    rgba(139, 0, 0, 0.04) 0%, 
+    rgba(139, 0, 0, 0.1) 50%, 
+    rgba(139, 0, 0, 0.04) 100%
+  );
+  background-size: 200% 100%;
+  animation: announcementsShimmer 2s infinite;
+  border-radius: 4px;
+  border: 1px solid var(--color-line);
+}
+
+.announcements-shimmer:nth-child(2) { animation-delay: 0.2s; height: 140px; }
+.announcements-shimmer:nth-child(3) { animation-delay: 0.4s; height: 80px; }
+
+@keyframes announcementsShimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.announcements-loading p {
+  margin-top: 20px;
+  font-size: 0.85rem;
+  opacity: 0.5;
+}
+
+/* Announcement Card */
+.announcement-card {
+  margin-bottom: 32px;
+  padding: 24px;
+  border-left: 4px solid var(--color-blood);
+  border-radius: 0;
+  background: rgba(16, 11, 11, 0.96);
+  box-shadow: var(--shadow-panel);
+  position: relative;
+  overflow: hidden;
+}
+
+.announcement-card::after {
+  content: "";
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 64px;
+  height: 74px;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 120 140' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M60 12 L108 94 H12 Z' stroke='%238b0000' fill='none' stroke-width='1.5'/%3E%3Cpath d='M60 92 V128 M37 111 H83' stroke='%238b0000' fill='none' stroke-width='1.5'/%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  opacity: 0.045;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.announcement-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+  position: relative;
+  z-index: 1;
+}
+
+.announcement-card-title {
+  margin: 0 0 4px;
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  color: var(--color-mist);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.announcement-card-meta {
+  font-size: 0.8rem;
+  color: var(--color-muted);
+}
+
+.announcement-card-meta strong {
+  color: var(--color-ember);
+  font-weight: 600;
+}
+
+.announcement-card-id {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--color-muted);
+  opacity: 0.3;
+  z-index: 2;
+  letter-spacing: 0.5px;
+  background: rgba(0,0,0,0.4);
+  padding: 1px 6px;
+  border-radius: 3px;
+  border: 1px solid rgba(139,0,0,0.15);
+}
+
+.announcement-card-body {
+  font-family: var(--font-body);
+  line-height: 1.7;
+  color: var(--color-text);
+  margin-bottom: 16px;
+  white-space: pre-wrap;
+  position: relative;
+  z-index: 1;
+}
+
+.announcement-card-image {
+  margin-bottom: 16px;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid var(--color-line);
+}
+
+.announcement-card-image img {
+  width: 100%;
+  max-height: 400px;
+  object-fit: cover;
+  display: block;
+}
+
+.announcement-card-discord-link {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.75rem;
+  min-height: 32px;
+  padding: 0 12px;
+  margin-top: 12px;
+  color: var(--color-muted);
+  text-decoration: none;
+  border: 1px solid var(--color-line);
+  background: rgba(0,0,0,0.3);
+  border-radius: 2px;
+  transition: all 0.2s;
+}
+
+.announcement-card-discord-link:hover {
+  color: var(--color-ember);
+  border-color: var(--color-blood);
+}
+
+.announcements-empty {
+  text-align: center;
+  padding: 80px 20px;
+  color: var(--color-muted);
+}
+
+.announcements-empty-sigil {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 16px;
+  opacity: 0.12;
+}
+
+.announcements-empty-sigil svg {
+  width: 64px;
+  height: 74px;
+  stroke: var(--color-blood);
+}
+
+.announcements-empty p {
+  margin-top: 12px;
+  font-size: 1rem;
+  opacity: 0.6;
+}
+
+.announcements-error {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--color-blood);
+}
+
+.announcements-error p {
+  font-size: 0.9rem;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .announcements-hero .promo-header-main {
+    font-size: 1.6rem;
+  }
+  .announcement-card {
+    padding: 16px;
+    margin-bottom: 20px;
+  }
+  .announcement-card-title {
+    font-size: 1.15rem;
+  }
+}
+
+/* 6. Blood-Stone Theme */
+html[data-theme="blood-stone"] {
+  --color-void: #070706;
+  --color-panel: #0b0b0a;
+  --color-panel-strong: #050504;
+  --color-blood: #8b0000;
+  --color-blood-hot: #a00000;
+  --color-ember: #c3ae82;
+  --color-moss: #070706;
+  --color-mist: #c3ae82;
+  --color-muted: rgba(195, 174, 130, 0.55);
+  --color-mauve: #070706;
+  --color-mauve-hot: rgba(75, 22, 33, 0.2);
+  --color-line: rgba(195, 174, 130, 0.22);
+  --color-line-hot: #8b0000;
+
+  --color-sand: #c3ae82;
+  --color-cream: #f1dfc2;
+  --color-warm-gray: rgba(195, 174, 130, 0.55);
+
+  --shadow-red: 0 0 20px rgba(139, 0, 0, 0.34);
+  --shadow-panel: inset 0 1px 0 rgba(255, 244, 220, 0.07),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.72),
+    0 22px 70px rgba(0, 0, 0, 0.62);
+
+  --radius: 0px;
+  --cut-slab: polygon(18px 0, calc(100% - 18px) 0, 100% 18px, 100% calc(100% - 18px), calc(100% - 18px) 100%, 18px 100%, 0 calc(100% - 18px), 0 18px);
+  --cut-tall: polygon(18px 0, calc(100% - 18px) 0, 100% 18px, 100% calc(100% - 18px), calc(100% - 18px) 100%, 18px 100%, 0 calc(100% - 18px), 0 18px);
+  --cut-button: polygon(8px 0, calc(100% - 8px) 0, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px), 0 8px);
+
+  --body-background: linear-gradient(90deg, rgba(7, 7, 6, 0.92), rgba(7, 7, 6, 0.58) 42%, rgba(7, 7, 6, 0.9)),
+    linear-gradient(180deg, rgba(75, 22, 33, 0.35), transparent 42%, rgba(73, 80, 68, 0.2)),
+    url("../../images/son/515083529_24119378957693526_2416044119396794384_n.jpg") center top / cover fixed,
+    #070706;
+  --body-before-bg: radial-gradient(circle at 20% 18%, rgba(195, 174, 130, 0.07) 0 1px, transparent 1px),
+    radial-gradient(circle at 70% 56%, rgba(195, 174, 130, 0.05) 0 1px, transparent 1px),
+    linear-gradient(90deg, rgba(195, 174, 130, 0.028) 1px, transparent 0);
+  --body-before-opacity: 0.24;
+  --body-after-bg: linear-gradient(90deg, rgba(0, 0, 0, 0.92), transparent 18%, transparent 82%, rgba(0, 0, 0, 0.92)),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.12), transparent 50%, rgba(0, 0, 0, 0.86));
+}
