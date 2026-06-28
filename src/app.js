@@ -143,6 +143,12 @@ if (viewId === "nightowlprints") {bindKeaganAlbumConsole();return;}
 if (viewId === "divinity") {bindDivinityPortfolio();return;}
 if (viewId === "promote") {bindPromoteView();return;}
 if (viewId === "announcements") {bindAnnouncementsView();bindAnnouncementCompose();return;}}
+function renderAnnouncementBody(raw) {if (!raw) return "";var text = escapeHTML(String(raw));
+text = text.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+text = text.replace(/\*([^*]+)\*/g, "<em>$1</em>");text = text.replace(/_([^_]+)_/g, "<em>$1</em>");
+text = text.replace(/`([^`]+)`/g, "<code>$1</code>");
+text = text.replace(/^\s*-\s+(.+)$/gm, "🔹 $1");
+text = text.replace(/(https?:\/\/[^\s<>"\']+)/g, '<a href="$1" target="_blank" rel="noreferrer">$1</a>');return text;}
 var editingAnnouncementId = null;
 async function bindAnnouncementsView() {var feed = document.getElementById("announcementsFeed");if (!feed) return;
 var isStaff = (window.authState && window.authState.user && window.authState.user.isStaff === true);
