@@ -161,80 +161,96 @@ if (viewId === "nightowlprints") {bindKeaganAlbumConsole();return;}
 if (viewId === "divinity") {bindDivinityPortfolio();return;}
 if (viewId === "promote") {bindPromoteView();return;}
 if (viewId === "announcements") {bindAnnouncementsView();return;}}
+function renderAnnouncementBody(raw) {
+if (!raw) return "";
+var text = escapeHTML(String(raw));
+text = text.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+text = text.replace(/\*([^*]+)\*/g, "<em>$1</em>");
+text = text.replace(/_([^_]+)_/g, "<em>$1</em>");
+text = text.replace(/`([^`]+)`/g, "<code>$1</code>");
+text = text.replace(/(https?:\/\/[^\s<>"']+)/g, '<a href="$1" target="_blank" rel="noreferrer">$1</a>');
+return text;
+}
 async function bindAnnouncementsView() {
-const feed = document.getElementById("announcementsFeed");
+var feed = document.getElementById("announcementsFeed");
 if (!feed) return;
-const isStaff = (typeof authState !== "undefined" && authState.user && authState.user.isStaff === true);
-const cdnUrl = cdnBase
-? `${cdnBase}/announcements.json`
-: `https://cdn.jsdelivr.net/gh/Moonfire-dreamwalkers/legion-realm-public-assets@main/announcements.json`;
-let data = null;
+var isStaff = (typeof authState !== "undefined" && authState.user && authState.user.isStaff === true);
+var data = null;
+var fetchError = false;
 try {
-const cdnRes = await fetch(cdnUrl, { cache: "no-store" });
-if (cdnRes.ok) {
-data = await cdnRes.json();
-}
-} catch (e) {
-console.warn("[announcements] CDN fetch failed, trying API fallback");
-}
-if (!data || !Array.isArray(data)) {
-try {
-const apiRes = await fetch("/api/announcements");
+var apiRes = await fetch("/api/announcements");
 if (apiRes.ok) {
 data = await apiRes.json();
+} else {
+fetchError = true;
 }
-} catch (apiErr) {
-console.error("[announcements] API fallback also failed");
+} catch (e) {
+console.warn("[announcements] API fetch failed, trying CDN fallback");
+fetchError = true;
+}
+if ((fetchError || !Array.isArray(data)) && !(data && data.length > 0)) {
+try {
+var cdnUrl = cdnBase
+? cdnBase + "/announcements.json"
+: "https://cdn.jsdelivr.net/gh/Moonfire-dreamwalkers/legion-realm-public-assets@main/announcements.json";
+var cdnRes = await fetch(cdnUrl, { cache: "no-store" });
+if (cdnRes.ok) {
+data = await cdnRes.json();
+fetchError = false;
+}
+} catch (cdnErr) {
+console.error("[announcements] CDN fallback also failed");
 }
 }
-if (!Array.isArray(data) || data.length === 0) {
-feed.innerHTML = `
-<div class="announcements-empty">
-<div class="announcements-empty-sigil">${sulfurSvg()}</div>
-<p>No announcements have been broadcast yet.</p>
-</div>
-`;
+if (!Array.isArray(data) || (data.length === 0 && fetchError)) {
+feed.innerHTML =
+'<div class="announcements-empty">' +
+'<div class="announcements-empty-sigil">' + sulfurSvg() + '</div>' +
+'<p>Unable to load announcements.</p>' +
+'<button class="button button-secondary" onclick="location.reload()" style="margin-top:16px;">Retry</button>' +
+'</div>';
 return;
 }
-const visibleData = data.filter(function(item) { return !item.archived; });
+if (data.length === 0) {
+feed.innerHTML =
+'<div class="announcements-empty">' +
+'<div class="announcements-empty-sigil">' + sulfurSvg() + '</div>' +
+'<p>No announcements have been broadcast yet.</p>' +
+'</div>';
+return;
+}
+var visibleData = data.filter(function(item) { return !item.archived; });
 if (visibleData.length === 0) {
-feed.innerHTML = `
-<div class="announcements-empty">
-<div class="announcements-empty-sigil">${sulfurSvg()}</div>
-<p>No active announcements. Check back soon.</p>
-</div>
-`;
+feed.innerHTML =
+'<div class="announcements-empty">' +
+'<div class="announcements-empty-sigil">' + sulfurSvg() + '</div>' +
+'<p>No active announcements. Check back soon.</p>' +
+'</div>';
 return;
 }
-feed.innerHTML = visibleData.map(item => {
-const date = item.timestamp ? new Date(item.timestamp).toLocaleDateString("en-US", {
-month: "long",
-day: "numeric",
-year: "numeric",
-hour: "2-digit",
-minute: "2-digit"
+feed.innerHTML = visibleData.map(function(item) {
+var date = item.timestamp ? new Date(item.timestamp).toLocaleDateString("en-US", {
+month: "long", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit"
 }) : "";
-return `
-<article class="announcement-card">
-${isStaff ? `<span class="announcement-card-id">${escapeHTML(item.id)}</span>` : ""}
-<div class="announcement-card-header">
-<div>
-${item.title ? `<h3 class="announcement-card-title">${escapeHTML(item.title)}</h3>` : ""}
-<div class="announcement-card-meta">
-${item.author ? `By <strong>${escapeHTML(item.author)}</strong> &bull; ` : ""}
-<span>${date}</span>
-</div>
-</div>
-</div>
-${item.content ? `<div class="announcement-card-body">${escapeHTML(item.content)}</div>` : ""}
-${item.imageUrl ? `<div class="announcement-card-image"><img src="${escapeHTML(item.imageUrl)}" alt="" loading="lazy"></div>` : ""}
-${item.discordMessageLink ? `
-<a href="${escapeHTML(item.discordMessageLink)}" target="_blank" rel="noreferrer" class="announcement-card-discord-link">
-View on Discord
-</a>
-` : ""}
-</article>
-`;
+var card = '<article class="announcement-card">';
+if (isStaff) card += '<span class="announcement-card-id">' + escapeHTML(item.id) + '</span>';
+card += '<div class="announcement-card-header"><div>';
+if (item.title) card += '<h3 class="announcement-card-title">' + escapeHTML(item.title) + '</h3>';
+card += '<div class="announcement-card-meta">';
+if (item.author) card += 'By <strong>' + escapeHTML(item.author) + '</strong> &bull; ';
+card += '<span>' + date + '</span></div></div></div>';
+if (item.content) card += '<div class="announcement-card-body">' + renderAnnouncementBody(item.content) + '</div>';
+if (item.imageUrl) card += '<div class="announcement-card-image"><img src="' + escapeHTML(item.imageUrl) + '" alt="" loading="lazy"></div>';
+if (item.link) {
+card += '<div class="announcement-card-action">' +
+'<a href="' + escapeHTML(item.link) + '" target="_blank" rel="noreferrer" class="button button-primary announcement-btn">Read More</a>' +
+'</div>';
+}
+if (item.discordMessageLink) {
+card += '<a href="' + escapeHTML(item.discordMessageLink) + '" target="_blank" rel="noreferrer" class="announcement-card-discord-link">View on Discord</a>';
+}
+card += '</article>';
+return card;
 }).join("");
 }
 function bindKeaganAlbumConsole() {const consoleNode = viewRoot.querySelector("[data-keagan-console]");if (!consoleNode) return;
