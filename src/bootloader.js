@@ -49,7 +49,10 @@ return loadScript('src/auth.js' + cb);
 } else {
 var version = 'main';
 var versionMismatch = false;
-fetch('https://raw.githubusercontent.com/Moonfire-dreamwalkers/legion-realm-public-assets/main/build-version.json?t=' + Date.now(), { cache: 'no-store' })
+fetch('/build-version.json?t=' + Date.now(), { cache: 'no-store' })
+.catch(function () {
+return fetch('https://raw.githubusercontent.com/Moonfire-dreamwalkers/legion-realm-public-assets/main/build-version.json?t=' + Date.now(), { cache: 'no-store' });
+})
 .then(function (res) {
 if (res.ok) return res.json();
 throw new Error('Version fetch failed');
