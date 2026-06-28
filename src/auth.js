@@ -10,27 +10,7 @@ wrapper.appendChild(link);nav.appendChild(wrapper);
 link.addEventListener("click", handleAuthClick);
 renderAuthButton();}
 function openDiscordAuth(url) {
-var deepLinkUrl = url.replace("https://discord.com/api/v10/oauth2/authorize", "discord://oauth2/authorize")
-.replace("https://discord.com/oauth2/authorize", "discord://oauth2/authorize");
-var fallbackTriggered = false;
-var fallbackTimeout = setTimeout(function() {
-if (!fallbackTriggered) {
-fallbackTriggered = true;
 window.location.href = url;
-}
-}, 1500);
-var onBlur = function() {
-clearTimeout(fallbackTimeout);
-fallbackTriggered = true;
-window.removeEventListener("blur", onBlur);
-var link = document.getElementById("authLink");
-if (link) {
-link.style.opacity = "";
-link.style.pointerEvents = "";
-}
-};
-window.addEventListener("blur", onBlur);
-window.location.href = deepLinkUrl;
 }
 function handleAuthClick(e) {
 e.preventDefault();
