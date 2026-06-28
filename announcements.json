@@ -1,0 +1,20 @@
+[
+  {
+    "id": "ann_test_mqy3yi0z",
+    "title": "Welcome to Legion Realm",
+    "content": "This is a test announcement pushed directly to the repository to verify website display functionality. Logging in as a staff member will show additional broadcaster actions (Edit, Archive, Delete) on this card.",
+    "imageUrl": "https://legion-realm.vercel.app/images/assets/entry-title-art.png",
+    "link": "https://legion-realm.vercel.app/",
+    "embedColor": 8388608,
+    "author": "Legion Realm Staff",
+    "authorId": "1517884204166283304",
+    "authorAvatarUrl": null,
+    "hashtags": [
+      "welcome",
+      "test"
+    ],
+    "timestamp": "2026-06-28T18:14:09.347Z",
+    "discordMessageLink": null,
+    "archived": false
+  }
+]
