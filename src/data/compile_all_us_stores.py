@@ -1257,8 +1257,8 @@ def main():
             
     print(f"Generated {len(all_compiled_stores)} stores from mall listings across all states.")
     
-    # Paths
-    data_dir = r"c:\Users\lunas\Documents\Something Outta Nothing\src\data"
+    # Paths — resolve relative to this script's location for portability
+    data_dir = os.path.dirname(os.path.abspath(__file__))
     stores_path = os.path.join(data_dir, "stores.json")
     curated_path = os.path.join(data_dir, "curated_stores.json")
     hand_compiler_path = os.path.join(data_dir, "compile_hand_stores.py")
@@ -1326,8 +1326,10 @@ def main():
             
     # Load OSM stores if available
     osm_stores = []
+    # OSM data may live in the project scratch/ dir or alongside data scripts
+    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     osm_paths = [
-        os.path.join(r"c:\Users\lunas\Documents\Something Outta Nothing\scratch", "osm_stores.json"),
+        os.path.join(project_root, "scratch", "osm_stores.json"),
         os.path.join(data_dir, "osm_stores.json")
     ]
     for p in osm_paths:

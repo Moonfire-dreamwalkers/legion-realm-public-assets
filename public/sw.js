@@ -1,4 +1,6 @@
-const THUMB_CACHE = "son-video-thumbnails-v1";
+// Build pipeline (scripts/build.js) can bump this via string replace.
+const CACHE_VERSION = "1";
+const THUMB_CACHE = `son-video-thumbnails-v${CACHE_VERSION}`;
 const THUMB_HOSTS = new Set(["i.ytimg.com", "img.youtube.com"]);
 self.addEventListener("install", () => {
 self.skipWaiting();

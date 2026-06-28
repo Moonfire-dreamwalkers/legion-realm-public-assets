@@ -97,10 +97,12 @@ def fetch_state_raw(state_code):
         url = OVERPASS_SERVERS[server_idx]
         for retry in range(1, max_retries + 1):
             print(f"[{state_code}] Requesting from {url} (Attempt {retry}/{max_retries})...")
+            # CONTACT_EMAIL env var with fallback to public site contact
+            contact = os.environ.get('CONTACT_EMAIL', 'Legiontv.info@gmail.com')
             req = urllib.request.Request(
                 url,
                 data=data,
-                headers={'User-Agent': 'LegionRealmStoreSearchFetcher/2.0 (Legiontv.info@gmail.com)'}
+                headers={'User-Agent': f'LegionRealmStoreSearchFetcher/2.0 ({contact})'}
             )
             try:
                 # Optimized query timeout to 60s
