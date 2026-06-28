@@ -169,25 +169,44 @@ feed.innerHTML = visibleData.map(function(item) {
 var date = item.timestamp ? new Date(item.timestamp).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
 var cc = 'announcement-card';
 if (item.archived) cc += ' is-archived';
-var c = '<article class=' + cc + '>';
-c += '<div class=announcement-card-avatar>';
-if (item.authorAvatarUrl && !item.anonymous) c += '<img src=' + escapeHTML(item.authorAvatarUrl) + ' alt=>';
-else c += '<span class=avatar-placeholder>&#9876;</span>';
-c += '</div><div class=announcement-card-content>';
-c += '<div class=announcement-card-header>';
-if(item.author)c+='<span class=announcement-card-author>'+escapeHTML(item.author)+'</span>';
-c+='<span class=announcement-card-timestamp>'+date+'</span>';
-if(isStaff)c+='<span class=announcement-card-id>'+escapeHTML(item.id)+'</span>';
-c+='</div>';
-var th=escapeHTML(item.title||'Announcement');
-if(item.archived)th+=' <span class=badge-archived>Archived</span>';
-if(item.title)c+='<h3 class=announcement-card-title>'+th+'</h3>';
-if(item.content)c+='<div class=announcement-card-body>'+renderAnnouncementBody(item.content)+'</div>';
-if(item.imageUrl)c+='<div class=announcement-card-image><img src='+escapeHTML(item.imageUrl)+' alt= loading=lazy></div>';
-if(item.hashtags&&Array.isArray(item.hashtags)&&item.hashtags.length>0){c+='<div class=announcement-card-tags>';item.hashtags.forEach(function(t){if(t&&t.trim())c+='<span class=announcement-hashtag-pill>#'+escapeHTML(t.trim())+'</span>'});c+='</div>'}
-if(item.link||item.discordMessageLink){c+='<div class=announcement-card-actions>';if(item.link)c+='<a href='+escapeHTML(item.link)+' target=_blank rel=noreferrer class=button button-primary>Read More</a>';if(item.discordMessageLink)c+='<a href='+escapeHTML(item.discordMessageLink)+' target=_blank rel=noreferrer class=button button-quiet>Discord</a>';c+='</div>'}
-if(isStaff){c+='<div class=announcement-card-staff-actions><button type=button class=button-staff button-edit data-id='+escapeHTML(item.id)+'>Edit</button><button type=button class=button-staff button-archive data-id='+escapeHTML(item.id)+' data-archived='+!!item.archived+'>'+(item.archived?'Restore':'Archive')+'</button><button type=button class=button-staff button-delete data-id='+escapeHTML(item.id)+'>Delete</button></div>'}
-c+='</div></article>';return c}).join('');
+var c = '<article class="' + cc + '">';
+c += '<div class="announcement-card-avatar">';
+if (item.authorAvatarUrl && !item.anonymous) c += '<img src="' + escapeHTML(item.authorAvatarUrl) + '" alt="Avatar">';
+else c += '<span class="avatar-placeholder">&#9876;</span>';
+c += '</div><div class="announcement-card-content">';
+c += '<div class="announcement-card-header">';
+if (item.author) c += '<span class="announcement-card-author">' + escapeHTML(item.author) + '</span>';
+c += '<span class="announcement-card-timestamp">' + date + '</span>';
+if (isStaff) c += '<span class="announcement-card-id">' + escapeHTML(item.id) + '</span>';
+c += '</div>';
+var th = escapeHTML(item.title || 'Announcement');
+if (item.archived) th += ' <span class="badge-archived">Archived</span>';
+if (item.title) c += '<h3 class="announcement-card-title">' + th + '</h3>';
+if (item.content) c += '<div class="announcement-card-body">' + renderAnnouncementBody(item.content) + '</div>';
+if (item.imageUrl) c += '<div class="announcement-card-image"><img src="' + escapeHTML(item.imageUrl) + '" alt="Announcement Image" loading="lazy"></div>';
+if (item.hashtags && Array.isArray(item.hashtags) && item.hashtags.length > 0) {
+c += '<div class="announcement-card-tags">';
+item.hashtags.forEach(function(t) {
+if (t && t.trim()) c += '<span class="announcement-hashtag-pill">#' + escapeHTML(t.trim()) + '</span>';
+});
+c += '</div>';
+}
+if (item.link || item.discordMessageLink) {
+c += '<div class="announcement-card-actions">';
+if (item.link) c += '<a href="' + escapeHTML(item.link) + '" target="_blank" rel="noreferrer" class="button button-primary">Read More</a>';
+if (item.discordMessageLink) c += '<a href="' + escapeHTML(item.discordMessageLink) + '" target="_blank" rel="noreferrer" class="button button-quiet">Discord</a>';
+c += '</div>';
+}
+if (isStaff) {
+c += '<div class="announcement-card-staff-actions">' +
+'<button type="button" class="button-staff button-edit" data-id="' + escapeHTML(item.id) + '">Edit</button>' +
+'<button type="button" class="button-staff button-archive" data-id="' + escapeHTML(item.id) + '" data-archived="' + !!item.archived + '">' + (item.archived ? 'Restore' : 'Archive') + '</button>' +
+'<button type="button" class="button-staff button-delete" data-id="' + escapeHTML(item.id) + '">Delete</button>' +
+'</div>';
+}
+c += '</div></article>';
+return c;
+}).join('');
 if (isStaff) {feed.querySelectorAll(".button-edit").forEach(function(btn) {btn.addEventListener("click", function() {var id = btn.getAttribute("data-id");var item = visibleData.find(function(x) { return x.id === id; });if (item) startEditAnnouncement(item);});});
 feed.querySelectorAll(".button-archive").forEach(function(btn) {btn.addEventListener("click", async function() {var id = btn.getAttribute("data-id");var currentArchived = btn.getAttribute("data-archived") === "true";btn.disabled = true;try {var resp = await fetch("/api/announcements/archive", {method: "POST",headers: { "Content-Type": "application/json" },body: JSON.stringify({ id: id, archived: !currentArchived })});if (resp.ok) {bindAnnouncementsView();} else {alert("Failed to update archive status.");btn.disabled = false;}} catch(err) {console.error(err);alert("Network error.");btn.disabled = false;}});});
 feed.querySelectorAll(".button-delete").forEach(function(btn) {btn.addEventListener("click", async function() {var id = btn.getAttribute("data-id");if (confirm("Are you sure you want to permanently delete this announcement? This will remove it from the website and Discord.")) {btn.disabled = true;try {var resp = await fetch("/api/announcements/delete", {method: "POST",headers: { "Content-Type": "application/json" },body: JSON.stringify({ id: id })});if (resp.ok) {bindAnnouncementsView();} else {alert("Failed to delete announcement.");btn.disabled = false;}} catch(err) {console.error(err);alert("Network error.");btn.disabled = false;}}});});}}
