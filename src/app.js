@@ -160,7 +160,8 @@ if (viewId === "studio") {bindVideoBoard();bindPhilbrixGallery();return;}
 if (viewId === "nightowlprints") {bindKeaganAlbumConsole();return;}
 if (viewId === "divinity") {bindDivinityPortfolio();return;}
 if (viewId === "promote") {bindPromoteView();return;}
-if (viewId === "announcements") {bindAnnouncementsView();return;}}
+if (viewId === "announcements") {bindAnnouncementCompose();
+bindAnnouncementsView();return;}}
 function renderAnnouncementBody(raw) {
 if (!raw) return "";
 var text = escapeHTML(String(raw));
@@ -246,6 +247,15 @@ card += '<div class="announcement-card-action">' +
 '<a href="' + escapeHTML(item.link) + '" target="_blank" rel="noreferrer" class="button button-primary announcement-btn">Read More</a>' +
 '</div>';
 }
+if (item.hashtags && Array.isArray(item.hashtags) && item.hashtags.length > 0) {
+card += '<div class="announcement-card-hashtags">';
+item.hashtags.forEach(function(tag) {
+if (tag && tag.trim()) {
+card += '<span class="announcement-hashtag-pill">#' + escapeHTML(tag.trim()) + '</span>';
+}
+});
+card += '</div>';
+}
 if (item.discordMessageLink) {
 card += '<a href="' + escapeHTML(item.discordMessageLink) + '" target="_blank" rel="noreferrer" class="announcement-card-discord-link">View on Discord</a>';
 }
@@ -253,7 +263,104 @@ card += '</article>';
 return card;
 }).join("");
 }
-function bindKeaganAlbumConsole() {const consoleNode = viewRoot.querySelector("[data-keagan-console]");if (!consoleNode) return;
+function bindAnnouncementCompose() {
+var compose = document.getElementById("announcementsCompose");
+if (!compose) return;
+var isStaff = (typeof authState !== "undefined" && authState.user && authState.user.isStaff === true);
+if (!isStaff) return;
+compose.style.display = "block";
+var titleInput = document.getElementById("composeTitle");
+var bodyInput = document.getElementById("composeBody");
+var bodyCount = document.getElementById("composeBodyCount");
+var imageUrlInput = document.getElementById("composeImageUrl");
+var linkInput = document.getElementById("composeLink");
+var hashtagsInput = document.getElementById("composeHashtags");
+var hashtagPills = document.getElementById("composeHashtagPills");
+var previewBtn = document.getElementById("composePreviewBtn");
+var submitBtn = document.getElementById("composeSubmitBtn");
+var statusEl = document.getElementById("composeStatus");
+var previewEl = document.getElementById("composePreview");
+var previewCard = document.getElementById("composePreviewCard");
+if (!submitBtn) return;
+if (bodyInput && bodyCount) {
+bodyInput.addEventListener("input", function() {
+bodyCount.textContent = bodyInput.value.length;
+bodyCount.style.color = bodyInput.value.length > 3800 ? "var(--danger, #e03131)" : "";
+});
+}
+if (hashtagsInput && hashtagPills) {
+hashtagsInput.addEventListener("input", function() {
+var tags = hashtagsInput.value.split(/[,\s]+/).map(function(t) { return t.trim().replace(/^#+/, ""); }).filter(Boolean);
+hashtagPills.innerHTML = tags.map(function(t) {
+return '<span class="announcement-hashtag-pill pill-small">#' + escapeHTML(t) + '</span>';
+}).join("");
+});
+}
+if (previewBtn) {
+previewBtn.addEventListener("click", function() {
+var t2 = (titleInput && titleInput.value || "").trim();
+var b2 = (bodyInput && bodyInput.value || "").trim();
+var img2 = (imageUrlInput && imageUrlInput.value || "").trim();
+var lnk2 = (linkInput && linkInput.value || "").trim();
+if (!t2 && !b2) { statusEl.innerHTML = '<span class="compose-status-msg error">Enter a title or body text.</span>'; return; }
+var html = '<article class="announcement-card"><div class="announcement-card-header"><div>';
+if (t2) html += '<h3 class="announcement-card-title">' + escapeHTML(t2) + '</h3>';
+html += '<div class="announcement-card-meta"><span>Preview</span></div></div></div>';
+if (b2) html += '<div class="announcement-card-body">' + renderAnnouncementBody(b2) + '</div>';
+if (img2) html += '<div class="announcement-card-image"><img src="' + escapeHTML(img2) + '" alt="" loading="lazy" style="max-height:300px;"></div>';
+if (lnk2) html += '<div class="announcement-card-action"><a href="' + escapeHTML(lnk2) + '" target="_blank" rel="noreferrer" class="button button-primary">Read More</a></div>';
+html += '</article>';
+previewCard.innerHTML = html;
+previewEl.style.display = "block";
+statusEl.innerHTML = "";
+});
+}
+submitBtn.addEventListener("click", async function() {
+var t3 = (titleInput && titleInput.value || "").trim();
+var b3 = (bodyInput && bodyInput.value || "").trim();
+var img3 = (imageUrlInput && imageUrlInput.value || "").trim();
+var lnk3 = (linkInput && linkInput.value || "").trim();
+var rawTags = (hashtagsInput && hashtagsInput.value || "").trim();
+if (!t3 && !b3) { statusEl.innerHTML = '<span class="compose-status-msg error">Enter a title or body text.</span>'; return; }
+if (img3 && !/^https?:\/\//.test(img3)) { statusEl.innerHTML = '<span class="compose-status-msg error">Image URL must start with http:// or https://</span>'; return; }
+if (lnk3 && !/^https?:\/\//.test(lnk3)) { statusEl.innerHTML = '<span class="compose-status-msg error">Link URL must start with http:// or https://</span>'; return; }
+var hashtags = rawTags ? rawTags.split(/[,\s]+/).map(function(tag) { return tag.replace(/^#+/, "").trim(); }).filter(Boolean) : [];
+submitBtn.disabled = true;
+submitBtn.textContent = "⏳ Broadcasting...";
+statusEl.innerHTML = '<span class="compose-status-msg loading">Posting to Discord and publishing...</span>';
+try {
+var payload = { title: t3, body: b3 };
+if (img3) payload.imageUrl = img3;
+if (lnk3) payload.link = lnk3;
+if (hashtags.length > 0) payload.hashtags = hashtags;
+var resp = await fetch("/api/announcements/create-from-web", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "same-origin", body: JSON.stringify(payload) });
+var result = await resp.json();
+if (resp.ok && result.success) {
+statusEl.innerHTML = '<span class="compose-status-msg success">✅ Broadcast complete! Posted to Discord and the website.</span>';
+if (result._warning) statusEl.innerHTML += '<br><span class="compose-status-msg warning">⚠️ ' + escapeHTML(result._warning) + '</span>';
+if (titleInput) titleInput.value = "";
+if (bodyInput) bodyInput.value = "";
+if (bodyCount) bodyCount.textContent = "0";
+if (imageUrlInput) imageUrlInput.value = "";
+if (linkInput) linkInput.value = "";
+if (hashtagsInput) hashtagsInput.value = "";
+if (hashtagPills) hashtagPills.innerHTML = "";
+if (previewEl) previewEl.style.display = "none";
+setTimeout(function() { bindAnnouncementsView(); }, 1000);
+} else {
+statusEl.innerHTML = '<span class="compose-status-msg error">❌ Failed: ' + escapeHTML(result.error || "Unknown error") + '</span>';
+}
+} catch (err) {
+console.error("[compose] Error:", err);
+statusEl.innerHTML = '<span class="compose-status-msg error">❌ Network error. Try again.</span>';
+} finally {
+submitBtn.disabled = false;
+submitBtn.textContent = "📢 Broadcast to Discord & Website";
+}
+});
+}
+function bindKeaganAlbumConsole() {
+const consoleNode = viewRoot.querySelector("[data-keagan-console]");if (!consoleNode) return;
 const cards = consoleNode.querySelectorAll("[data-keagan-album-id]");const albums = keaganAlbums();const background = consoleNode.querySelector("#keaganHeroBg");const image = consoleNode.querySelector("#keaganHeroImage");const title = consoleNode.querySelector("#keaganHeroTitle");const accent = consoleNode.querySelector("#keaganHeroAccent");const miniMeta = consoleNode.querySelector("#keaganMiniMeta");const factGrid = consoleNode.querySelector("#keaganFactGrid");const trackCount = consoleNode.querySelector("#keaganTrackCount");const trackList = consoleNode.querySelector("#keaganTrackList");const embed = consoleNode.querySelector("#keaganHeroEmbed");
 cards.forEach((card) => {card.addEventListener("click", () => {const album = albums.find((item) => item.id === card.dataset.keaganAlbumId);if (!album) return;
 cards.forEach((candidate) => {candidate.classList.toggle("is-active", candidate === card);candidate.setAttribute("aria-pressed", candidate === card ? "true" : "false");});
