@@ -21,7 +21,104 @@ link.title = "Click to log out";link.setAttribute("aria-label", "Logged in as " 
 var iconSpan = document.createElement("span");iconSpan.innerHTML = DISCORD_ICON_SVG;link.appendChild(iconSpan);
 var labelSpan = document.createElement("span");labelSpan.className = "auth-login-label";labelSpan.textContent = "Sign in";link.appendChild(labelSpan);
 link.title = "Sign in with Discord";link.setAttribute("aria-label", "Sign in with Discord");link.classList.add("is-unauthenticated");link.classList.remove("is-authenticated");}}
-function checkSession() {fetch(AUTH_API + "/me", { credentials: "same-origin" }).then(function (res) {if (!res.ok) throw new Error("Session check returned " + res.status);return res.json();}).then(function (data) {if (data.authenticated && data.user) {authState.user = data.user;authState.loaded = true;} else {authState.user = null;authState.loaded = true;}renderAuthButton();document.dispatchEvent(new CustomEvent("lr-auth-resolved", { detail: authState }));}).catch(function (err) {console.warn("[auth] Session check failed:", err.message);authState.user = null;authState.loaded = true;renderAuthButton();document.dispatchEvent(new CustomEvent("lr-auth-resolved", { detail: authState }));});}
+function delegateSessionToLocal() {
+fetch(AUTH_API + "/delegate", { method: "POST", credentials: "same-origin" })
+.then(function (res) {
+if (res.ok) return res.json();
+throw new Error("Delegation error");
+})
+.then(function (data) {
+if (data && data.token) {
+var token = data.token;
+if (window.pywebview && window.pywebview.api && window.pywebview.api.saveToken) {
+window.pywebview.api.saveToken(token).catch(function(e) { console.warn("[auth] pywebview saveToken error:", e); });
+} else {
+var onPywebviewReady = function() {
+if (window.pywebview && window.pywebview.api && window.pywebview.api.saveToken) {
+window.pywebview.api.saveToken(token).catch(function(e) { console.warn("[auth] pywebview saveToken error:", e); });
+}
+window.removeEventListener('pywebviewready', onPywebviewReady);
+};
+window.addEventListener('pywebviewready', onPywebviewReady);
+setTimeout(function() { window.removeEventListener('pywebviewready', onPywebviewReady); }, 5000);
+}
+var ports = [8080, 8081, 8082];
+ports.forEach(function (port) {
+var controller = new AbortController();
+var id = setTimeout(function () { controller.abort(); }, 400);
+fetch("http://127.0.0.1:" + port + "/api/local-session", {
+method: "POST",
+headers: { "Content-Type": "application/json" },
+body: JSON.stringify({ token: token }),
+signal: controller.signal,
+credentials: "omit"
+})
+.then(function () { clearTimeout(id); })
+.catch(function () { clearTimeout(id); });
+});
+}
+})
+.catch(function (err) {
+});
+}
+function detectLocalSessionAndLogin() {
+var ports = [8080, 8081, 8082];
+var promises = ports.map(function (port) {
+return new Promise(function (resolve) {
+var controller = new AbortController();
+var id = setTimeout(function () { controller.abort(); }, 400);
+fetch("http://127.0.0.1:" + port + "/api/local-session", {
+signal: controller.signal,
+credentials: "omit"
+})
+.then(function (res) {
+clearTimeout(id);
+if (res.ok) return res.json();
+throw new Error("No session");
+})
+.then(function (data) {
+if (data && data.token) {
+resolve({ port: port, token: data.token });
+} else {
+resolve(null);
+}
+})
+.catch(function () {
+clearTimeout(id);
+resolve(null);
+});
+});
+});
+Promise.all(promises).then(function (results) {
+var found = results.find(function (r) { return r !== null; });
+if (found) {
+console.log("[auth] Found active local app session on port " + found.port + ". Attempting auto-login...");
+fetch(AUTH_API + "/login-local", {
+method: "POST",
+headers: { "Content-Type": "application/json" },
+body: JSON.stringify({ token: found.token }),
+credentials: "same-origin"
+})
+.then(function (res) {
+if (!res.ok) throw new Error("Local login request failed");
+return res.json();
+})
+.then(function (data) {
+if (data.authenticated && data.user) {
+console.log("[auth] Successfully logged in using local app session!");
+authState.user = data.user;
+authState.loaded = true;
+renderAuthButton();
+document.dispatchEvent(new CustomEvent("lr-auth-resolved", { detail: authState }));
+}
+})
+.catch(function (err) {
+console.warn("[auth] Auto-login via local session failed:", err.message);
+});
+}
+});
+}
+function checkSession() {fetch(AUTH_API + "/me", { credentials: "same-origin" }).then(function (res) {if (!res.ok) throw new Error("Session check returned " + res.status);return res.json();}).then(function (data) {if (data.authenticated && data.user) {authState.user = data.user;authState.loaded = true;renderAuthButton();document.dispatchEvent(new CustomEvent("lr-auth-resolved", { detail: authState }));delegateSessionToLocal();} else {authState.user = null;authState.loaded = true;renderAuthButton();document.dispatchEvent(new CustomEvent("lr-auth-resolved", { detail: authState }));detectLocalSessionAndLogin();}}).catch(function (err) {console.warn("[auth] Session check failed:", err.message);authState.user = null;authState.loaded = true;renderAuthButton();document.dispatchEvent(new CustomEvent("lr-auth-resolved", { detail: authState }));detectLocalSessionAndLogin();});}
 function checkAuthError() {var params = new URLSearchParams(location.search);var error = params.get("auth_error");if (error) {console.warn("[auth] OAuth error from callback:", error);var url = new URL(location.href);url.searchParams.delete("auth_error");history.replaceState(null, "", url.toString());}}
 function init() {if (document.readyState === "loading") {document.addEventListener("DOMContentLoaded", function () {injectAuthButton();checkSession();checkAuthError();});} else {injectAuthButton();checkSession();checkAuthError();}}
 init();})();
