@@ -207,14 +207,116 @@ c += '<div class="announcement-card-staff-actions">' +
 c += '</div></article>';
 return c;
 }).join('');
-if (isStaff) {feed.querySelectorAll(".button-edit").forEach(function(btn) {btn.addEventListener("click", function() {var id = btn.getAttribute("data-id");var item = visibleData.find(function(x) { return x.id === id; });if (item) startEditAnnouncement(item);});});
-feed.querySelectorAll(".button-archive").forEach(function(btn) {btn.addEventListener("click", async function() {var id = btn.getAttribute("data-id");var currentArchived = btn.getAttribute("data-archived") === "true";btn.disabled = true;try {var resp = await fetch("/api/announcements/archive", {method: "POST",headers: { "Content-Type": "application/json" },body: JSON.stringify({ id: id, archived: !currentArchived })});if (resp.ok) {bindAnnouncementsView();} else {alert("Failed to update archive status.");btn.disabled = false;}} catch(err) {console.error(err);alert("Network error.");btn.disabled = false;}});});
-feed.querySelectorAll(".button-delete").forEach(function(btn) {btn.addEventListener("click", async function() {var id = btn.getAttribute("data-id");if (confirm("Are you sure you want to permanently delete this announcement? This will remove it from the website and Discord.")) {btn.disabled = true;try {var resp = await fetch("/api/announcements/delete", {method: "POST",headers: { "Content-Type": "application/json" },body: JSON.stringify({ id: id })});if (resp.ok) {bindAnnouncementsView();} else {alert("Failed to delete announcement.");btn.disabled = false;}} catch(err) {console.error(err);alert("Network error.");btn.disabled = false;}}});});}}
-function startEditAnnouncement(item) {var compose = document.getElementById("announcementsCompose");if (!compose) return;
+if (isStaff) {
+feed.querySelectorAll(".button-edit").forEach(function(btn) {
+btn.addEventListener("click", function() {
+var id = btn.getAttribute("data-id");
+var item = visibleData.find(function(x) { return x.id === id; });
+if (item) startEditAnnouncement(item);
+});
+});
+feed.querySelectorAll(".button-archive").forEach(function(btn) {
+btn.addEventListener("click", async function() {
+var id = btn.getAttribute("data-id");
+var currentArchived = btn.getAttribute("data-archived") === "true";
+var nextArchived = !currentArchived;
+var card = btn.closest(".announcement-card");
+if (card) {
+card.classList.toggle("is-archived", nextArchived);
+btn.setAttribute("data-archived", nextArchived ? "true" : "false");
+btn.textContent = nextArchived ? "Restore" : "Archive";
+var title = card.querySelector(".announcement-card-title");
+if (title) {
+var badge = title.querySelector(".badge-archived");
+if (nextArchived && !badge) {
+var span = document.createElement("span");
+span.className = "badge-archived";
+span.textContent = "Archived";
+title.appendChild(span);
+} else if (!nextArchived && badge) {
+badge.remove();
+}
+}
+var toggleShowArchived = document.getElementById("toggleShowArchived");
+if (toggleShowArchived && !toggleShowArchived.checked && nextArchived) {
+card.style.transition = "all 0.3s ease";
+card.style.opacity = "0";
+card.style.maxHeight = "0";
+card.style.padding = "0";
+card.style.margin = "0";
+card.style.border = "0";
+setTimeout(function() { card.remove(); }, 300);
+}
+}
+try {
+var resp = await fetch("/api/announcements/archive", {
+method: "POST",
+headers: { "Content-Type": "application/json" },
+body: JSON.stringify({ id: id, archived: nextArchived })
+});
+if (!resp.ok) {
+alert("Failed to update archive status.");
+bindAnnouncementsView(); 
+}
+} catch(err) {
+console.error(err);
+alert("Network error.");
+bindAnnouncementsView(); 
+}
+});
+});
+feed.querySelectorAll(".button-delete").forEach(function(btn) {
+btn.addEventListener("click", async function() {
+var id = btn.getAttribute("data-id");
+if (confirm("Are you sure you want to permanently delete this announcement? This will remove it from the website and Discord.")) {
+var card = btn.closest(".announcement-card");
+if (card) {
+card.style.transition = "all 0.3s ease";
+card.style.opacity = "0";
+card.style.maxHeight = "0";
+card.style.padding = "0";
+card.style.margin = "0";
+card.style.border = "0";
+setTimeout(function() { card.remove(); }, 300);
+}
+try {
+var resp = await fetch("/api/announcements/delete", {
+method: "POST",
+headers: { "Content-Type": "application/json" },
+body: JSON.stringify({ id: id })
+});
+if (!resp.ok) {
+alert("Failed to delete announcement.");
+bindAnnouncementsView(); 
+}
+} catch(err) {
+console.error(err);
+alert("Network error.");
+bindAnnouncementsView(); 
+}
+}
+});
+});
+}
+}
+function startEditAnnouncement(item) {
+var compose = document.getElementById("announcementsCompose");
+if (!compose) return;
 editingAnnouncementId = item.id;
-var titleInput = document.getElementById("composeTitle");var bodyInput = document.getElementById("composeBody");var imageUrlInput = document.getElementById("composeImageUrl");var linkInput = document.getElementById("composeLink");var hashtagsInput = document.getElementById("composeHashtags");var anonymousInput = document.getElementById("composeAnonymous");
-if (titleInput) titleInput.value = item.title || "";if (bodyInput) bodyInput.value = item.content || "";if (imageUrlInput) imageUrlInput.value = item.imageUrl || "";if (linkInput) linkInput.value = item.link || "";if (hashtagsInput) hashtagsInput.value = (item.hashtags || []).map(function(t) { return '#' + t; }).join(" ");if (anonymousInput) anonymousInput.checked = !!item.anonymous;
-if (bodyInput) bodyInput.dispatchEvent(new Event("input"));if (hashtagsInput) hashtagsInput.dispatchEvent(new Event("input"));
+var titleInput = document.getElementById("composeTitle");
+var bodyInput = document.getElementById("composeBody");
+var imageUrlInput = document.getElementById("composeImageUrl");
+var linkInput = document.getElementById("composeLink");
+var hashtagsInput = document.getElementById("composeHashtags");
+var anonymousInput = document.getElementById("composeAnonymous");
+if (titleInput) titleInput.value = item.title || "";
+if (bodyInput) bodyInput.value = item.content || "";
+if (imageUrlInput) imageUrlInput.value = item.imageUrl || "";
+if (linkInput) linkInput.value = item.link || "";
+if (hashtagsInput) hashtagsInput.value = (item.hashtags || []).map(function(t) { return '#' + t; }).join(" ");
+if (anonymousInput) anonymousInput.checked = !!item.anonymous;
+if (bodyInput) bodyInput.dispatchEvent(new Event("input"));
+if (hashtagsInput) hashtagsInput.dispatchEvent(new Event("input"));
 var formTitle = compose.querySelector(".compose-title");if (formTitle) formTitle.innerHTML = "⚔️ Edit Announcement";
 var submitBtn = document.getElementById("composeSubmitBtn");if (submitBtn) submitBtn.innerHTML = "💾 Save Changes";
 var cancelBtn = document.getElementById("composeCancelBtn");if (cancelBtn) cancelBtn.style.display = "inline-block";
