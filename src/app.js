@@ -47,10 +47,83 @@ function initApp() {let currentPage = location.pathname.split("/").pop().replac
 if (siteShell) {siteShell.classList.remove("is-hidden");}document.body.classList.add("entered");
 renderNav();initPointerTracking();registerThumbnailCache();
 activateView(currentPage);loadBigCartelProducts();}
-function renderAnnouncements(view) {return `<div class="announcements-obsidian section-system" id="announcementsView"><section class="announcements-hero" style="text-align: center; margin-bottom: 40px; padding: 0 20px;"><h2 class="promo-header-main" style="border-bottom: 1px solid var(--color-line); padding-bottom: 12px; margin-bottom: 16px; font-family: var(--font-display); font-size: 2.2rem; letter-spacing: 2px;">Announcements</h2><p class="announcements-subtext" style="font-family: var(--font-body); font-size: 1.1rem; color: var(--color-text); max-width: 700px; margin: 0 auto;">Latest news and updates from Legion Realm staff.</p></section>
-<!-- ── Staff Compose Form (only visible to users with staff role) ────────── --><div class="announcements-compose" id="announcementsCompose" style="display:none; max-width: 800px; margin: 0 auto 40px; padding: 0 20px;"><div class="compose-header"><h3 class="compose-title">⚔️ Broadcast Announcement</h3><p class="compose-hint">Compose an announcement here and it will be posted to Discord and displayed on the website.</p></div><div class="compose-form"><div class="compose-field"><label for="composeTitle">Title</label><input type="text" id="composeTitle" placeholder="Announcement headline..." maxlength="256"></div><div class="compose-field"><label for="composeBody">Body <span class="compose-label-hint">(Markdown-style: bullet points, numbered lists, IMPORTANT:/WARNING:/NOTE: prefixes)</span></label><textarea id="composeBody" rows="8" placeholder="Write your announcement body here...&#10;&#10;- Bullet points become 🔹&#10;IMPORTANT: Alerts get emojis&#10;1. Numbered lists get bold" maxlength="4096"></textarea><div class="compose-char-count"><span id="composeBodyCount">0</span> / 4096</div></div><div class="compose-row"><div class="compose-field"><label for="composeImageUrl">Image URL</label><input type="url" id="composeImageUrl" placeholder="https://example.com/image.png"></div><div class="compose-field"><label for="composeLink">Link URL <span class="compose-label-hint">(appears as a button)</span></label><input type="url" id="composeLink" placeholder="https://..."></div></div><div class="compose-field"><label for="composeHashtags">Hashtags <span class="compose-label-hint">(comma or space separated, e.g. #update #event #release)</span></label><input type="text" id="composeHashtags" placeholder="#update #news #event"><div class="compose-hashtag-pills" id="composeHashtagPills"></div></div><div class="compose-field checkbox-field" style="display: flex; align-items: center; gap: 8px; margin-top: 12px; cursor: pointer;"><input type="checkbox" id="composeAnonymous" style="width: auto; margin: 0; cursor: pointer; accent-color: #800000;"><label for="composeAnonymous" style="display: inline; text-transform: none; font-size: 0.85rem; color: #b5a68e; cursor: pointer; margin-bottom: 0;">Hide my identity (post as Legion Realm)</label></div><div class="compose-actions"><button type="button" class="button button-ghost" id="composePreviewBtn">👁 Preview</button><button type="button" class="button button-primary" id="composeSubmitBtn">📢 Broadcast to Discord &amp; Website</button><button type="button" class="button button-ghost" id="composeCancelBtn" style="display:none; border-color: rgba(224, 49, 49, 0.4); color: #e03131;">❌ Cancel Edit</button></div><div class="compose-status" id="composeStatus"></div></div><!-- Live Preview Card --><div class="compose-preview" id="composePreview" style="display:none;"><h4 class="preview-label">Preview</h4><div class="preview-card" id="composePreviewCard"></div></div></div>
-<!-- ── Staff View Control Bar ────────────────────────────────────────────── -->
-<div class="announcements-feed" id="announcementsFeed" style="max-width: 800px; margin: 0 auto; padding: 0 20px;"><div class="announcements-loading"><div class="announcements-shimmer"></div><div class="announcements-shimmer"></div><div class="announcements-shimmer"></div><p style="margin-top:12px;">Loading announcements...</p></div></div></div>`;}
+function renderAnnouncements(view) {
+return `
+<div class="announcements-obsidian section-system" id="announcementsView">
+<section class="announcements-hero" style="text-align: center; margin-bottom: 40px; padding: 0 20px;">
+<h2 class="promo-header-main" style="border-bottom: 1px solid var(--color-line); padding-bottom: 12px; margin-bottom: 16px; font-family: var(--font-display); font-size: 2.2rem; letter-spacing: 2px;">Announcements</h2>
+<p class="announcements-subtext" style="font-family: var(--font-body); font-size: 1.1rem; color: var(--color-text); max-width: 700px; margin: 0 auto;">Latest news and updates from Legion Realm staff.</p>
+</section>
+<!-- Staff Compose Form injected dynamically by JS only after staff role confirmed server-side -->
+<div id="announcementsCompose"></div>
+<div class="announcements-feed" id="announcementsFeed" style="max-width: 800px; margin: 0 auto; padding: 0 20px;">
+<div class="announcements-loading">
+<div class="announcements-shimmer"></div>
+<div class="announcements-shimmer"></div>
+<div class="announcements-shimmer"></div>
+<p style="margin-top:12px;">Loading announcements...</p>
+</div>
+</div>
+</div>
+`;
+}
+function injectStaffComposeForm() {
+var container = document.getElementById("announcementsCompose");
+if (!container) return;
+if (container.querySelector(".compose-form")) return; 
+container.innerHTML = '\
+<div class="announcements-compose" style="max-width: 800px; margin: 0 auto 40px; padding: 0 20px;">\
+<div class="compose-header">\
+<h3 class="compose-title">⚔️ Broadcast Announcement</h3>\
+<p class="compose-hint">Compose an announcement here and it will be posted to Discord and displayed on the website.</p>\
+</div>\
+<div class="compose-form">\
+<div class="compose-field">\
+<label for="composeTitle">Title</label>\
+<input type="text" id="composeTitle" placeholder="Announcement headline..." maxlength="256">\
+</div>\
+<div class="compose-field">\
+<label for="composeBody">Body <span class="compose-label-hint">(Markdown-style: bullet points, numbered lists, IMPORTANT:/WARNING:/NOTE: prefixes)</span></label>\
+<textarea id="composeBody" rows="8" placeholder="Write your announcement body here...&#10;&#10;- Bullet points become 🔹&#10;IMPORTANT: Alerts get emojis&#10;1. Numbered lists get bold" maxlength="4096"></textarea>\
+<div class="compose-char-count"><span id="composeBodyCount">0</span> / 4096</div>\
+</div>\
+<div class="compose-row">\
+<div class="compose-field">\
+<label for="composeImageUrl">Image URL</label>\
+<input type="url" id="composeImageUrl" placeholder="https://example.com/image.png">\
+</div>\
+<div class="compose-field">\
+<label for="composeLink">Link URL <span class="compose-label-hint">(appears as a button)</span></label>\
+<input type="url" id="composeLink" placeholder="https://...">\
+</div>\
+</div>\
+<div class="compose-field">\
+<label for="composeHashtags">Hashtags <span class="compose-label-hint">(comma or space separated, e.g. #update #event #release)</span></label>\
+<input type="text" id="composeHashtags" placeholder="#update #news #event">\
+<div class="compose-hashtag-pills" id="composeHashtagPills"></div>\
+</div>\
+<div class="compose-field checkbox-field" style="display: flex; align-items: center; gap: 8px; margin-top: 12px; cursor: pointer;">\
+<input type="checkbox" id="composeAnonymous" style="width: auto; margin: 0; cursor: pointer; accent-color: #800000;">\
+<label for="composeAnonymous" style="display: inline; text-transform: none; font-size: 0.85rem; color: #b5a68e; cursor: pointer; margin-bottom: 0;">\
+Hide my identity (post as Legion Realm)\
+</label>\
+</div>\
+<div class="compose-actions">\
+<button type="button" class="button button-ghost" id="composePreviewBtn">👁 Preview</button>\
+<button type="button" class="button button-primary" id="composeSubmitBtn">📢 Broadcast to Discord & Website</button>\
+<button type="button" class="button button-ghost" id="composeCancelBtn" style="display:none; border-color: rgba(224, 49, 49, 0.4); color: #e03131;">❌ Cancel Edit</button>\
+</div>\
+<div class="compose-status" id="composeStatus"></div>\
+</div>\
+<div class="compose-preview" id="composePreview" style="display:none;">\
+<h4 class="preview-label">Preview</h4>\
+<div class="preview-card" id="composePreviewCard"></div>\
+</div>\
+</div>';
+if (typeof bindAnnouncementsView === "function") {
+bindAnnouncementsView();
+}
+}
 function renderView(view) {const renderers = {home: renderHome,son: renderSon,underground: renderUnderground,divinity: renderDivinity,studio: renderStudio,nightowlprints: renderNightOwlPrints,music: renderMusic,video: renderVideo,community: renderCommunity,announcements: renderAnnouncements,store: renderStore,promote: renderPromote};
 let html = `<section class="view band view-${view.id}" data-view="${view.id}" tabindex="-1"><div class="view-ghost" aria-hidden="true">${sulfurSvg()}</div>${renderers[view.id](view)}</section>`;
 if (cdnBase) {html = html.replace(/src=["'](?!https?:\/\/|data:)([^"']+)["']/g, (match, p1) => {return `src="${cdnBase}/${p1.replace(/^\//, '')}"`;});}
@@ -157,9 +230,45 @@ async function bindAnnouncementsView() {var feed = document.getElementById("ann
 var isStaff = (window.authState && window.authState.user && window.authState.user.isStaff === true);
 var staffControls = document.getElementById("announcementsStaffControls");if (staffControls) {staffControls.style.display = isStaff ? "block" : "none";}
 var data = null;var fetchError = false;
-try {var apiRes = await fetch("/api/announcements");if (apiRes.ok) {data = await apiRes.json();} else {fetchError = true;}} catch (e) {console.warn("[announcements] API fetch failed, trying CDN fallback");fetchError = true;}
-if ((fetchError || !Array.isArray(data)) && !(data && data.length > 0)) {try {var cdnUrl = cdnBase? cdnBase + "/announcements.json": "https://cdn.jsdelivr.net/gh/Moonfire-dreamwalkers/legion-realm-public-assets@main/announcements.json";var cdnRes = await fetch(cdnUrl, { cache: "no-store" });if (cdnRes.ok) {data = await cdnRes.json();fetchError = false;}} catch (cdnErr) {console.error("[announcements] CDN fallback also failed");}}
-if (!Array.isArray(data) || (data.length === 0 && fetchError)) {feed.innerHTML ='<div class="announcements-empty" style="text-align:center;padding:40px 20px;color:var(--color-muted);">' +'<p>Unable to load announcements.</p>' +'<button class="button button-secondary" onclick="location.reload()" style="margin-top:16px;">Retry</button>' +'</div>';return;}
+var serverIsStaff = false;
+try {
+var apiRes = await fetch("/api/announcements");
+if (apiRes.ok) {
+var apiData = await apiRes.json();
+if (apiData && Array.isArray(apiData.announcements)) {
+data = apiData.announcements;
+serverIsStaff = apiData.isStaff === true;
+} else if (Array.isArray(apiData)) {
+data = apiData;
+} else {
+fetchError = true;
+}
+} else {
+fetchError = true;
+}
+} catch (e) {
+console.warn("[announcements] API fetch failed, trying CDN fallback");
+fetchError = true;
+}
+if ((fetchError || !Array.isArray(data)) && !(data && data.length > 0)) {
+try {
+var cdnUrl = cdnBase
+? cdnBase + "/announcements.json"
+: "https://cdn.jsdelivr.net/gh/Moonfire-dreamwalkers/legion-realm-public-assets@main/announcements.json";
+var cdnRes = await fetch(cdnUrl, { cache: "no-store" });
+if (cdnRes.ok) {
+data = await cdnRes.json();
+fetchError = false;
+}
+} catch (cdnErr) {
+console.error("[announcements] CDN fallback also failed");
+}
+}
+if (serverIsStaff && window.authState && window.authState.user) {
+window.authState.user.isStaff = true;
+}
+if (!Array.isArray(data) || (data.length === 0 && fetchError)) {
+feed.innerHTML ='<div class="announcements-empty" style="text-align:center;padding:40px 20px;color:var(--color-muted);">' +'<p>Unable to load announcements.</p>' +'<button class="button button-secondary" onclick="location.reload()" style="margin-top:16px;">Retry</button>' +'</div>';return;}
 if (data.length === 0) {feed.innerHTML ='<div class="announcements-empty" style="text-align:center;padding:40px 20px;color:var(--color-muted);">' +'<p>No announcements have been broadcast yet.</p>' +'</div>';return;}
 var visibleData = data;
 if (visibleData.length === 0) {feed.innerHTML ='<div class="announcements-empty" style="text-align:center;padding:40px 20px;color:var(--color-muted);">' +'<p>No active announcements. Check back soon.</p>' +'</div>';return;}
@@ -655,4 +764,13 @@ if (activeCounter) activeCounter.textContent = "--";if (activeSubtext) activeSu
 updateTrafficStats();
 let trafficMapInitialized = false;function initTrafficMapIfPossible() {if (trafficMapInitialized) {if (window.trafficMapInstance) {window.trafficMapInstance.updateSize();}return;}const mapContainer = document.getElementById("trafficMap");if (mapContainer && typeof jsVectorMap !== "undefined") {try {window.trafficMapInstance = new jsVectorMap({selector: "#trafficMap",map: "us_merc_en",zoomOnScroll: false,zoomButtons: false,regionStyle: {initial: {fill: "rgba(10, 10, 10, 0.8)",stroke: "rgba(184, 14, 23, 0.4)",strokeWidth: 1.5,fillOpacity: 1},hover: {fill: "rgba(184, 14, 23, 0.15)",fillOpacity: 0.8,cursor: "pointer"}},markers: [{ name: "Cleveland (Hub)", coords: [41.4993, -81.6944], style: { fill: "#ff2a2a", r: 6 } },{ name: "New York", coords: [40.7128, -74.0060], style: { fill: "#ff2a2a", r: 4 } },{ name: "Los Angeles", coords: [34.0522, -118.2437], style: { fill: "#ff2a2a", r: 4 } },{ name: "Chicago", coords: [41.8781, -87.6298], style: { fill: "#ff2a2a", r: 4 } },{ name: "Houston", coords: [29.7604, -95.3698], style: { fill: "#ff2a2a", r: 4 } },{ name: "Miami", coords: [25.7617, -80.1918], style: { fill: "#ff2a2a", r: 4 } },{ name: "Seattle", coords: [47.6062, -122.3321], style: { fill: "#ff2a2a", r: 4 } }],markerStyle: {initial: {stroke: "rgba(184, 14, 23, 0.8)",strokeWidth: 1.5},hover: {fill: "#ff5555"}},lines: [{ from: "Cleveland (Hub)", to: "New York", style: { stroke: "rgba(184, 14, 23, 0.35)", strokeWidth: 1.5, strokeDasharray: "4 4" } },{ from: "Cleveland (Hub)", to: "Los Angeles", style: { stroke: "rgba(184, 14, 23, 0.35)", strokeWidth: 1.5, strokeDasharray: "4 4" } },{ from: "Cleveland (Hub)", to: "Chicago", style: { stroke: "rgba(184, 14, 23, 0.35)", strokeWidth: 1.5, strokeDasharray: "4 4" } },{ from: "Cleveland (Hub)", to: "Houston", style: { stroke: "rgba(184, 14, 23, 0.35)", strokeWidth: 1.5, strokeDasharray: "4 4" } },{ from: "Cleveland (Hub)", to: "Miami", style: { stroke: "rgba(184, 14, 23, 0.35)", strokeWidth: 1.5, strokeDasharray: "4 4" } },{ from: "Cleveland (Hub)", to: "Seattle", style: { stroke: "rgba(184, 14, 23, 0.35)", strokeWidth: 1.5, strokeDasharray: "4 4" } }],labels: {markers: {render: (marker) => marker.name}}});trafficMapInitialized = true;} catch (e) {console.error("Failed to initialize US Traffic Map:", e);}}}}
 if (document.readyState === "loading") {window.addEventListener("DOMContentLoaded", initApp);} else {initApp();}
-document.addEventListener("lr-auth-resolved", function () {var compose = document.getElementById("announcementsCompose");if (compose) {bindAnnouncementCompose();bindAnnouncementsView();}});
+document.addEventListener("lr-auth-resolved", function () {
+if (window.authState && window.authState.user && window.authState.user.isStaff === true) {
+injectStaffComposeForm();
+}
+var compose = document.getElementById("announcementsCompose");
+if (compose) {
+bindAnnouncementCompose();
+bindAnnouncementsView();
+}
+});

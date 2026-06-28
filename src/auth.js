@@ -15,7 +15,13 @@ window.location.href = url;
 function handleAuthClick(e) {
 e.preventDefault();
 if (authState.user) {
-window.location.href = AUTH_API + "/logout";
+fetch(AUTH_API + "/logout", { method: "POST", credentials: "same-origin" })
+.then(function() {
+window.location.reload();
+})
+.catch(function() {
+window.location.reload();
+});
 } else {
 var link = document.getElementById("authLink");
 if (link) {
