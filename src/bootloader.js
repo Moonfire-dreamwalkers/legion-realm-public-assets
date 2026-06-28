@@ -35,11 +35,16 @@ document.head.appendChild(s);
 if (isLocal) {
 window.LR_BUILD_VERSION = 'local';
 var cb = '?t=' + Date.now();
-Promise.all([
+var isAnnouncements = window.location.pathname.indexOf('announcements.html') !== -1;
+var styles = [
 loadStyle('src/styles/theme.css' + cb, 'lr-theme-css'),
 loadStyle('src/styles/site.css' + cb, 'lr-site-css'),
 loadStyle('src/styles/auth.css' + cb, 'lr-auth-css')
-]).then(function () {
+];
+if (isAnnouncements) {
+styles.push(loadStyle('src/styles/pages/announcements.css' + cb, 'lr-announcements-css'));
+}
+Promise.all(styles).then(function () {
 return loadScript('src/data/config.js' + cb);
 }).then(function () {
 return loadScript('src/app.js' + cb);
@@ -101,11 +106,16 @@ return;
 window.LR_BUILD_VERSION = ver;
 var safeVer = ver.replace(/[^a-zA-Z0-9._-]/g, '').substring(0, 64);
 var base = 'https://cdn.jsdelivr.net/gh/Moonfire-dreamwalkers/legion-realm-public-assets@' + safeVer;
-Promise.all([
+var isAnnouncements = window.location.pathname.indexOf('announcements.html') !== -1;
+var styles = [
 loadStyle(base + '/src/styles/theme.css', 'lr-theme-css'),
 loadStyle(base + '/src/styles/site.css', 'lr-site-css'),
 loadStyle(base + '/src/styles/auth.css', 'lr-auth-css')
-]).then(function () {
+];
+if (isAnnouncements) {
+styles.push(loadStyle(base + '/src/styles/pages/announcements.css', 'lr-announcements-css'));
+}
+Promise.all(styles).then(function () {
 return loadScript(base + '/src/data/config.js');
 }).then(function () {
 return loadScript(base + '/src/app.js');
