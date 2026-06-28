@@ -81,27 +81,13 @@ handleVersion(version, false);
 });
 function handleVersion(ver, mismatch) {
 if (mismatch) {
-document.body.style.opacity = '0';
+console.log('Clearing stale caches in background due to version mismatch:', ver);
+localStorage.setItem('lr_active_build_version', ver);
 if ('caches' in window) {
 caches.keys().then(function (keys) {
-return Promise.all(keys.map(function (key) { return caches.delete(key); }));
-}).then(function () {
-if ('serviceWorker' in navigator) {
-return navigator.serviceWorker.getRegistrations().then(function (regs) {
-return Promise.all(regs.map(function (r) { return r.update(); }));
+keys.forEach(function (key) { caches.delete(key); });
 });
 }
-}).then(function () {
-localStorage.setItem('lr_active_build_version', ver);
-console.log('Cleared stale cache due to build mismatch, reloading...');
-window.location.reload(true);
-}).catch(function (err) {
-console.error('Failed to clear cache on version mismatch:', err);
-});
-} else {
-localStorage.setItem('lr_active_build_version', ver);
-}
-return;
 }
 window.LR_BUILD_VERSION = ver;
 var safeVer = ver.replace(/[^a-zA-Z0-9._-]/g, '').substring(0, 64);
