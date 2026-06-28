@@ -49,7 +49,7 @@ renderNav();initPointerTracking();registerThumbnailCache();
 activateView(currentPage);loadBigCartelProducts();}
 function renderAnnouncements(view) {return `<div class="announcements-obsidian section-system" id="announcementsView"><section class="announcements-hero" style="text-align: center; margin-bottom: 40px; padding: 0 20px;"><h2 class="promo-header-main" style="border-bottom: 1px solid var(--color-line); padding-bottom: 12px; margin-bottom: 16px; font-family: var(--font-display); font-size: 2.2rem; letter-spacing: 2px;">Announcements</h2><p class="announcements-subtext" style="font-family: var(--font-body); font-size: 1.1rem; color: var(--color-text); max-width: 700px; margin: 0 auto;">Latest news and updates from Legion Realm staff.</p></section>
 <!-- ── Staff Compose Form (only visible to users with staff role) ────────── --><div class="announcements-compose" id="announcementsCompose" style="display:none; max-width: 800px; margin: 0 auto 40px; padding: 0 20px;"><div class="compose-header"><h3 class="compose-title">⚔️ Broadcast Announcement</h3><p class="compose-hint">Compose an announcement here and it will be posted to Discord and displayed on the website.</p></div><div class="compose-form"><div class="compose-field"><label for="composeTitle">Title</label><input type="text" id="composeTitle" placeholder="Announcement headline..." maxlength="256"></div><div class="compose-field"><label for="composeBody">Body <span class="compose-label-hint">(Markdown-style: bullet points, numbered lists, IMPORTANT:/WARNING:/NOTE: prefixes)</span></label><textarea id="composeBody" rows="8" placeholder="Write your announcement body here...&#10;&#10;- Bullet points become 🔹&#10;IMPORTANT: Alerts get emojis&#10;1. Numbered lists get bold" maxlength="4096"></textarea><div class="compose-char-count"><span id="composeBodyCount">0</span> / 4096</div></div><div class="compose-row"><div class="compose-field"><label for="composeImageUrl">Image URL</label><input type="url" id="composeImageUrl" placeholder="https://example.com/image.png"></div><div class="compose-field"><label for="composeLink">Link URL <span class="compose-label-hint">(appears as a button)</span></label><input type="url" id="composeLink" placeholder="https://..."></div></div><div class="compose-field"><label for="composeHashtags">Hashtags <span class="compose-label-hint">(comma or space separated, e.g. #update #event #release)</span></label><input type="text" id="composeHashtags" placeholder="#update #news #event"><div class="compose-hashtag-pills" id="composeHashtagPills"></div></div><div class="compose-field checkbox-field" style="display: flex; align-items: center; gap: 8px; margin-top: 12px; cursor: pointer;"><input type="checkbox" id="composeAnonymous" style="width: auto; margin: 0; cursor: pointer; accent-color: #800000;"><label for="composeAnonymous" style="display: inline; text-transform: none; font-size: 0.85rem; color: #b5a68e; cursor: pointer; margin-bottom: 0;">Hide my identity (post as Legion Realm)</label></div><div class="compose-actions"><button type="button" class="button button-ghost" id="composePreviewBtn">👁 Preview</button><button type="button" class="button button-primary" id="composeSubmitBtn">📢 Broadcast to Discord &amp; Website</button><button type="button" class="button button-ghost" id="composeCancelBtn" style="display:none; border-color: rgba(224, 49, 49, 0.4); color: #e03131;">❌ Cancel Edit</button></div><div class="compose-status" id="composeStatus"></div></div><!-- Live Preview Card --><div class="compose-preview" id="composePreview" style="display:none;"><h4 class="preview-label">Preview</h4><div class="preview-card" id="composePreviewCard"></div></div></div>
-<!-- ── Staff View Control Bar ────────────────────────────────────────────── --><div class="announcements-staff-controls" id="announcementsStaffControls" style="display:none; max-width:800px; margin: 0 auto 20px; padding: 0 20px;"><label class="checkbox-label" style="display:inline-flex; align-items:center; gap:8px; cursor:pointer; font-size:0.85rem; color:#b5a68e;"><input type="checkbox" id="toggleShowArchived" style="accent-color:#800000; width:16px; height:16px; cursor:pointer; margin: 0;"><span>Show archived dispatches</span></label></div>
+<!-- ── Staff View Control Bar ────────────────────────────────────────────── -->
 <div class="announcements-feed" id="announcementsFeed" style="max-width: 800px; margin: 0 auto; padding: 0 20px;"><div class="announcements-loading"><div class="announcements-shimmer"></div><div class="announcements-shimmer"></div><div class="announcements-shimmer"></div><p style="margin-top:12px;">Loading announcements...</p></div></div></div>`;}
 function renderView(view) {const renderers = {home: renderHome,son: renderSon,underground: renderUnderground,divinity: renderDivinity,studio: renderStudio,nightowlprints: renderNightOwlPrints,music: renderMusic,video: renderVideo,community: renderCommunity,announcements: renderAnnouncements,store: renderStore,promote: renderPromote};
 let html = `<section class="view band view-${view.id}" data-view="${view.id}" tabindex="-1"><div class="view-ghost" aria-hidden="true">${sulfurSvg()}</div>${renderers[view.id](view)}</section>`;
@@ -156,19 +156,16 @@ var editingAnnouncementId = null;
 async function bindAnnouncementsView() {var feed = document.getElementById("announcementsFeed");if (!feed) return;
 var isStaff = (window.authState && window.authState.user && window.authState.user.isStaff === true);
 var staffControls = document.getElementById("announcementsStaffControls");if (staffControls) {staffControls.style.display = isStaff ? "block" : "none";}
-var toggleShowArchived = document.getElementById("toggleShowArchived");if (toggleShowArchived && !toggleShowArchived.dataset.bound) {toggleShowArchived.dataset.bound = "true";toggleShowArchived.addEventListener("change", function() {bindAnnouncementsView();});}
-var showArchived = isStaff && toggleShowArchived && toggleShowArchived.checked;
 var data = null;var fetchError = false;
 try {var apiRes = await fetch("/api/announcements");if (apiRes.ok) {data = await apiRes.json();} else {fetchError = true;}} catch (e) {console.warn("[announcements] API fetch failed, trying CDN fallback");fetchError = true;}
 if ((fetchError || !Array.isArray(data)) && !(data && data.length > 0)) {try {var cdnUrl = cdnBase? cdnBase + "/announcements.json": "https://cdn.jsdelivr.net/gh/Moonfire-dreamwalkers/legion-realm-public-assets@main/announcements.json";var cdnRes = await fetch(cdnUrl, { cache: "no-store" });if (cdnRes.ok) {data = await cdnRes.json();fetchError = false;}} catch (cdnErr) {console.error("[announcements] CDN fallback also failed");}}
 if (!Array.isArray(data) || (data.length === 0 && fetchError)) {feed.innerHTML ='<div class="announcements-empty" style="text-align:center;padding:40px 20px;color:var(--color-muted);">' +'<p>Unable to load announcements.</p>' +'<button class="button button-secondary" onclick="location.reload()" style="margin-top:16px;">Retry</button>' +'</div>';return;}
 if (data.length === 0) {feed.innerHTML ='<div class="announcements-empty" style="text-align:center;padding:40px 20px;color:var(--color-muted);">' +'<p>No announcements have been broadcast yet.</p>' +'</div>';return;}
-var visibleData = showArchived ? data : data.filter(function(item) { return !item.archived; });
+var visibleData = data;
 if (visibleData.length === 0) {feed.innerHTML ='<div class="announcements-empty" style="text-align:center;padding:40px 20px;color:var(--color-muted);">' +'<p>No active announcements. Check back soon.</p>' +'</div>';return;}
 feed.innerHTML = visibleData.map(function(item) {
 var date = item.timestamp ? new Date(item.timestamp).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
 var cc = 'announcement-card';
-if (item.archived) cc += ' is-archived';
 var c = '<article class="' + cc + '">';
 c += '<div class="announcement-card-avatar">';
 if (item.authorAvatarUrl && !item.anonymous) c += '<img src="' + escapeHTML(item.authorAvatarUrl) + '" alt="Avatar">';
@@ -180,7 +177,6 @@ c += '<span class="announcement-card-timestamp">' + date + '</span>';
 if (isStaff) c += '<span class="announcement-card-id">' + escapeHTML(item.id) + '</span>';
 c += '</div>';
 var th = escapeHTML(item.title || 'Announcement');
-if (item.archived) th += ' <span class="badge-archived">Archived</span>';
 if (item.title) c += '<h3 class="announcement-card-title">' + th + '</h3>';
 if (item.content) c += '<div class="announcement-card-body">' + renderAnnouncementBody(item.content) + '</div>';
 if (item.imageUrl) c += '<div class="announcement-card-image"><img src="' + escapeHTML(item.imageUrl) + '" alt="Announcement Image" loading="lazy"></div>';
@@ -200,7 +196,6 @@ c += '</div>';
 if (isStaff) {
 c += '<div class="announcement-card-staff-actions">' +
 '<button type="button" class="button-staff button-edit" data-id="' + escapeHTML(item.id) + '">Edit</button>' +
-'<button type="button" class="button-staff button-archive" data-id="' + escapeHTML(item.id) + '" data-archived="' + !!item.archived + '">' + (item.archived ? 'Restore' : 'Archive') + '</button>' +
 '<button type="button" class="button-staff button-delete" data-id="' + escapeHTML(item.id) + '">Delete</button>' +
 '</div>';
 }
@@ -213,56 +208,6 @@ btn.addEventListener("click", function() {
 var id = btn.getAttribute("data-id");
 var item = visibleData.find(function(x) { return x.id === id; });
 if (item) startEditAnnouncement(item);
-});
-});
-feed.querySelectorAll(".button-archive").forEach(function(btn) {
-btn.addEventListener("click", async function() {
-var id = btn.getAttribute("data-id");
-var currentArchived = btn.getAttribute("data-archived") === "true";
-var nextArchived = !currentArchived;
-var card = btn.closest(".announcement-card");
-if (card) {
-card.classList.toggle("is-archived", nextArchived);
-btn.setAttribute("data-archived", nextArchived ? "true" : "false");
-btn.textContent = nextArchived ? "Restore" : "Archive";
-var title = card.querySelector(".announcement-card-title");
-if (title) {
-var badge = title.querySelector(".badge-archived");
-if (nextArchived && !badge) {
-var span = document.createElement("span");
-span.className = "badge-archived";
-span.textContent = "Archived";
-title.appendChild(span);
-} else if (!nextArchived && badge) {
-badge.remove();
-}
-}
-var toggleShowArchived = document.getElementById("toggleShowArchived");
-if (toggleShowArchived && !toggleShowArchived.checked && nextArchived) {
-card.style.transition = "all 0.3s ease";
-card.style.opacity = "0";
-card.style.maxHeight = "0";
-card.style.padding = "0";
-card.style.margin = "0";
-card.style.border = "0";
-setTimeout(function() { card.remove(); }, 300);
-}
-}
-try {
-var resp = await fetch("/api/announcements/archive", {
-method: "POST",
-headers: { "Content-Type": "application/json" },
-body: JSON.stringify({ id: id, archived: nextArchived })
-});
-if (!resp.ok) {
-alert("Failed to update archive status.");
-bindAnnouncementsView(); 
-}
-} catch(err) {
-console.error(err);
-alert("Network error.");
-bindAnnouncementsView(); 
-}
 });
 });
 feed.querySelectorAll(".button-delete").forEach(function(btn) {
