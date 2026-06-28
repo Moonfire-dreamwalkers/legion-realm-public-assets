@@ -416,7 +416,6 @@ const proxies = ["https://api.codetabs.com/v1/proxy?quest=","https://corsproxy
 for (const proxy of proxies) {try {console.log(`Attempting to load products via proxy: ${proxy}...`);data = await loadBigCartelProductsProxy(proxy);console.log(`Successfully loaded products via proxy: ${proxy}`);break; 
 } catch (proxyErr) {console.warn(`Proxy failed: ${proxy}`, proxyErr);}}}
 if (data) {try {processProductsData(data);refreshProductGrid();} catch (processErr) {console.error("Failed to process loaded product data:", processErr);}} else {console.warn("All dynamic product fetch attempts failed. Keeping fallback products.");}}
-function escapeHTML(str) {if (!str) return "";return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");}
 async function fetchGeocode(url) {const proxies = ["https://corsproxy.io/?url=","https://api.codetabs.com/v1/proxy?quest=","https://api.allorigins.win/raw?url="];
 for (const proxy of proxies) {try {const res = await fetch(proxy + encodeURIComponent(url));if (res.ok) {const text = await res.text();try {const parsed = JSON.parse(text);if (parsed.contents) {return JSON.parse(parsed.contents);}return parsed;} catch (e) {
 }}} catch (err) {console.warn("Geocoding proxy failed", err);}}throw new Error("Geocoding service unavailable.");}
